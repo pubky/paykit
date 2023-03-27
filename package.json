@@ -1,0 +1,22 @@
+{
+  "name": "slashpay",
+  "version": "0.0.1",
+  "description": "Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey (\"slashtag\") which refers to a data store containing all supported payment endpoints. ",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slashtags/slashpay-solo.git"
+  },
+  "keywords": [
+    "slashpay"
+  ],
+  "author": "dzdidi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/slashtags/slashpay-solo/issues"
+  },
+  "homepage": "https://github.com/slashtags/slashpay-solo#readme"
+}
