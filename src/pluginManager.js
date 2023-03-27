@@ -1,6 +1,7 @@
-import assert from 'node:assert/strict'
+const assert = require('node:assert/strict')
+const fs = require('fs')
 
-class PluginManager {
+module.exports = class PluginManager {
   constructor(config) {
     this.plugins = {}
     this.config = config
