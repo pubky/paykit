@@ -22,6 +22,7 @@ module.exports = class PluginManager {
 
   // Load a plugin with runtime by path to the entry point
   async loadPlugin(pluginEntryPoint) {
+    // XXX use runtime
     const module = await import(pluginEntryPoint)
     const plugin = await module.init()
     const manifestRes = await plugin.getmanifest()
@@ -64,8 +65,10 @@ module.exports = class PluginManager {
   }
 
   // Get a map of all loaded plugins
-  getPlugins() {
-    return this.plugins;
+  getPlugins(isActive) {
+    return (typeof isActive === 'undefined')
+      ? this.plugins
+      : this.plugins.filter(p => p.active === isActive)
   }
 
   async parseManifestRes(manifestRes) {

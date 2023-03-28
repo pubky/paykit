@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/slashtags/slashpay-solo/issues"
   },
-  "homepage": "https://github.com/slashtags/slashpay-solo#readme"
+  "homepage": "https://github.com/slashtags/slashpay-solo#readme",
+  "dependencies": {
+    "mocha": "^10.2.0"
+  }
 }

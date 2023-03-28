@@ -31,6 +31,13 @@ General plugin responsibilities
 - Correctly implement `init` and `getmanifest` methods
 - ...
 
+#### Plugin requirements
+- entry point must be executable
+- must have `init` method
+- must have getmanifest method
+- may have `start` method. It should be called inside of `init`
+- may have `stop` method
+
 #### Manifest requirements
 Plugin manifest needs to be a JSON object with following fields:
 - `name` - a string name of the plugin. It must be unique for all registered plugins. Plugin manager will throw an error and gracefully shutdown all other plugins
