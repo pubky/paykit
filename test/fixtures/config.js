@@ -1,10 +1,12 @@
+const path = require('path')
+
 const pluginConfig = {
   plugins: [
-    './test/fixtures/executablePlugin/main',
-    './test/fixtures/notExecutablePlugin/main',
-    './test/fixtures/notExisingFolder/main'
+    path.resolve(__dirname, 'pluginA', 'main.js'),
+    path.resolve(__dirname, 'pluginB', 'main.js')
   ]
 }
+
 module.exports = {
   pluginConfig
 }

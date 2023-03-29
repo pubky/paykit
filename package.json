@@ -4,7 +4,8 @@
   "description": "Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey (\"slashtag\") which refers to a data store containing all supported payment endpoints. ",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "standard --fix",
+    "test": "brittle test/*.js"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   },
   "homepage": "https://github.com/slashtags/slashpay-solo#readme",
   "dependencies": {
-    "mocha": "^10.2.0"
+    "brittle": "^3.2.1",
+    "sinon": "^15.0.3"
   }
 }
