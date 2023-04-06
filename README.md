@@ -1,24 +1,24 @@
 # Slashpay
 
 ## Description 
-Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey ("slashtag") which refers to a data store containing all supported payment endpoints. 
+Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey ("slashtag") which refers to a data store containing all supported payment endpoints.
 
 ## Technical Summary
 Design approach is similar to core lightning.
 
 ### Architecure 
  Slashpay consists of core and plugins. Core is an event emitter service with JSON-RPC2.0 compatible interface. Plugins specify which events they subscribe to. There two possible modes for core to run plugins:
- - js library - required into core module, mainly used for mobile
- - child process - with communication over UNIX sockets, mainly used for server
+ - js library - required into core module, mainly used for mobile (current implementation)
+ - child process - with communication over UNIX sockets (future implementation mainly to be used for server)
 
 #### Core's responsibilities:
 
-- CRUD operations on hypercore/hyperdrive
-- Business logic for payment media selection process
-- Loading and initialization of plugins
-- Handling pass-through via RPC interface for specified plugins methods
-- Subscribing plugins for specified internal events
-- Have a specific “trigger” endpoint for triggering events (may be used for inter-plugin communication)
+- [ ] CRUD operations on hypercore/hyperdrive
+- [ ] Business logic for payment media selection process
+- [x] Loading and initialization of plugins
+- [ ] Handling pass-through via RPC interface for specified plugins methods
+- [ ] Subscribing plugins for specified internal events
+- [ ] Have a specific “trigger” endpoint for triggering events (may be used for inter-plugin communication)
 
 ##### Differences with Core-Lightning:
 
@@ -34,10 +34,10 @@ General plugin responsibilities
 - ...
 
 #### Plugin requirements
-- entry point must be executable
+- entry point must be executable (for child process)
 - must have `init` method
-- must have getmanifest method
-- may have `start` method. It should be called inside of `init`
+- must have `getmanifest` method
+- may have `start` method
 - may have `stop` method
 
 #### Manifest requirements
@@ -48,4 +48,4 @@ Plugin manifest needs to be a JSON object with following fields:
 
 
 # TODO:
-Define list of supported events and their payload
+- [ ] Document list of supported events and their payload
