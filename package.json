@@ -23,7 +23,7 @@
     "url": "https://github.com/slashtags/slashpay-solo/issues"
   },
   "homepage": "https://github.com/slashtags/slashpay-solo#readme",
-  "dependencies": {
+  "devDependencies": {
     "brittle": "^3.2.1",
     "sinon": "^15.0.3",
     "typescript": "^5.0.3"
