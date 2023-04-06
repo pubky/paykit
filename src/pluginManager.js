@@ -2,16 +2,21 @@ const assert = require('node:assert/strict')
 const fs = require('fs')
 
 const ERRORS = {
-  PLUGIN_CONFLICT: 'Conflicting plugin names',
-  PLUGIN_IS_ACTIVE: 'Can not remove active plugin',
-  PLUGIN_NOT_READABLE: 'Plugin entry point must be readable',
-  PLUGIN_NAME_MISSING: (msg) => `${msg} plugin name missing`,
-  PLUGIN_NAME_NOT_STRING: (msg) => `${msg} plugin name is not a string`,
-  PLUGIN_RPC_NOT_ARRAY: (msg) => `${msg} RPC is not an array`,
-  PLUGIN_RPC_NOT_STRING: (msg, rpc) => `${msg} RPC method ${rpc} is not a string`,
-  PLUGIN_RPC_NOT_UNIQ: (msg) => `${msg} duplicated RPC methods`,
-  PLUGIN_EVENTS_NOT_ARRAY: (msg) => `${msg} events is not an array`,
-  PLUGIN_EVENT_NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`
+  CONFLICT: 'Conflicting plugin names',
+  NOT_READABLE: 'Plugin entry point must be readable',
+  NAME: {
+    MISSING: (msg) => `${msg} plugin name missing`,
+    NOT_STRING: (msg) => `${msg} plugin name is not a string`
+  },
+  RPC: {
+    NOT_ARRAY: (msg) => `${msg} RPC is not an array`,
+    NOT_STRING: (msg, rpc) => `${msg} RPC method ${rpc} is not a string`,
+    NOT_UNIQ: (msg) => `${msg} duplicated RPC methods`
+  },
+  EVENTS: {
+    NOT_ARRAY: (msg) => `${msg} events is not an array`,
+    NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`
+  }
 }
 
 class PluginManager {
@@ -33,7 +38,7 @@ class PluginManager {
       const stat = fs.statSync(pluginEntryPoint)
       assert(
         parseInt((stat.mode & parseInt('777', 8)).toString(8)[0]) >= 6,
-        ERRORS.PLUGIN_NOT_READABLE
+        ERRORS.NOT_READABLE
       )
     })
   }
@@ -54,7 +59,7 @@ class PluginManager {
     await this.validateManifest(manifestRes)
     const manifest = JSON.parse(JSON.stringify(manifestRes))
 
-    if (this.plugins[manifest.name]) throw new Error(ERRORS.PLUGIN_CONFLICT)
+    if (this.plugins[manifest.name]) throw new Error(ERRORS.CONFLICT)
 
     const p = { manifest, plugin, active }
     this.plugins[manifest.name] = p
@@ -120,8 +125,8 @@ class PluginManager {
    * @throws {Error} - if name is missing
    */
   validateName (manifest, msg) {
-    assert(manifest.name, ERRORS.PLUGIN_NAME_MISSING(msg))
-    assert.equal(typeof manifest.name, 'string', ERRORS.PLUGIN_NAME_NOT_STRING(msg))
+    assert(manifest.name, ERRORS.NAME.MISSING(msg))
+    assert.equal(typeof manifest.name, 'string', ERRORS.NAME.NOT_STRING(msg))
   }
 
   /**
@@ -136,14 +141,14 @@ class PluginManager {
       return
     }
 
-    assert(Array.isArray(manifest.rpc), ERRORS.PLUGIN_RPC_NOT_ARRAY(msg))
+    assert(Array.isArray(manifest.rpc), ERRORS.RPC.NOT_ARRAY(msg))
     manifest.rpc.forEach(rpc => assert(
       typeof rpc === 'string',
-      ERRORS.PLUGIN_RPC_NOT_STRING(msg, rpc))
+      ERRORS.RPC.NOT_STRING(msg, rpc))
     )
 
     const unique = [...new Set(manifest.rpc.map(rpc => rpc.toLowerCase()))]
-    assert.equal(manifest.rpc.length, unique.length, ERRORS.PLUGIN_RPC_NOT_UNIQ(msg))
+    assert.equal(manifest.rpc.length, unique.length, ERRORS.RPC.NOT_UNIQ(msg))
   }
 
   /**
@@ -158,9 +163,9 @@ class PluginManager {
       return
     }
 
-    assert(Array.isArray(manifest.events), ERRORS.PLUGIN_EVENTS_NOT_ARRAY(msg))
+    assert(Array.isArray(manifest.events), ERRORS.EVENTS.NOT_ARRAY(msg))
     manifest.events.forEach(event => {
-      assert(typeof event === 'string', ERRORS.PLUGIN_EVENT_NOT_STRING(msg, event))
+      assert(typeof event === 'string', ERRORS.EVENTS.NOT_STRING(msg, event))
     })
   }
 

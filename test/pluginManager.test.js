@@ -76,7 +76,7 @@ test('load duplicate plugin', async t => {
 
   await t.exception(
     async () => await pluginManager.loadPlugin(pluginConfig.plugins[0]),
-    ERRORS.PLUGIN_CONFLICT
+    ERRORS.CONFLICT
   )
 
   t.teardown(() => {
@@ -174,12 +174,12 @@ test('validateName', (t) => {
   const pluginManager = new PluginManager({})
   t.exception(
     () => pluginManager.validateName({}, 'test prefix'),
-    ERRORS.PLUGIN_NAME_MISSING('test prefix')
+    ERRORS.NAME.MISSING('test prefix')
   )
 
   t.exception(
     () => pluginManager.validateName({ name: 1 }, 'test prefix'),
-    ERRORS.PLUGIN_NAME_NOT_STRING('test prefix')
+    ERRORS.NAME.NOT_STRING('test prefix')
   )
 })
 
@@ -189,17 +189,17 @@ test('validateRPC', (t) => {
 
   t.exception(
     () => pluginManager.validateRPC({ rpc: 1 }, 'test prefix'),
-    ERRORS.PLUGIN_RPC_NOT_ARRAY('test prefix')
+    ERRORS.RPC.NOT_ARRAY('test prefix')
   )
 
   t.exception(
     () => pluginManager.validateRPC({ rpc: ['test', 1] }, 'test prefix'),
-    ERRORS.PLUGIN_RPC_NOT_STRING('test prefix', 1)
+    ERRORS.RPC.NOT_STRING('test prefix', 1)
   )
 
   t.exception(
     () => pluginManager.validateRPC({ rpc: ['test', 'tESt'] }, 'test prefix'),
-    ERRORS.PLUGIN_RPC_NOT_UNIQ('test prefix')
+    ERRORS.RPC.NOT_UNIQ('test prefix')
   )
 
   t.execution(pluginManager.validateRPC({ rpc: ['test1', 'test2'] }, 'test prefix'))
@@ -211,12 +211,12 @@ test('validateEvents', (t) => {
 
   t.exception(
     () => pluginManager.validateEvents({ events: 1 }, 'test prefix'),
-    ERRORS.PLUGIN_EVENTS_NOT_ARRAY('test prefix')
+    ERRORS.EVENTS.NOT_ARRAY('test prefix')
   )
 
   t.exception(
     () => pluginManager.validateEvents({ events: ['test', 1] }, 'test prefix'),
-    ERRORS.PLUGIN_EVENT_NOT_STRING('test prefix', 1)
+    ERRORS.EVENTS.NOT_STRING('test prefix', 1)
   )
 
   t.execution(pluginManager.validateEvents({ rpc: ['test1', 'test2'] }, 'test prefix'))

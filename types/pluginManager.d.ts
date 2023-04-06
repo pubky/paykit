@@ -88,14 +88,22 @@ export class PluginManager {
     gracefulThrow(error: Error): Promise<void>;
 }
 export namespace ERRORS {
-    const PLUGIN_CONFLICT: string;
-    const PLUGIN_IS_ACTIVE: string;
-    const PLUGIN_NOT_READABLE: string;
-    function PLUGIN_NAME_MISSING(msg: any): string;
-    function PLUGIN_NAME_NOT_STRING(msg: any): string;
-    function PLUGIN_RPC_NOT_ARRAY(msg: any): string;
-    function PLUGIN_RPC_NOT_STRING(msg: any, rpc: any): string;
-    function PLUGIN_RPC_NOT_UNIQ(msg: any): string;
-    function PLUGIN_EVENTS_NOT_ARRAY(msg: any): string;
-    function PLUGIN_EVENT_NOT_STRING(msg: any, event: any): string;
+    const CONFLICT: string;
+    const NOT_READABLE: string;
+    namespace NAME {
+        function MISSING(msg: any): string;
+        function NOT_STRING(msg: any): string;
+    }
+    namespace RPC {
+        export function NOT_ARRAY(msg: any): string;
+        export function NOT_STRING_1(msg: any, rpc: any): string;
+        export { NOT_STRING_1 as NOT_STRING };
+        export function NOT_UNIQ(msg: any): string;
+    }
+    namespace EVENTS {
+        export function NOT_ARRAY_1(msg: any): string;
+        export { NOT_ARRAY_1 as NOT_ARRAY };
+        export function NOT_STRING_2(msg: any, event: any): string;
+        export { NOT_STRING_2 as NOT_STRING };
+    }
 }
