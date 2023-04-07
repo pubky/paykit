@@ -104,6 +104,31 @@ class PluginManager {
   }
 
   /**
+   * Dispatch an event to all active plugins
+   * @param {string} event - event name
+   * @param {Object} data - event data
+   * @returns {Promise<void>}
+   */
+  async dispatchEvent (event, data) {
+    await Promise.all(
+      Object.entries(this.plugins)
+        .filter(([_name, plugin]) => (plugin.manifest.events.includes(event) && plugin.active))
+        .map(async ([_name, plugin]) => await plugin.plugin.onEvent(event, data))
+    )
+  }
+
+  /**
+   * Get map with method path as a keys and corresponding plugin methods as values
+   * @returns {Object[any]} - map of methods
+   */
+  getRPCRegistry () {
+    return Object.fromEntries(
+      Object.entries(this.plugins)
+        .map(([name, plugin]) => plugin.manifest.rpc.map((rpc) => [`${name}/${rpc}`, plugin.plugin[rpc]])).flat()
+    )
+  }
+
+  /**
    * Validates manifest
    * @param {PluginManifest} manifest - manifest object
    * @returns {Promise<void>}

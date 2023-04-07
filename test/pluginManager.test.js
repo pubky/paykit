@@ -146,6 +146,66 @@ test('getPlugins', async (t) => {
   })
 })
 
+test('dispatchEvent', async (t) => {
+  const pluginManager = new PluginManager(pluginConfig)
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1])
+
+  await pluginManager.dispatchEvent('event1', { data: 'both' })
+
+  t.is(pluginA.plugin.onEvent.callCount, 1)
+  t.is(pluginB.plugin.onEvent.callCount, 1)
+  t.alike(pluginB.plugin.onEvent.getCall(0).args, ['event1', { data: 'both' }])
+
+  await pluginManager.stopPlugin('testA')
+  t.is(pluginA.active, false)
+  // b is not subscribed to event2
+  await pluginManager.dispatchEvent('event2', { data: 'nobody' })
+
+  t.is(pluginA.plugin.onEvent.callCount, 1)
+  t.is(pluginB.plugin.onEvent.callCount, 1)
+
+  await pluginManager.dispatchEvent('event1', { data: 'onlyB' })
+
+  t.is(pluginA.plugin.onEvent.callCount, 1)
+  t.is(pluginB.plugin.onEvent.callCount, 2)
+  t.alike(pluginB.plugin.onEvent.getCall(1).args, ['event1', { data: 'onlyB' }])
+
+  t.teardown(() => {
+    pluginAStub.init.resetHistory()
+    pluginAStub.getmanifest.resetHistory()
+
+    pluginBStub.init.resetHistory()
+    pluginBStub.getmanifest.resetHistory()
+
+    pluginA.plugin.onEvent.resetHistory()
+    pluginB.plugin.onEvent.resetHistory()
+  })
+})
+
+test('getRPCRegistry', async (t) => {
+  const pluginManager = new PluginManager(pluginConfig)
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1])
+
+  t.alike(pluginManager.getRPCRegistry(), {
+    'testA/stop': pluginA.plugin.stop,
+    'testB/stop': pluginB.plugin.stop,
+    'testB/start': pluginB.plugin.start,
+  })
+
+  t.teardown(() => {
+    pluginAStub.init.resetHistory()
+    pluginAStub.getmanifest.resetHistory()
+
+    pluginBStub.init.resetHistory()
+    pluginBStub.getmanifest.resetHistory()
+
+    pluginA.plugin.onEvent.resetHistory()
+    pluginB.plugin.onEvent.resetHistory()
+  })
+})
+
 test('validateManifest', (t) => {
   const pluginManager = new PluginManager({})
 
