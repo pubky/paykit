@@ -50,12 +50,25 @@ export class PluginManager {
      */
     getPlugins(isActive: boolean): any;
     /**
+     * Dispatch an event to all active plugins
+     * @param {string} event - event name
+     * @param {Object} data - event data
+     * @returns {Promise<void>}
+     */
+    dispatchEvent(event: string, data: any): Promise<void>;
+    /**
+     * Get map with method path as a keys and corresponding plugin methods as values
+     * @returns {Object[any]} - map of methods
+     */
+    getRPCRegistry(): any[any];
+    /**
      * Validates manifest
      * @param {PluginManifest} manifest - manifest object
+     * @param {Plugin} plugin - plugin instance
      * @returns {Promise<void>}
      * @throws {Error} - if manifest is invalid
      */
-    validateManifest(manifest: PluginManifest): Promise<void>;
+    validateManifest(manifest: PluginManifest, plugin: Plugin): Promise<void>;
     /**
      * Validates name property of the manifest
      * @param {PluginManifest} manifest - manifest object
@@ -67,19 +80,22 @@ export class PluginManager {
     /**
      * Validates rpc property of the manifest
      * @param {PluginManifest} manifest - manifest object
+     * @param {Plugin} plugin - plugin instance
      * @param {string} msg - error message prefix
+     *
      * @returns {void}
      * @throws {Error} - if rpc is not an array or contains non-string elements or is missing
      */
-    validateRPC(manifest: PluginManifest, msg: string): void;
+    validateRPC(manifest: PluginManifest, plugin: Plugin, msg: string): void;
     /**
      * Validate events property of the manifest
      * @param {PluginManifest} manifest - manifest object
+     * @param {Plugin} plugin - plugin instance
      * @param {string} msg - error message prefix
      * @returns {void}
      * @throws {Error} - if events is not an array or contains non-string elements or is missing
      */
-    validateEvents(manifest: PluginManifest, msg: string): void;
+    validateEvents(manifest: PluginManifest, plugin: Plugin, msg: string): void;
     /**
      * Deactivate all plugins and throw an error
      * @param {Error} error - error to throw
@@ -99,11 +115,13 @@ export namespace ERRORS {
         export function NOT_STRING_1(msg: any, rpc: any): string;
         export { NOT_STRING_1 as NOT_STRING };
         export function NOT_UNIQ(msg: any): string;
+        export function NOT_IMPLEMENTED(msg: any, rpc: any): string;
     }
     namespace EVENTS {
         export function NOT_ARRAY_1(msg: any): string;
         export { NOT_ARRAY_1 as NOT_ARRAY };
         export function NOT_STRING_2(msg: any, event: any): string;
         export { NOT_STRING_2 as NOT_STRING };
+        export function MISSING_LISTENER(msg: any): string;
     }
 }

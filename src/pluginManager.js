@@ -11,11 +11,13 @@ const ERRORS = {
   RPC: {
     NOT_ARRAY: (msg) => `${msg} RPC is not an array`,
     NOT_STRING: (msg, rpc) => `${msg} RPC method ${rpc} is not a string`,
-    NOT_UNIQ: (msg) => `${msg} duplicated RPC methods`
+    NOT_UNIQ: (msg) => `${msg} duplicated RPC methods`,
+    NOT_IMPLEMENTED: (msg, rpc) => `${msg} RPC method ${rpc} is not implemented`
   },
   EVENTS: {
     NOT_ARRAY: (msg) => `${msg} events is not an array`,
-    NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`
+    NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`,
+    MISSING_LISTENER: (msg) => `${msg} event listener is not implemented`
   }
 }
 
@@ -53,10 +55,12 @@ class PluginManager {
     const active = true
     const module = require(pluginEntryPoint)
 
+    // TODO: inject CRUD compatible transports (e.g. HyperDrive)
+    // Allow for arbitrary number of injected transports
     const plugin = await module.init()
     const manifestRes = await module.getmanifest()
 
-    await this.validateManifest(manifestRes)
+    await this.validateManifest(manifestRes, plugin)
     const manifest = JSON.parse(JSON.stringify(manifestRes))
 
     if (this.plugins[manifest.name]) throw new Error(ERRORS.CONFLICT)
@@ -131,15 +135,16 @@ class PluginManager {
   /**
    * Validates manifest
    * @param {PluginManifest} manifest - manifest object
+   * @param {Plugin} plugin - plugin instance
    * @returns {Promise<void>}
    * @throws {Error} - if manifest is invalid
    */
-  async validateManifest (manifest) {
+  async validateManifest (manifest, plugin) {
     const msg = 'Manifest [validation]:'
 
     this.validateName(manifest, msg)
-    this.validateRPC(manifest, msg)
-    this.validateEvents(manifest, msg)
+    this.validateRPC(manifest, plugin, msg)
+    this.validateEvents(manifest, plugin, msg)
   }
 
   /**
@@ -157,20 +162,23 @@ class PluginManager {
   /**
    * Validates rpc property of the manifest
    * @param {PluginManifest} manifest - manifest object
+   * @param {Plugin} plugin - plugin instance
    * @param {string} msg - error message prefix
+   *
    * @returns {void}
    * @throws {Error} - if rpc is not an array or contains non-string elements or is missing
    */
-  validateRPC (manifest, msg) {
+  validateRPC (manifest, plugin, msg) {
     if (!manifest.rpc) {
       return
     }
 
     assert(Array.isArray(manifest.rpc), ERRORS.RPC.NOT_ARRAY(msg))
-    manifest.rpc.forEach(rpc => assert(
-      typeof rpc === 'string',
-      ERRORS.RPC.NOT_STRING(msg, rpc))
-    )
+
+    manifest.rpc.forEach(rpc => {
+      assert(typeof rpc === 'string', ERRORS.RPC.NOT_STRING(msg, rpc))
+      assert(typeof plugin[rpc] === 'function', ERRORS.RPC.NOT_IMPLEMENTED(msg, rpc))
+    })
 
     const unique = [...new Set(manifest.rpc.map(rpc => rpc.toLowerCase()))]
     assert.equal(manifest.rpc.length, unique.length, ERRORS.RPC.NOT_UNIQ(msg))
@@ -179,15 +187,17 @@ class PluginManager {
   /**
    * Validate events property of the manifest
    * @param {PluginManifest} manifest - manifest object
+   * @param {Plugin} plugin - plugin instance
    * @param {string} msg - error message prefix
    * @returns {void}
    * @throws {Error} - if events is not an array or contains non-string elements or is missing
    */
-  validateEvents (manifest, msg) {
+  validateEvents (manifest, plugin, msg) {
     if (!manifest.events) {
       return
     }
 
+    assert(typeof plugin.onEvent === 'function', ERRORS.EVENTS.MISSING_LISTENER(msg))
     assert(Array.isArray(manifest.events), ERRORS.EVENTS.NOT_ARRAY(msg))
     manifest.events.forEach(event => {
       assert(typeof event === 'string', ERRORS.EVENTS.NOT_STRING(msg, event))

@@ -191,7 +191,7 @@ test('getRPCRegistry', async (t) => {
   t.alike(pluginManager.getRPCRegistry(), {
     'testA/stop': pluginA.plugin.stop,
     'testB/stop': pluginB.plugin.stop,
-    'testB/start': pluginB.plugin.start,
+    'testB/start': pluginB.plugin.start
   })
 
   t.teardown(() => {
@@ -206,18 +206,19 @@ test('getRPCRegistry', async (t) => {
   })
 })
 
-test('validateManifest', (t) => {
+test('validateManifest', async (t) => {
   const pluginManager = new PluginManager({})
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
 
   const validateNameSpy = sinon.spy(pluginManager, 'validateName')
   const validateRPCSpy = sinon.spy(pluginManager, 'validateRPC')
   const validateEventsSpy = sinon.spy(pluginManager, 'validateEvents')
 
   t.execution(pluginManager.validateManifest({
-    name: 'test',
-    rpc: ['test'],
-    events: ['test']
-  }))
+    name: 'testA',
+    rpc: ['stop'],
+    events: ['event1', 'event2']
+  }, pluginA.plugin))
 
   t.is(validateNameSpy.callCount, 1)
   t.is(validateRPCSpy.callCount, 1)
@@ -243,43 +244,52 @@ test('validateName', (t) => {
   )
 })
 
-test('validateRPC', (t) => {
+test('validateRPC', async (t) => {
   const pluginManager = new PluginManager({})
-  t.execution(pluginManager.validateRPC({}, 'test prefix'))
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+
+  t.execution(pluginManager.validateRPC({}, pluginA.plugin, 'test prefix'))
 
   t.exception(
-    () => pluginManager.validateRPC({ rpc: 1 }, 'test prefix'),
+    () => pluginManager.validateRPC({ rpc: 1 }, pluginA.pluginA, 'test prefix'),
     ERRORS.RPC.NOT_ARRAY('test prefix')
   )
 
   t.exception(
-    () => pluginManager.validateRPC({ rpc: ['test', 1] }, 'test prefix'),
+    () => pluginManager.validateRPC({ rpc: ['stop', 'stOp'] }, pluginA.plugin, 'test prefix'),
+    ERRORS.RPC.NOT_UNIQ('test prefix')
+  )
+
+  t.exception(
+    () => pluginManager.validateRPC({ rpc: ['stop', 1] }, pluginA.plugin, 'test prefix'),
     ERRORS.RPC.NOT_STRING('test prefix', 1)
   )
 
   t.exception(
-    () => pluginManager.validateRPC({ rpc: ['test', 'tESt'] }, 'test prefix'),
-    ERRORS.RPC.NOT_UNIQ('test prefix')
+    () => pluginManager.validateRPC({ rpc: ['stop', 'start'] }, pluginA.plugin, 'test prefix'),
+    ERRORS.RPC.NOT_IMPLEMENTED('test prefix', 'start')
   )
 
-  t.execution(pluginManager.validateRPC({ rpc: ['test1', 'test2'] }, 'test prefix'))
+  t.execution(pluginManager.validateRPC({ rpc: ['stop'] }, pluginA.plugin, 'test prefix'))
 })
 
-test('validateEvents', (t) => {
+test('validateEvents', async (t) => {
   const pluginManager = new PluginManager({})
-  t.execution(pluginManager.validateEvents({}, 'test prefix'))
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+
+  t.execution(pluginManager.validateEvents({}, pluginA.plugin, 'test prefix'))
 
   t.exception(
-    () => pluginManager.validateEvents({ events: 1 }, 'test prefix'),
+    () => pluginManager.validateEvents({ events: 1 }, pluginA.plugin, 'test prefix'),
     ERRORS.EVENTS.NOT_ARRAY('test prefix')
   )
 
   t.exception(
-    () => pluginManager.validateEvents({ events: ['test', 1] }, 'test prefix'),
+    () => pluginManager.validateEvents({ events: ['test', 1] }, pluginA.plugin, 'test prefix'),
     ERRORS.EVENTS.NOT_STRING('test prefix', 1)
   )
 
-  t.execution(pluginManager.validateEvents({ rpc: ['test1', 'test2'] }, 'test prefix'))
+  t.execution(pluginManager.validateEvents({ events: ['test1', 'test2'] }, pluginA.plugin, 'test prefix'))
 })
 
 test('gracefulThrow', async (t) => {

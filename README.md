@@ -30,13 +30,14 @@ Design approach is similar to core lightning.
 Plugins can be used also for auxiliary logic implementation like system monitoring 
 General plugin responsibilities
 - Be executable or "requireable"
-- Correctly implement `init` and `getmanifest` methods
+- Correctly implement `init`, `getmanifest`, `onEvent` methods
 - ...
 
 #### Plugin requirements
-- entry point must be executable (for child process)
 - must have `init` method
 - must have `getmanifest` method
+- must implement all methods mentioned in `rpc`
+- may have `onEvent` method in case subscribed to events
 - may have `start` method
 - may have `stop` method
 
