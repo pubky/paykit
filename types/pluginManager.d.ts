@@ -123,5 +123,6 @@ export namespace ERRORS {
         export function NOT_STRING_2(msg: any, event: any): string;
         export { NOT_STRING_2 as NOT_STRING };
         export function MISSING_LISTENER(msg: any): string;
+        export function MISSING_SERVE(msg: any): string;
     }
 }

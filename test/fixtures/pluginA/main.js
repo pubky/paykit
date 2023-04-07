@@ -12,7 +12,7 @@ module.exports = {
       name: 'testA',
       version: '1.0.0',
       rpc: ['stop'],
-      events: ['event1', 'event2']
+      events: ['serve', 'event1', 'event2']
     }
   })
 }

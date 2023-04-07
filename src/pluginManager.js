@@ -17,7 +17,8 @@ const ERRORS = {
   EVENTS: {
     NOT_ARRAY: (msg) => `${msg} events is not an array`,
     NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`,
-    MISSING_LISTENER: (msg) => `${msg} event listener is not implemented`
+    MISSING_LISTENER: (msg) => `${msg} event listener is not implemented`,
+    MISSING_SERVE: (msg) => `${msg} must subscribe to "serve" event`
   }
 }
 
@@ -55,7 +56,7 @@ class PluginManager {
     const active = true
     const module = require(pluginEntryPoint)
 
-    // TODO: inject CRUD compatible transports (e.g. HyperDrive)
+    // TODO: inject CRUD compatible storage (e.g. HyperDrive)
     // Allow for arbitrary number of injected transports
     const plugin = await module.init()
     const manifestRes = await module.getmanifest()
@@ -67,6 +68,7 @@ class PluginManager {
 
     const p = { manifest, plugin, active }
     this.plugins[manifest.name] = p
+
     return p
   }
 
@@ -202,6 +204,8 @@ class PluginManager {
     manifest.events.forEach(event => {
       assert(typeof event === 'string', ERRORS.EVENTS.NOT_STRING(msg, event))
     })
+
+    assert(manifest.events.includes('serve'), ERRORS.EVENTS.MISSING_SERVE(msg))
   }
 
   /**

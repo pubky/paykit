@@ -37,7 +37,8 @@ General plugin responsibilities
 - must have `init` method
 - must have `getmanifest` method
 - must implement all methods mentioned in `rpc`
-- may have `onEvent` method in case subscribed to events
+- must have `onEvent` method in case subscribed to events
+- must subscribe to `"serve"` event
 - may have `start` method
 - may have `stop` method
 
@@ -48,5 +49,9 @@ Plugin manifest needs to be a JSON object with following fields:
 - optional `events` - an array of string with list of internal core's events to which plugin will be subscribed. If event is not supported Plugin manager will throw an error and gracefully shutdown all other plugins
 
 
-# TODO:
-- [ ] Document list of supported events and their payload
+#### Events and payload
+|------|--------|
+|Event | Payload|
+|------|--------|
+|serve | ?      |
+|------|--------|
