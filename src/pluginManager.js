@@ -12,7 +12,9 @@ const ERRORS = {
     NOT_ARRAY: (msg) => `${msg} RPC is not an array`,
     NOT_STRING: (msg, rpc) => `${msg} RPC method ${rpc} is not a string`,
     NOT_UNIQ: (msg) => `${msg} duplicated RPC methods`,
-    NOT_IMPLEMENTED: (msg, rpc) => `${msg} RPC method ${rpc} is not implemented`
+    NOT_IMPLEMENTED: (msg, rpc) => `${msg} RPC method ${rpc} is not implemented`,
+    MISSING_LISTENER: (msg) => `${msg} RPC listener is not implemented`,
+    MISSING_PAY: (msg) => `${msg} must implement "pay" method`
   },
   EVENTS: {
     NOT_ARRAY: (msg) => `${msg} events is not an array`,
@@ -184,6 +186,10 @@ class PluginManager {
 
     const unique = [...new Set(manifest.rpc.map(rpc => rpc.toLowerCase()))]
     assert.equal(manifest.rpc.length, unique.length, ERRORS.RPC.NOT_UNIQ(msg))
+
+    if (manifest.type === 'payment') {
+      assert(manifest.rpc.includes('pay'), ERRORS.RPC.MISSING_PAY(msg))
+    }
   }
 
   /**

@@ -116,13 +116,16 @@ export namespace ERRORS {
         export { NOT_STRING_1 as NOT_STRING };
         export function NOT_UNIQ(msg: any): string;
         export function NOT_IMPLEMENTED(msg: any, rpc: any): string;
+        export function MISSING_LISTENER(msg: any): string;
+        export function MISSING_PAY(msg: any): string;
     }
     namespace EVENTS {
         export function NOT_ARRAY_1(msg: any): string;
         export { NOT_ARRAY_1 as NOT_ARRAY };
         export function NOT_STRING_2(msg: any, event: any): string;
         export { NOT_STRING_2 as NOT_STRING };
-        export function MISSING_LISTENER(msg: any): string;
+        export function MISSING_LISTENER_1(msg: any): string;
+        export { MISSING_LISTENER_1 as MISSING_LISTENER };
         export function MISSING_WATCH(msg: any): string;
     }
 }

@@ -190,8 +190,11 @@ test('getRPCRegistry', async (t) => {
 
   t.alike(pluginManager.getRPCRegistry(), {
     'testA/stop': pluginA.plugin.stop,
+    'testA/pay': pluginA.plugin.pay,
+
     'testB/stop': pluginB.plugin.stop,
-    'testB/start': pluginB.plugin.start
+    'testB/start': pluginB.plugin.start,
+    'testB/pay': pluginB.plugin.pay
   })
 
   t.teardown(() => {
@@ -270,7 +273,16 @@ test('validateRPC', async (t) => {
     ERRORS.RPC.NOT_IMPLEMENTED('test prefix', 'start')
   )
 
-  t.execution(pluginManager.validateRPC({ rpc: ['stop'] }, pluginA.plugin, 'test prefix'))
+  t.exception(
+    () => pluginManager.validateRPC(
+      { type: 'payment', rpc: ['stop', 'start'] },
+      pluginA.plugin,
+      'test prefix'
+    ),
+    ERRORS.RPC.MISSING_PAY('test prefix')
+  )
+
+  t.execution(pluginManager.validateRPC(pluginA.manifest, pluginA.plugin, 'test prefix'))
 })
 
 test('validateEvents', async (t) => {

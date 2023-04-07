@@ -31,9 +31,10 @@ Plugins can be used also for auxiliary logic implementation like system monitori
 General plugin responsibilities
 - Be executable or "requireable"
 - Correctly implement `init`, `getmanifest`, `onEvent` methods
+- specify `type` property
 - ...
 
-#### Plugin requirements
+#### General plugin requirements
 - must have `init` method
 - must have `getmanifest` method
 - must implement all methods mentioned in `rpc`
@@ -42,6 +43,11 @@ General plugin responsibilities
 - may have `start` method
 - may have `stop` method
 
+#### Type specific plugin requirements
+- `payment`:
+  - must implement `pay` method and expose it via RPC
+
+
 #### Manifest requirements
 Plugin manifest needs to be a JSON object with following fields:
 - `name` - a string name of the plugin. It must be unique for all registered plugins. Plugin manager will throw an error and gracefully shutdown all other plugins
@@ -49,9 +55,16 @@ Plugin manifest needs to be a JSON object with following fields:
 - optional `events` - an array of string with list of internal core's events to which plugin will be subscribed. If event is not supported Plugin manager will throw an error and gracefully shutdown all other plugins
 
 
-#### Events and payload
-|------|--------|
-|Event | Payload|
-|------|--------|
-|watch | ?      |
-|------|--------|
+#### Required Events and payload
+|------|--------------------|
+|Event | Payload            |
+|------|--------------------|
+|watch | ?                  |
+|------|--------------------|
+
+#### Required RPC and payload
+|-------|------------------------|
+|Method | Payload                |
+|-------|------------------------|
+|pay    | <target key>, <amount> |
+|-------|------------------------|
