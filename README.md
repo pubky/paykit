@@ -64,7 +64,7 @@ Plugin manifest needs to be a JSON object with following fields:
 
 #### Required RPC and payload
 
-|Method | Payload                |
-|-------|------------------------|
-|pay    | <target key>, <amount> |
-|-------|------------------------|
+|Method | Payload                    |
+|-------|----------------------------|
+|pay    | \<target key\>, \<amount\> |
+|-------|----------------------------|
