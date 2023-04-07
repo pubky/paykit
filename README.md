@@ -56,14 +56,14 @@ Plugin manifest needs to be a JSON object with following fields:
 
 
 #### Required Events and payload
-|------|--------------------|
+
 |Event | Payload            |
 |------|--------------------|
 |watch | ?                  |
 |------|--------------------|
 
 #### Required RPC and payload
-|-------|------------------------|
+
 |Method | Payload                |
 |-------|------------------------|
 |pay    | <target key>, <amount> |
