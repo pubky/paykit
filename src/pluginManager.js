@@ -18,7 +18,7 @@ const ERRORS = {
     NOT_ARRAY: (msg) => `${msg} events is not an array`,
     NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`,
     MISSING_LISTENER: (msg) => `${msg} event listener is not implemented`,
-    MISSING_SERVE: (msg) => `${msg} must subscribe to "serve" event`
+    MISSING_WATCH: (msg) => `${msg} must subscribe to "serve" event`
   }
 }
 
@@ -205,7 +205,7 @@ class PluginManager {
       assert(typeof event === 'string', ERRORS.EVENTS.NOT_STRING(msg, event))
     })
 
-    assert(manifest.events.includes('serve'), ERRORS.EVENTS.MISSING_SERVE(msg))
+    assert(manifest.events.includes('watch'), ERRORS.EVENTS.MISSING_WATCH(msg))
   }
 
   /**

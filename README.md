@@ -38,7 +38,7 @@ General plugin responsibilities
 - must have `getmanifest` method
 - must implement all methods mentioned in `rpc`
 - must have `onEvent` method in case subscribed to events
-- must subscribe to `"serve"` event
+- must subscribe to `"watch"` event
 - may have `start` method
 - may have `stop` method
 
@@ -53,5 +53,5 @@ Plugin manifest needs to be a JSON object with following fields:
 |------|--------|
 |Event | Payload|
 |------|--------|
-|serve | ?      |
+|watch | ?      |
 |------|--------|

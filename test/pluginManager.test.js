@@ -217,7 +217,7 @@ test('validateManifest', async (t) => {
   t.execution(pluginManager.validateManifest({
     name: 'testA',
     rpc: ['stop'],
-    events: ['serve', 'event1', 'event2']
+    events: ['watch', 'event1', 'event2']
   }, pluginA.plugin))
 
   t.is(validateNameSpy.callCount, 1)
@@ -291,10 +291,10 @@ test('validateEvents', async (t) => {
 
   t.exception(
     () => pluginManager.validateEvents({ events: ['test1', 'test2'] }, pluginA.plugin, 'test prefix'),
-    ERRORS.EVENTS.MISSING_SERVE('test prefix')
+    ERRORS.EVENTS.MISSING_WATCH('test prefix')
   )
 
-  t.execution(pluginManager.validateEvents({ events: ['serve', 'test'] }, pluginA.plugin, 'test prefix'))
+  t.execution(pluginManager.validateEvents({ events: ['watch', 'test'] }, pluginA.plugin, 'test prefix'))
 })
 
 test('gracefulThrow', async (t) => {
