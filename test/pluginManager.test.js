@@ -3,25 +3,26 @@ const sinon = require('sinon')
 
 const { PluginManager, ERRORS } = require('../src/pluginManager.js')
 
+const storage = require('./fixtures/storageInstance.js')
+
 const { pluginConfig } = require('./fixtures/config.js')
 const pluginAStub = require('./fixtures/pluginA/main.js')
 const pluginBStub = require('./fixtures/pluginB/main.js')
 
 test('constructor', t => {
-  const pluginManager = new PluginManager(pluginConfig)
+  const pluginManager = new PluginManager()
 
-  t.is(pluginManager.config, pluginConfig)
   t.alike(pluginManager.plugins, {})
 })
 
 test('load plugins', async t => {
-  const pluginManager = new PluginManager(pluginConfig)
+  const pluginManager = new PluginManager()
   const validateManifestSpy = sinon.spy(pluginManager, 'validateManifest')
   const {
     active: activeA,
     manifest: manifestA,
     plugin: pluginA
-  } = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  } = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   t.alike(pluginManager.plugins.testA, {
     manifest: manifestA,
@@ -30,6 +31,8 @@ test('load plugins', async t => {
   })
 
   t.is(pluginAStub.init.callCount, 1)
+  t.alike(pluginAStub.init.getCall(0).args, [storage])
+
   t.is(pluginAStub.getmanifest.callCount, 1)
   t.is(pluginBStub.init.callCount, 0)
   t.is(pluginBStub.getmanifest.callCount, 0)
@@ -42,7 +45,7 @@ test('load plugins', async t => {
     active: activeB,
     manifest: manifestB,
     plugin: pluginB
-  } = await pluginManager.loadPlugin(pluginConfig.plugins[1])
+  } = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
   t.alike(pluginManager.plugins.testB, {
     manifest: manifestB,
@@ -53,6 +56,7 @@ test('load plugins', async t => {
   t.is(pluginAStub.init.callCount, 1)
   t.is(pluginAStub.getmanifest.callCount, 1)
   t.is(pluginBStub.init.callCount, 1)
+  t.alike(pluginBStub.init.getCall(0).args, [storage])
   t.is(pluginBStub.getmanifest.callCount, 1)
   t.is(validateManifestSpy.callCount, 2)
 
@@ -71,11 +75,11 @@ test('load plugins', async t => {
 })
 
 test('load duplicate plugin', async t => {
-  const pluginManager = new PluginManager(pluginConfig)
-  await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginManager = new PluginManager()
+  await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   await t.exception(
-    async () => await pluginManager.loadPlugin(pluginConfig.plugins[0]),
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage),
     ERRORS.CONFLICT
   )
 
@@ -85,9 +89,17 @@ test('load duplicate plugin', async t => {
   })
 })
 
+test('load nonexisting plugin', async t => {
+  const pluginManager = new PluginManager()
+  await t.exception(
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins[2], storage),
+    ERRORS.FAILED_TO_LOAD(pluginConfig.plugins[2])
+  )
+})
+
 test('stop plugin', async (t) => {
-  const pluginManager = new PluginManager(pluginConfig)
-  const p = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginManager = new PluginManager()
+  const p = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   await pluginManager.stopPlugin('testA')
 
@@ -103,8 +115,8 @@ test('stop plugin', async (t) => {
 })
 
 test('removePlugin', async (t) => {
-  const pluginManager = new PluginManager(pluginConfig)
-  const a = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginManager = new PluginManager()
+  const a = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   t.is(pluginManager.removePlugin('testA'), false)
   t.is(a.active, true)
@@ -122,11 +134,11 @@ test('removePlugin', async (t) => {
 })
 
 test('getPlugins', async (t) => {
-  const pluginManager = new PluginManager(pluginConfig)
+  const pluginManager = new PluginManager()
   t.alike(pluginManager.getPlugins(), {})
 
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
-  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1])
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
   t.alike(pluginManager.getPlugins(), { testA: pluginA, testB: pluginB })
   t.alike(pluginManager.getPlugins(false), {})
@@ -147,9 +159,9 @@ test('getPlugins', async (t) => {
 })
 
 test('dispatchEvent', async (t) => {
-  const pluginManager = new PluginManager(pluginConfig)
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
-  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1])
+  const pluginManager = new PluginManager()
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
   await pluginManager.dispatchEvent('event1', { data: 'both' })
 
@@ -184,9 +196,9 @@ test('dispatchEvent', async (t) => {
 })
 
 test('getRPCRegistry', async (t) => {
-  const pluginManager = new PluginManager(pluginConfig)
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
-  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1])
+  const pluginManager = new PluginManager()
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
   t.alike(pluginManager.getRPCRegistry(), {
     'testA/stop': pluginA.plugin.stop,
@@ -210,8 +222,8 @@ test('getRPCRegistry', async (t) => {
 })
 
 test('validateManifest', async (t) => {
-  const pluginManager = new PluginManager({})
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginManager = new PluginManager()
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   const validateNameSpy = sinon.spy(pluginManager, 'validateName')
   const validateRPCSpy = sinon.spy(pluginManager, 'validateRPC')
@@ -235,7 +247,7 @@ test('validateManifest', async (t) => {
 })
 
 test('validateName', (t) => {
-  const pluginManager = new PluginManager({})
+  const pluginManager = new PluginManager()
   t.exception(
     () => pluginManager.validateName({}, 'test prefix'),
     ERRORS.NAME.MISSING('test prefix')
@@ -248,8 +260,8 @@ test('validateName', (t) => {
 })
 
 test('validateRPC', async (t) => {
-  const pluginManager = new PluginManager({})
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginManager = new PluginManager()
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   t.execution(pluginManager.validateRPC({}, pluginA.plugin, 'test prefix'))
 
@@ -286,8 +298,8 @@ test('validateRPC', async (t) => {
 })
 
 test('validateEvents', async (t) => {
-  const pluginManager = new PluginManager({})
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0])
+  const pluginManager = new PluginManager()
+  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   t.execution(pluginManager.validateEvents({}, pluginA.plugin, 'test prefix'))
 
@@ -310,9 +322,9 @@ test('validateEvents', async (t) => {
 })
 
 test('gracefulThrow', async (t) => {
-  const pluginManager = new PluginManager(pluginConfig)
-  const a = await pluginManager.loadPlugin(pluginConfig.plugins[0])
-  const b = await pluginManager.loadPlugin(pluginConfig.plugins[1])
+  const pluginManager = new PluginManager()
+  const a = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const b = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
   await t.exception(async () => await pluginManager.gracefulThrow('test error'), 'test error')
 

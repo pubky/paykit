@@ -1,9 +1,8 @@
 const assert = require('node:assert/strict')
-const fs = require('fs')
 
 const ERRORS = {
   CONFLICT: 'Conflicting plugin names',
-  NOT_READABLE: 'Plugin entry point must be readable',
+  FAILED_TO_LOAD: (path) => `Failed to load plugin at ${path}`,
   NAME: {
     MISSING: (msg) => `${msg} plugin name missing`,
     NOT_STRING: (msg) => `${msg} plugin name is not a string`
@@ -26,41 +25,31 @@ const ERRORS = {
 
 class PluginManager {
   /**
-   * @param {Object} config - configuration object
-   * @property {Object[PluginConfig]} config.plugins - array of plugin elements
+   * Plugin manager class
+   * @class PluginManager
+   * @property {Object[Plugin]} plugins - loaded plugins
    */
-  constructor (config) {
+  constructor () {
     this.plugins = {}
-    this.config = config
-
-    if (!config.plugins) return
-
-    // XXX: is it even needed or should we just throw on require error?
-    // TODO: change to check if directory
-    // - is readable
-    // - contains package.json
-    config.plugins.forEach((pluginEntryPoint) => {
-      const stat = fs.statSync(pluginEntryPoint)
-      assert(
-        parseInt((stat.mode & parseInt('777', 8)).toString(8)[0]) >= 6,
-        ERRORS.NOT_READABLE
-      )
-    })
   }
 
   /**
    * Load a plugin with runtime by path to the entry point
    * @param {string} pluginEntryPoint - path to plugins main
+   * @param {Storage} storage - storage instance with CRUD interface
    * @returns {Promise<Plugin>} - plugin instance
    * @throws {Error} - if plugin is already loaded
    */
-  async loadPlugin (pluginEntryPoint) {
+  async loadPlugin (pluginEntryPoint, storage) {
     const active = true
-    const module = require(pluginEntryPoint)
+    let module
+    try {
+      module = require(pluginEntryPoint)
+    } catch (e) {
+      throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
+    }
 
-    // TODO: inject CRUD compatible storage (e.g. HyperDrive)
-    // Allow for arbitrary number of injected transports
-    const plugin = await module.init()
+    const plugin = await module.init(storage)
     const manifestRes = await module.getmanifest()
 
     await this.validateManifest(manifestRes, plugin)
@@ -242,6 +231,17 @@ class PluginManager {
  * @property {string} name - plugin name
  *
  */
+
+/**
+ * Storage Object
+ * @typedef Storage
+ * @type {Object}
+ * @property {function} create - store value in storage
+ * @property {function} read - get value from storage
+ * @property {update} update - update value in storage
+ * @property {delete} delete - delete value from storage
+ */
+
 module.exports = {
   PluginManager,
   ERRORS

@@ -16,21 +16,37 @@ export type PluginManifest = {
      */
     name: string;
 };
-export class PluginManager {
+/**
+ * Storage Object
+ */
+export type Storage = {
     /**
-     * @param {Object} config - configuration object
-     * @property {Object[PluginConfig]} config.plugins - array of plugin elements
+     * - store value in storage
      */
-    constructor(config: any);
+    create: Function;
+    /**
+     * - get value from storage
+     */
+    read: Function;
+    /**
+     * - update value in storage
+     */
+    update: update;
+    /**
+     * - delete value from storage
+     */
+    delete: delete;
+};
+export class PluginManager {
     plugins: {};
-    config: any;
     /**
      * Load a plugin with runtime by path to the entry point
      * @param {string} pluginEntryPoint - path to plugins main
+     * @param {Storage} storage - storage instance with CRUD interface
      * @returns {Promise<Plugin>} - plugin instance
      * @throws {Error} - if plugin is already loaded
      */
-    loadPlugin(pluginEntryPoint: string): Promise<Plugin>;
+    loadPlugin(pluginEntryPoint: string, storage: Storage): Promise<Plugin>;
     /**
      * Disable a plugin by calling its "stop" method
      * @param {string} name - name of the plugin
@@ -105,7 +121,7 @@ export class PluginManager {
 }
 export namespace ERRORS {
     const CONFLICT: string;
-    const NOT_READABLE: string;
+    function FAILED_TO_LOAD(path: any): string;
     namespace NAME {
         function MISSING(msg: any): string;
         function NOT_STRING(msg: any): string;
