@@ -1,4 +1,4 @@
-const assert = require('node:assert/strict')
+const { assert } = require('./utils')
 
 const ERRORS = {
   CONFLICT: 'Conflicting plugin names',
@@ -149,7 +149,7 @@ class PluginManager {
    */
   validateName (manifest, msg) {
     assert(manifest.name, ERRORS.NAME.MISSING(msg))
-    assert.equal(typeof manifest.name, 'string', ERRORS.NAME.NOT_STRING(msg))
+    assert(typeof manifest.name === 'string', ERRORS.NAME.NOT_STRING(msg))
   }
 
   /**
@@ -174,7 +174,7 @@ class PluginManager {
     })
 
     const unique = [...new Set(manifest.rpc.map(rpc => rpc.toLowerCase()))]
-    assert.equal(manifest.rpc.length, unique.length, ERRORS.RPC.NOT_UNIQ(msg))
+    assert(manifest.rpc.length === unique.length, ERRORS.RPC.NOT_UNIQ(msg))
 
     if (manifest.type === 'payment') {
       assert(manifest.rpc.includes('pay'), ERRORS.RPC.MISSING_PAY(msg))
