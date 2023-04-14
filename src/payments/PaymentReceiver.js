@@ -1,9 +1,21 @@
+const path = require('path')
+/**
+ * PaymentReceiver is a class which is responsible for making plugins to receive payments
+ * @class PaymentReceiver
+ */
 class PaymentReceiver {
-  constructor(config, pluginManager, db, storage, notificationCallback) {
+  /**
+   * @constructor PaymentReceiver
+   * @param {PluginManager} pluginManager - instance of a plugin manager
+   * @param {DB} db - instance of a database
+   * @param {RemoteStorage} storage - instance of a local storage (e.g. HyperDrive)
+   * @param {Function} notificationCallback - callback which is called when payment is received
+   */
+  constructor(pluginManager, db, storage, notificationCallback) {
+    // TODO: validate arguments
     this.pluginManager = pluginManager
-    this.config = config
-    this.db = db // internal state
-    this.storage = storage // public interface
+    this.db = db // internal state storage
+    this.storage = storage // internal public interface
     this.notificationCallback = notificationCallback
   }
 
@@ -14,9 +26,12 @@ class PaymentReceiver {
 
     // for now it is the same callback used for payment notifications
     // and for plugin status
-    await this.pluginManager.dispatch('receivePayment', {
+    await this.pluginManager.dispatchEvent('receivePayment', {
       // TODO: define payload to make plugins create their own slashpay files
-      notificationCallback: this.notificationCallback,
+      notificationCallback: async (payload) => {
+        await this.db.savePayment(payload)
+        this.notificationCallback(payload)
+      }
     })
 
     // XXX what if some plugins failed to initialize?
@@ -45,10 +60,9 @@ class PaymentReceiver {
   }
 
   getListOfSupportedPaymentMethods() {
-    return this.pluginManager
-      .plugins
-      .filer(({ manifest, active }) => active && manifest.type === 'payment')
-      .map(({ manifest }) => manifest.name)
+    return Object.entries(this.pluginManager.plugins)
+      .filter(([_name, { manifest, active }]) => active && manifest.type === 'payment')
+      .map(([name, _plugin]) => name)
   }
 }
 
