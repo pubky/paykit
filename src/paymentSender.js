@@ -1,5 +1,5 @@
 class PaymentSender {
-  constructor(pluginManager, payment, db) {
+  constructor(pluginManager, payment, db, notificationCallback) {
     this.pluginManager = pluginManager
     this.payment = payment
 
@@ -8,18 +8,48 @@ class PaymentSender {
     }
 
     this.db = db
+    this.notificationCallback = notificationCallback
   }
 
-  async send() {
+  async submit() {
     const pluginName = this.payment.sendingPriority.shift()
-    this.payment.sentWith.push(pluginName)
+    if (!pluginName) {
+      throw new Error('No plugins to send payment')
+    }
+    this.payment.processingPluging = pluginName
     await this.db.updatePayment(this.payment)
 
-    const { plugin } = this.pluginManager.loadPlugin(pluginName)
+    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
 
-    // pass db to update payment plugin state
-    // OR consider passing callback for state update alternatively
-    // AND/OR consider passing callback for update notifications
-    await plugin.sendPayment(this.payment)
+    await plugin.sendPayment(this.payment, this.stateUpdateCallback)
+  }
+
+  async forward(pluginName, paymentData) {
+    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
+
+    await plugin.updatePayment(paymentData)
+  }
+
+  async stateUpdateCallback(update) {
+    await this.db.updatePayment(update)
+    await this.notificationCallback(update)
+
+    if (update.state === 'failed') {
+      this.payment.processedPlugins.push(this.payment.processingPluging)
+      this.payment.processingPluging = null
+      try {
+        await this.submit()
+      } catch (e) {
+        // failed to process by all plugins
+        await this.notificationCallback(e)
+      }
+      return
+    }
+
+    if (update.state === 'success') {
+      this.payment.sentByPluging = this.payment.processingPluging
+      this.payment.processingPluging = null
+      return
+    }
   }
 }
