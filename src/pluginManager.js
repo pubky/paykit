@@ -43,7 +43,7 @@ class PluginManager {
   /**
    * Load a plugin with runtime by path to the entry point
    * @param {string} pluginEntryPoint - path to plugins main
-   * @param {Storage} storage - storage instance with CRUD interface
+   * @param {[Storage]} storage - instance with CRUD interface for receiving payments
    * @returns {Promise<Plugin>} - plugin instance
    * @throws {Error} - if plugin is already loaded
    */
