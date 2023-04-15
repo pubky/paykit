@@ -9,10 +9,9 @@ const storage = require('../fixtures/storageInstance')
 const { PluginManager } = require('../../src/pluginManager')
 
 const { pluginConfig } = require('../fixtures/config.js')
-const pluginAStub = require('../fixtures/pluginA/main.js')
 
 const pluginManager = new PluginManager()
-// TODO: add plugins to pluginManager
+;(async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage))()
 
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
@@ -26,7 +25,6 @@ test('PaymentReceiver', t => {
 })
 
 test('PaymentReceiver.init', async t => {
-  await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
   const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
 
   const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
@@ -39,4 +37,27 @@ test('PaymentReceiver.init', async t => {
   t.teardown(() => {
     sinon.restore()
   })
+})
+
+test('PaymentReceiver.generateSlashpayContent', t => {
+  const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
+
+  const slashpayContent = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'])
+  t.alike(slashpayContent, {
+    paymentEndpoints: {
+      p2sh: 'slashpay/p2sh/slashpay.json',
+      p2tr: 'slashpay/p2tr/slashpay.json'
+    }
+  })
+
+  t.teardown(() => {
+    sinon.restore()
+  })
+})
+
+test('PaymentReceiver.getListOfSupportedPaymentMethods', t => {
+  const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
+
+  const supportedPaymentMethods = paymentReceiver.getListOfSupportedPaymentMethods()
+  t.alike(supportedPaymentMethods, ['p2sh'])
 })

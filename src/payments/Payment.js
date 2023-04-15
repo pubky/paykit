@@ -16,7 +16,7 @@ class Payment {
    * @property {string} denomination - denomination of the payment, default is BASE
    * @property {boolean} ready - true if the payment is ready to be sent
    */
-  constructor(paymentParams) {
+  constructor (paymentParams) {
     Payment.validatePaymentObject(paymentParams)
     this.id = Payment.generateId()
 
@@ -51,7 +51,7 @@ class Payment {
    * @throws {Error} - if paymentParams is invalid
    * @returns {void}
    */
-  static validatePaymentObject(paymentParams) {
+  static validatePaymentObject (paymentParams) {
     if (!paymentParams.clientPaymentId) throw new Error(ERROR.CLIENT_ID_REQUIRED)
     if (!paymentParams.amount) throw new Error(ERROR.AMOUNT_REQUIRED)
     // if (!paymentParams.currency) throw new Error(ERROR.CURRENCY_REQUIRED)
@@ -66,7 +66,7 @@ class Payment {
    * @throws {Error} - if no plugins are available
    * @returns {Promise<void>}
    */
-  async init(remoteStorage, sendingPriority) {
+  async init (remoteStorage, sendingPriority) {
     if (!remoteStorage) throw new Error(ERROR.NO_REMOTE_STORAGE)
     if (!sendingPriority) throw new Error(ERROR.NO_SENDING_PRIORITY)
     // XXX is it a place to do this or should it be done by each plugin?
@@ -109,7 +109,7 @@ const ERROR = {
   // DENOMINATION_REQUIRED: 'denomination is required',
   TARGET_REQUIRED: 'target is required',
   NO_REMOTE_STORAGE: 'No remote storage provided',
-  NO_SENDING_PRIORITY: 'No sending priority provided',
+  NO_SENDING_PRIORITY: 'No sending priority provided'
 }
 
 /**
@@ -125,12 +125,11 @@ const PAYMENT_STATE = {
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
   FAILED: 'failed',
-  CANCELED: 'canceled',
+  CANCELED: 'canceled'
 }
-
 
 module.exports = {
   Payment,
   PAYMENT_STATE,
-  ERROR,
+  ERROR
 }

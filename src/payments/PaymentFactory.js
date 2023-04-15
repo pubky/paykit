@@ -45,7 +45,7 @@ class PaymentFactory {
    * @returns {Promise<Payment>}
    * @throws {Error} - if no plugins for making payment are available
    */
-  async createNewPayment(
+  async createNewPayment (
     paymentParams,
     remoteStorage, // instance of a remote storage (e.g. HyperDrive)
     sendingPriority = this.paymentConfig.sendingPriority
@@ -60,11 +60,11 @@ class PaymentFactory {
   }
 }
 
-ERROR = {
-  MISSING_STORAGE: 'Missing storage',
+const ERROR = {
+  MISSING_STORAGE: 'Missing storage'
 }
 
 module.exports = {
   PaymentFactory,
-  ERROR,
+  ERROR
 }

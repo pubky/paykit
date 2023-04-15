@@ -11,7 +11,7 @@ class PaymentReceiver {
    * @param {RemoteStorage} storage - instance of a local storage (e.g. HyperDrive)
    * @param {Function} notificationCallback - callback which is called when payment is received
    */
-  constructor(pluginManager, db, storage, notificationCallback) {
+  constructor (pluginManager, db, storage, notificationCallback) {
     // TODO: validate arguments
     this.pluginManager = pluginManager
     this.db = db // internal state storage
@@ -19,7 +19,7 @@ class PaymentReceiver {
     this.notificationCallback = notificationCallback
   }
 
-  async init() {
+  async init () {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
     const slashpayFile = this.generateSlashpayContent(paymentPluginNames)
     const url = await this.storage.create('./slashpay.json', slashpayFile)
@@ -47,19 +47,26 @@ class PaymentReceiver {
     return url
   }
 
-  generateSlashpayContent(paymentPluginNames) {
-    const slashpayFile = { supportedPaymentMethods: [] }
+  /**
+   * @method generateSlashpayContent
+   * @param {Array<String>} paymentPluginNames - list of payment plugin names
+   * @returns {Object} - content of slashpay.json file
+   */
+  generateSlashpayContent (paymentPluginNames) {
+    const slashpayFile = { paymentEndpoints: {} }
 
     paymentPluginNames.forEach((name) => {
-      slashpayFile.supportedPaymentMethods.push({
-        path: path.join('slashpay', name, 'slashpay.json'),
-      })
+      slashpayFile.paymentEndpoints[name] = path.join('slashpay', name, 'slashpay.json')
     })
 
     return slashpayFile
   }
 
-  getListOfSupportedPaymentMethods() {
+  /**
+   * @method getListOfSupportedPaymentMethods
+   * @returns {Array<String>} - list of payment plugin names
+   */
+  getListOfSupportedPaymentMethods () {
     return Object.entries(this.pluginManager.plugins)
       .filter(([_name, { manifest, active }]) => active && manifest.type === 'payment')
       .map(([name, _plugin]) => name)
@@ -67,6 +74,5 @@ class PaymentReceiver {
 }
 
 module.exports = {
-  PaymentReceiver,
+  PaymentReceiver
 }
-

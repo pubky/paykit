@@ -41,20 +41,19 @@ test('PaymentFactory.getOrCreatePayment - payment exists', async t => {
   t.is(payment.ready, true)
   t.alike(payment.sentWith, [])
 
-
   t.is(dbSavePayment.callCount, 0)
   t.teardown(() => {
     sinon.restore()
   })
 })
 
-test ('PaymentFactory.createNewPayment - missing storage', async t => {
+test('PaymentFactory.createNewPayment - missing storage', async t => {
   const paymentFactory = new PaymentFactory(db, paymentConfig)
 
   await t.exception(async () => await paymentFactory.createNewPayment(paymentParams), ERROR.MISSING_STORAGE)
 })
 
-test ('PaymentFactory.createNewPayment', async t => {
+test('PaymentFactory.createNewPayment', async t => {
   const dbSavePayment = sinon.replace(db, 'savePayment', sinon.fake(db.savePayment))
 
   const paymentFactory = new PaymentFactory(db, paymentConfig)
@@ -100,4 +99,3 @@ test('PaymentFactory.getOrCreatePayment - payment does not exist', async t => {
     sinon.restore()
   })
 })
-

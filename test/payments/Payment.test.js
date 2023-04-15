@@ -44,7 +44,6 @@ test('Payment.init - no sending priority', async t => {
   await t.exception(async () => await payment.init(storage), ERROR.NO_SENDING_PRIORITY)
 })
 
-
 test('Payment.init - no matching plugins', async t => {
   const storageInit = sinon.replace(storage, 'init', sinon.fake(storage.init))
   const storageGetPaymentFile = sinon.replace(storage, 'getPaymentFile', sinon.fake(storage.getPaymentFile))
