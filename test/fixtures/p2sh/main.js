@@ -5,7 +5,8 @@ module.exports = {
     return {
       stop: sinon.fake(() => {}),
       onEvent: sinon.fake(() => {}),
-      pay: sinon.fake(() => {})
+      pay: sinon.fake(() => {}),
+      updatePayment: sinon.fake(() => {})
     }
   }),
   getmanifest: sinon.fake(() => {
@@ -13,7 +14,7 @@ module.exports = {
       name: 'p2sh',
       version: '1.0.0',
       type: 'payment',
-      rpc: ['stop', 'pay'],
+      rpc: ['stop', 'pay', 'updatePayment'],
       events: ['watch', 'event1', 'event2']
     }
   })

@@ -22,7 +22,7 @@ test('load plugins', async t => {
     active: activeA,
     manifest: manifestA,
     plugin: pluginP2SH
-  } = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  } = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
 
   t.alike(pluginManager.plugins.p2sh, {
     manifest: manifestA,
@@ -45,7 +45,7 @@ test('load plugins', async t => {
     active: activeB,
     manifest: manifestB,
     plugin: pluginP2TR
-  } = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  } = await pluginManager.loadPlugin(pluginConfig.plugins.p2tr, storage)
 
   t.alike(pluginManager.plugins.p2tr, {
     manifest: manifestB,
@@ -77,9 +77,9 @@ test('load plugins', async t => {
 test('plugin load init - error handling', async t => {
   const pluginManager = new PluginManager()
 
-  sinon.replace(pluginAStub, 'init', sinon.fake.throws(new Error('test error')))
+  sinon.replace(p2shStub, 'init', sinon.fake.throws(new Error('test error')))
   await t.exception(
-    async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage),
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage),
     ERRORS.PLUGIN.INIT('test error')
   )
 
@@ -89,9 +89,9 @@ test('plugin load init - error handling', async t => {
 test('plugin load getmanifest - error handling', async t => {
   const pluginManager = new PluginManager()
 
-  sinon.replace(pluginAStub, 'getmanifest', sinon.fake.throws(new Error('test error')))
+  sinon.replace(p2shStub, 'getmanifest', sinon.fake.throws(new Error('test error')))
   await t.exception(
-    async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage),
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage),
     ERRORS.PLUGIN.GET_MANIFEST('test error')
   )
 
@@ -101,7 +101,7 @@ test('plugin load getmanifest - error handling', async t => {
 test('plugin dispatch - error handling', async t => {
   const pluginManager = new PluginManager()
 
-  const p = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const p = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
   sinon.replace(p.plugin, 'onEvent', sinon.fake.throws(new Error('test error')))
   await t.execution(async () => await pluginManager.dispatchEvent('testEvent', {}))
 
@@ -111,7 +111,7 @@ test('plugin dispatch - error handling', async t => {
 test('plugin stop - error handling', async t => {
   const pluginManager = new PluginManager()
 
-  const p = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const p = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
   sinon.replace(p.plugin, 'stop', sinon.fake.throws(new Error('test error')))
   await t.exception(
     async () => await pluginManager.stopPlugin('testA'),
@@ -121,12 +121,26 @@ test('plugin stop - error handling', async t => {
   t.teardown(() => sinon.restore())
 })
 
+test('load plugin by name', async t => {
+  const pluginManager = new PluginManager(pluginConfig)
+  const {
+    plugin: pluginP2SH,
+    manifest: manifestA
+  } = await pluginManager.loadPlugin('p2sh', storage)
+
+  t.alike(pluginManager.plugins.p2sh, {
+    manifest: manifestA,
+    plugin: pluginP2SH,
+    active: true
+  })
+})
+
 test('load duplicate plugin', async t => {
   const pluginManager = new PluginManager()
-  await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
 
   await t.exception(
-    async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage),
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage),
     ERRORS.CONFLICT
   )
 
@@ -139,14 +153,14 @@ test('load duplicate plugin', async t => {
 test('load nonexisting plugin', async t => {
   const pluginManager = new PluginManager()
   await t.exception(
-    async () => await pluginManager.loadPlugin(pluginConfig.plugins[2], storage),
-    ERRORS.FAILED_TO_LOAD(pluginConfig.plugins[2])
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins.nonexisting, storage),
+    ERRORS.FAILED_TO_LOAD(pluginConfig.plugins.nonexisting)
   )
 })
 
 test('stop plugin', async (t) => {
   const pluginManager = new PluginManager()
-  const p = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const p = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
 
   await pluginManager.stopPlugin('p2sh')
 
@@ -163,7 +177,7 @@ test('stop plugin', async (t) => {
 
 test('removePlugin', async (t) => {
   const pluginManager = new PluginManager()
-  const a = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const a = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
 
   t.is(pluginManager.removePlugin('p2sh'), false)
   t.is(a.active, true)
@@ -184,8 +198,8 @@ test('getPlugins', async (t) => {
   const pluginManager = new PluginManager()
   t.alike(pluginManager.getPlugins(), {})
 
-  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
-  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins.p2tr, storage)
 
   t.alike(pluginManager.getPlugins(), { p2sh: pluginP2SH, p2tr: pluginP2TR })
   t.alike(pluginManager.getPlugins(false), {})
@@ -207,8 +221,8 @@ test('getPlugins', async (t) => {
 
 test('dispatchEvent', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
-  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins.p2tr, storage)
 
   await pluginManager.dispatchEvent('event1', { data: 'both' })
 
@@ -244,12 +258,13 @@ test('dispatchEvent', async (t) => {
 
 test('getRPCRegistry', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
-  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins.p2tr, storage)
 
   t.alike(pluginManager.getRPCRegistry(), {
     'p2sh/stop': pluginP2SH.plugin.stop,
     'p2sh/pay': pluginP2SH.plugin.pay,
+    'p2sh/updatePayment': pluginP2SH.plugin.updatePayment,
 
     'p2tr/stop': pluginP2TR.plugin.stop,
     'p2tr/start': pluginP2TR.plugin.start,
@@ -270,7 +285,7 @@ test('getRPCRegistry', async (t) => {
 
 test('validateManifest', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
 
   const validateNameSpy = sinon.spy(pluginManager, 'validateName')
   const validateRPCSpy = sinon.spy(pluginManager, 'validateRPC')
@@ -308,7 +323,7 @@ test('validateName', (t) => {
 
 test('validateRPC', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
 
   t.execution(pluginManager.validateRPC({}, pluginP2SH.plugin, 'test prefix'))
 
@@ -346,7 +361,7 @@ test('validateRPC', async (t) => {
 
 test('validateEvents', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
 
   t.execution(pluginManager.validateEvents({}, pluginP2SH.plugin, 'test prefix'))
 
@@ -370,8 +385,8 @@ test('validateEvents', async (t) => {
 
 test('gracefulThrow', async (t) => {
   const pluginManager = new PluginManager()
-  const a = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
-  const b = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  const a = await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+  const b = await pluginManager.loadPlugin(pluginConfig.plugins.p2tr, storage)
 
   await t.exception(async () => await pluginManager.gracefulThrow('test error'), 'test error')
 

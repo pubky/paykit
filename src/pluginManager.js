@@ -3,6 +3,7 @@ const { assert } = require('./utils')
 const ERRORS = {
   CONFLICT: 'Conflicting plugin names',
   FAILED_TO_LOAD: (path) => `Failed to load plugin at ${path}`,
+  INVALID_CONFIG_PLUGIN: 'Plugin name is missconfigured',
   NAME: {
     MISSING: (msg) => `${msg} plugin name missing`,
     NOT_STRING: (msg) => `${msg} plugin name is not a string`
@@ -34,10 +35,13 @@ class PluginManager {
   /**
    * Plugin manager class
    * @class PluginManager
+   * @constructor
+   * @param {Object} config - config object
    * @property {Object[Plugin]} plugins - loaded plugins
    */
-  constructor () {
+  constructor (config) {
     this.plugins = {}
+    this.config = config
   }
 
   /**
@@ -55,7 +59,11 @@ class PluginManager {
       // on constructor which has default path to plugins
       module = require(pluginEntryPoint)
     } catch (e) {
-      throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
+      try {
+        module = require(this.config.plugins[pluginEntryPoint])
+      } catch (e) {
+        throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
+      }
     }
 
     let plugin
