@@ -11,9 +11,8 @@ class PaymentSender {
    * @param {DB} db
    * @param {Function} notificationCallback
    */
-  constructor (pluginManager, payment, db, notificationCallback) {
+  constructor (payment, db, notificationCallback) {
     // TODO: validate input
-    this.pluginManager = pluginManager
     this.payment = payment
 
     if (!this.payment.sendingPriority.length) {
@@ -30,7 +29,7 @@ class PaymentSender {
    * @returns {Promise<void>}
    * @throws {Error} - if no plugins for making payment are available
    */
-  async submit () {
+  async submit (pluginManager) {
     const pluginName = this.payment.sendingPriority.shift()
     if (!pluginName) {
       throw new Error('No plugins to send payment')
@@ -38,10 +37,9 @@ class PaymentSender {
     this.payment.processingPluging = pluginName
     await this.db.updatePayment(this.payment)
 
-    // TODO: handle path instead of name
-    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
+    const { plugin } = await pluginManager.loadPlugin(pluginName)
 
-    await plugin.sendPayment(this.payment, this.stateUpdateCallback)
+    await plugin.pay(this.payment, this.stateUpdateCallback)
   }
 
   /**
@@ -51,10 +49,10 @@ class PaymentSender {
    * @param {PaymentData} paymentData
    * @returns {Promise<void>}
    */
-  async forward (pluginName, paymentData) {
+  async forward (pluginManager, pluginName, paymentData) {
     // TODO: make sure that payment exists and in correct state
 
-    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
+    const { plugin } = await pluginManager.loadPlugin(pluginName)
 
     await plugin.updatePayment(paymentData)
   }

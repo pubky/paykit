@@ -1,18 +1,14 @@
 const sinon = require('sinon')
-const { test, skip } = require('brittle')
+const { test } = require('brittle')
 
 const { DB } = require('../fixtures/db')
 const db = new DB()
-
-const storage = require('../fixtures/storageInstance')
 
 const { Storage } = require('../fixtures/externalStorage')
 const remoteStorage = new Storage()
 
 const { PluginManager } = require('../../src/pluginManager')
 const { pluginConfig } = require('../fixtures/config.js')
-const pluginManager = new PluginManager()
-;(async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage))()
 
 const { paymentParams } = require('../fixtures/paymentParams')
 
@@ -22,27 +18,23 @@ const { Payment } = require('../../src/payments/Payment')
 test('PaymentSender', async t => {
   const payment = new Payment(paymentParams)
   await payment.init(remoteStorage, ['p2sh', 'p2tr'])
-  const paymentSender = new PaymentSender(pluginManager, payment, db, () => {})
+  const paymentSender = new PaymentSender(payment, db, () => {})
 
-  t.alike(paymentSender.pluginManager, pluginManager)
   t.alike(paymentSender.db, db)
   t.alike(paymentSender.payment, payment)
   t.alike(paymentSender.notificationCallback.toString(), '() => {}')
 })
 
-skip('PaymentSender.submit', async t => {
+test('PaymentSender.submit', async t => {
+  const pluginManager = new PluginManager(pluginConfig)
+
   const payment = new Payment(paymentParams)
   await payment.init(remoteStorage, ['p2sh', 'p2tr'])
   const dbSavePayment = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
+  const paymentSender = new PaymentSender(payment, db, () => {})
 
-  const paymentSender = new PaymentSender(pluginManager, payment, db, () => {})
+  await paymentSender.submit(pluginManager)
 
-  const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
-
-  await paymentSender.submit()
-
-  t.is(pluginDispatch.callCount, 1)
-  t.is(paymentSender.payment.processingPluging, '../fixtures/p2sh/main.js')
   t.is(dbSavePayment.callCount, 1)
 
   t.teardown(() => {
@@ -50,6 +42,31 @@ skip('PaymentSender.submit', async t => {
   })
 })
 
-skip('PaymentSender.forward', async t => { })
+test('PaymentSender.forward', async t => {
+  const pluginManager = new PluginManager(pluginConfig)
 
-skip('PaymentSender.stateUpdateCallback', async t => { })
+  const payment = new Payment(paymentParams)
+  await payment.init(remoteStorage, ['p2sh', 'p2tr'])
+  const paymentSender = new PaymentSender(payment, db, () => {})
+
+  await paymentSender.forward(pluginManager, 'p2sh', paymentParams)
+})
+
+test('PaymentSender.stateUpdateCallback', async t => {
+  const pluginManager = new PluginManager(pluginConfig)
+
+  const payment = new Payment(paymentParams)
+  await payment.init(remoteStorage, ['p2sh', 'p2tr'])
+  const dbSavePayment = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
+  const paymentSender = new PaymentSender(payment, db, () => {})
+
+  await paymentSender.submit(pluginManager)
+
+  await paymentSender.stateUpdateCallback('p2sh', { state: 'pending' })
+
+  t.is(dbSavePayment.callCount, 2)
+
+  t.teardown(() => {
+    sinon.restore()
+  })
+})

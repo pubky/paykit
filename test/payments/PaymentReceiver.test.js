@@ -11,7 +11,7 @@ const { PluginManager } = require('../../src/pluginManager')
 const { pluginConfig } = require('../fixtures/config.js')
 
 const pluginManager = new PluginManager()
-;(async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage))()
+;(async () => await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage))()
 
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
