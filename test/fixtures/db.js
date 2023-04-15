@@ -1,8 +1,11 @@
 class DB {
-  constructor() {}
+  constructor () {
+    this.db = null
+  }
 
-  getPayment() {}
-  savePayment() {}
+  getPayment () {}
+  savePayment () {}
+  updatePayment () {}
 }
 
 module.exports = {

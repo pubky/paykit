@@ -6,8 +6,8 @@ const { PluginManager, ERRORS } = require('../src/pluginManager.js')
 const storage = require('./fixtures/storageInstance.js')
 
 const { pluginConfig } = require('./fixtures/config.js')
-const pluginAStub = require('./fixtures/pluginA/main.js')
-const pluginBStub = require('./fixtures/pluginB/main.js')
+const p2shStub = require('./fixtures/p2sh/main.js')
+const p2trStub = require('./fixtures/p2tr/main.js')
 
 test('constructor', t => {
   const pluginManager = new PluginManager()
@@ -21,54 +21,54 @@ test('load plugins', async t => {
   const {
     active: activeA,
     manifest: manifestA,
-    plugin: pluginA
+    plugin: pluginP2SH
   } = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
-  t.alike(pluginManager.plugins.testA, {
+  t.alike(pluginManager.plugins.p2sh, {
     manifest: manifestA,
-    plugin: pluginA,
+    plugin: pluginP2SH,
     active: activeA
   })
 
-  t.is(pluginAStub.init.callCount, 1)
-  t.alike(pluginAStub.init.getCall(0).args, [storage])
+  t.is(p2shStub.init.callCount, 1)
+  t.alike(p2shStub.init.getCall(0).args, [storage])
 
-  t.is(pluginAStub.getmanifest.callCount, 1)
-  t.is(pluginBStub.init.callCount, 0)
-  t.is(pluginBStub.getmanifest.callCount, 0)
+  t.is(p2shStub.getmanifest.callCount, 1)
+  t.is(p2trStub.init.callCount, 0)
+  t.is(p2trStub.getmanifest.callCount, 0)
   t.is(validateManifestSpy.callCount, 1)
 
-  t.is(typeof pluginA.stop, 'function')
+  t.is(typeof pluginP2SH.stop, 'function')
   t.ok(activeA)
 
   const {
     active: activeB,
     manifest: manifestB,
-    plugin: pluginB
+    plugin: pluginP2TR
   } = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
-  t.alike(pluginManager.plugins.testB, {
+  t.alike(pluginManager.plugins.p2tr, {
     manifest: manifestB,
-    plugin: pluginB,
+    plugin: pluginP2TR,
     active: activeB
   })
 
-  t.is(pluginAStub.init.callCount, 1)
-  t.is(pluginAStub.getmanifest.callCount, 1)
-  t.is(pluginBStub.init.callCount, 1)
-  t.alike(pluginBStub.init.getCall(0).args, [storage])
-  t.is(pluginBStub.getmanifest.callCount, 1)
+  t.is(p2shStub.init.callCount, 1)
+  t.is(p2shStub.getmanifest.callCount, 1)
+  t.is(p2trStub.init.callCount, 1)
+  t.alike(p2trStub.init.getCall(0).args, [storage])
+  t.is(p2trStub.getmanifest.callCount, 1)
   t.is(validateManifestSpy.callCount, 2)
 
-  t.is(typeof pluginB.stop, 'function')
+  t.is(typeof pluginP2TR.stop, 'function')
   t.ok(activeB)
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
 
-    pluginBStub.init.resetHistory()
-    pluginBStub.getmanifest.resetHistory()
+    p2trStub.init.resetHistory()
+    p2trStub.getmanifest.resetHistory()
 
     validateManifestSpy.restore()
   })
@@ -131,8 +131,8 @@ test('load duplicate plugin', async t => {
   )
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
   })
 })
 
@@ -148,14 +148,14 @@ test('stop plugin', async (t) => {
   const pluginManager = new PluginManager()
   const p = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
-  await pluginManager.stopPlugin('testA')
+  await pluginManager.stopPlugin('p2sh')
 
   t.is(p.active, false)
   t.is(p.plugin.stop.callCount, 1)
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
 
     p.plugin.stop.resetHistory()
   })
@@ -165,18 +165,18 @@ test('removePlugin', async (t) => {
   const pluginManager = new PluginManager()
   const a = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
-  t.is(pluginManager.removePlugin('testA'), false)
+  t.is(pluginManager.removePlugin('p2sh'), false)
   t.is(a.active, true)
 
-  await pluginManager.stopPlugin('testA')
+  await pluginManager.stopPlugin('p2sh')
   t.is(a.active, false)
 
-  t.is(pluginManager.removePlugin('testA'), true)
-  t.absent(pluginManager.plugins.testA)
+  t.is(pluginManager.removePlugin('p2sh'), true)
+  t.absent(pluginManager.plugins.p2sh)
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
   })
 })
 
@@ -184,103 +184,103 @@ test('getPlugins', async (t) => {
   const pluginManager = new PluginManager()
   t.alike(pluginManager.getPlugins(), {})
 
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
-  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
-  t.alike(pluginManager.getPlugins(), { testA: pluginA, testB: pluginB })
+  t.alike(pluginManager.getPlugins(), { p2sh: pluginP2SH, p2tr: pluginP2TR })
   t.alike(pluginManager.getPlugins(false), {})
 
-  await pluginManager.stopPlugin('testA')
-  t.is(pluginA.active, false)
+  await pluginManager.stopPlugin('p2sh')
+  t.is(pluginP2SH.active, false)
 
-  t.alike(pluginManager.getPlugins(true), { testB: pluginB })
-  t.alike(pluginManager.getPlugins(false), { testA: pluginA })
+  t.alike(pluginManager.getPlugins(true), { p2tr: pluginP2TR })
+  t.alike(pluginManager.getPlugins(false), { p2sh: pluginP2SH })
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
 
-    pluginBStub.init.resetHistory()
-    pluginBStub.getmanifest.resetHistory()
+    p2trStub.init.resetHistory()
+    p2trStub.getmanifest.resetHistory()
   })
 })
 
 test('dispatchEvent', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
-  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
   await pluginManager.dispatchEvent('event1', { data: 'both' })
 
-  t.is(pluginA.plugin.onEvent.callCount, 1)
-  t.is(pluginB.plugin.onEvent.callCount, 1)
-  t.alike(pluginB.plugin.onEvent.getCall(0).args, ['event1', { data: 'both' }])
+  t.is(pluginP2SH.plugin.onEvent.callCount, 1)
+  t.is(pluginP2TR.plugin.onEvent.callCount, 1)
+  t.alike(pluginP2TR.plugin.onEvent.getCall(0).args, ['event1', { data: 'both' }])
 
-  await pluginManager.stopPlugin('testA')
-  t.is(pluginA.active, false)
+  await pluginManager.stopPlugin('p2sh')
+  t.is(pluginP2SH.active, false)
   // b is not subscribed to event2
   await pluginManager.dispatchEvent('event2', { data: 'nobody' })
 
-  t.is(pluginA.plugin.onEvent.callCount, 1)
-  t.is(pluginB.plugin.onEvent.callCount, 1)
+  t.is(pluginP2SH.plugin.onEvent.callCount, 1)
+  t.is(pluginP2TR.plugin.onEvent.callCount, 1)
 
   await pluginManager.dispatchEvent('event1', { data: 'onlyB' })
 
-  t.is(pluginA.plugin.onEvent.callCount, 1)
-  t.is(pluginB.plugin.onEvent.callCount, 2)
-  t.alike(pluginB.plugin.onEvent.getCall(1).args, ['event1', { data: 'onlyB' }])
+  t.is(pluginP2SH.plugin.onEvent.callCount, 1)
+  t.is(pluginP2TR.plugin.onEvent.callCount, 2)
+  t.alike(pluginP2TR.plugin.onEvent.getCall(1).args, ['event1', { data: 'onlyB' }])
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
 
-    pluginBStub.init.resetHistory()
-    pluginBStub.getmanifest.resetHistory()
+    p2trStub.init.resetHistory()
+    p2trStub.getmanifest.resetHistory()
 
-    pluginA.plugin.onEvent.resetHistory()
-    pluginB.plugin.onEvent.resetHistory()
+    pluginP2SH.plugin.onEvent.resetHistory()
+    pluginP2TR.plugin.onEvent.resetHistory()
   })
 })
 
 test('getRPCRegistry', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
-  const pluginB = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2TR = await pluginManager.loadPlugin(pluginConfig.plugins[1], storage)
 
   t.alike(pluginManager.getRPCRegistry(), {
-    'testA/stop': pluginA.plugin.stop,
-    'testA/pay': pluginA.plugin.pay,
+    'p2sh/stop': pluginP2SH.plugin.stop,
+    'p2sh/pay': pluginP2SH.plugin.pay,
 
-    'testB/stop': pluginB.plugin.stop,
-    'testB/start': pluginB.plugin.start,
-    'testB/pay': pluginB.plugin.pay
+    'p2tr/stop': pluginP2TR.plugin.stop,
+    'p2tr/start': pluginP2TR.plugin.start,
+    'p2tr/pay': pluginP2TR.plugin.pay
   })
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
 
-    pluginBStub.init.resetHistory()
-    pluginBStub.getmanifest.resetHistory()
+    p2trStub.init.resetHistory()
+    p2trStub.getmanifest.resetHistory()
 
-    pluginA.plugin.onEvent.resetHistory()
-    pluginB.plugin.onEvent.resetHistory()
+    pluginP2SH.plugin.onEvent.resetHistory()
+    pluginP2TR.plugin.onEvent.resetHistory()
   })
 })
 
 test('validateManifest', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
   const validateNameSpy = sinon.spy(pluginManager, 'validateName')
   const validateRPCSpy = sinon.spy(pluginManager, 'validateRPC')
   const validateEventsSpy = sinon.spy(pluginManager, 'validateEvents')
 
   t.execution(pluginManager.validateManifest({
-    name: 'testA',
+    name: 'p2sh',
     rpc: ['stop'],
     events: ['watch', 'event1', 'event2']
-  }, pluginA.plugin))
+  }, pluginP2SH.plugin))
 
   t.is(validateNameSpy.callCount, 1)
   t.is(validateRPCSpy.callCount, 1)
@@ -308,64 +308,64 @@ test('validateName', (t) => {
 
 test('validateRPC', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
-  t.execution(pluginManager.validateRPC({}, pluginA.plugin, 'test prefix'))
+  t.execution(pluginManager.validateRPC({}, pluginP2SH.plugin, 'test prefix'))
 
   t.exception(
-    () => pluginManager.validateRPC({ rpc: 1 }, pluginA.pluginA, 'test prefix'),
+    () => pluginManager.validateRPC({ rpc: 1 }, pluginP2SH.pluginP2SH, 'test prefix'),
     ERRORS.RPC.NOT_ARRAY('test prefix')
   )
 
   t.exception(
-    () => pluginManager.validateRPC({ rpc: ['stop', 'stOp'] }, pluginA.plugin, 'test prefix'),
+    () => pluginManager.validateRPC({ rpc: ['stop', 'stOp'] }, pluginP2SH.plugin, 'test prefix'),
     ERRORS.RPC.NOT_UNIQ('test prefix')
   )
 
   t.exception(
-    () => pluginManager.validateRPC({ rpc: ['stop', 1] }, pluginA.plugin, 'test prefix'),
+    () => pluginManager.validateRPC({ rpc: ['stop', 1] }, pluginP2SH.plugin, 'test prefix'),
     ERRORS.RPC.NOT_STRING('test prefix', 1)
   )
 
   t.exception(
-    () => pluginManager.validateRPC({ rpc: ['stop', 'start'] }, pluginA.plugin, 'test prefix'),
+    () => pluginManager.validateRPC({ rpc: ['stop', 'start'] }, pluginP2SH.plugin, 'test prefix'),
     ERRORS.RPC.NOT_IMPLEMENTED('test prefix', 'start')
   )
 
   t.exception(
     () => pluginManager.validateRPC(
       { type: 'payment', rpc: ['stop', 'start'] },
-      pluginA.plugin,
+      pluginP2SH.plugin,
       'test prefix'
     ),
     ERRORS.RPC.MISSING_PAY('test prefix')
   )
 
-  t.execution(pluginManager.validateRPC(pluginA.manifest, pluginA.plugin, 'test prefix'))
+  t.execution(pluginManager.validateRPC(pluginP2SH.manifest, pluginP2SH.plugin, 'test prefix'))
 })
 
 test('validateEvents', async (t) => {
   const pluginManager = new PluginManager()
-  const pluginA = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  const pluginP2SH = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
 
-  t.execution(pluginManager.validateEvents({}, pluginA.plugin, 'test prefix'))
+  t.execution(pluginManager.validateEvents({}, pluginP2SH.plugin, 'test prefix'))
 
   t.exception(
-    () => pluginManager.validateEvents({ events: 1 }, pluginA.plugin, 'test prefix'),
+    () => pluginManager.validateEvents({ events: 1 }, pluginP2SH.plugin, 'test prefix'),
     ERRORS.EVENTS.NOT_ARRAY('test prefix')
   )
 
   t.exception(
-    () => pluginManager.validateEvents({ events: ['test', 1] }, pluginA.plugin, 'test prefix'),
+    () => pluginManager.validateEvents({ events: ['test', 1] }, pluginP2SH.plugin, 'test prefix'),
     ERRORS.EVENTS.NOT_STRING('test prefix', 1)
   )
 
   t.exception(
-    () => pluginManager.validateEvents({ events: ['test1', 'test2'] }, pluginA.plugin, 'test prefix'),
+    () => pluginManager.validateEvents({ events: ['test1', 'test2'] }, pluginP2SH.plugin, 'test prefix'),
     ERRORS.EVENTS.MISSING_WATCH('test prefix')
   )
 
-  t.execution(pluginManager.validateEvents({ events: ['watch', 'test'] }, pluginA.plugin, 'test prefix'))
+  t.execution(pluginManager.validateEvents({ events: ['watch', 'test'] }, pluginP2SH.plugin, 'test prefix'))
 })
 
 test('gracefulThrow', async (t) => {
@@ -382,11 +382,11 @@ test('gracefulThrow', async (t) => {
   t.is(b.active, false)
 
   t.teardown(() => {
-    pluginAStub.init.resetHistory()
-    pluginAStub.getmanifest.resetHistory()
+    p2shStub.init.resetHistory()
+    p2shStub.getmanifest.resetHistory()
 
-    pluginBStub.init.resetHistory()
-    pluginBStub.getmanifest.resetHistory()
+    p2trStub.init.resetHistory()
+    p2trStub.getmanifest.resetHistory()
 
     a.plugin.stop.resetHistory()
     b.plugin.stop.resetHistory()

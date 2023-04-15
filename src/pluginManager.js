@@ -51,6 +51,8 @@ class PluginManager {
     const active = true
     let module
     try {
+      // TODO: allow loading by name only by accepting config
+      // on constructor which has default path to plugins
       module = require(pluginEntryPoint)
     } catch (e) {
       throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
