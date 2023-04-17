@@ -144,4 +144,11 @@ export namespace ERRORS {
         export { MISSING_LISTENER_1 as MISSING_LISTENER };
         export function MISSING_WATCH(msg: any): string;
     }
+    namespace PLUGIN {
+        function INIT(msg: any): string;
+        function GET_MANIFEST(msg: any): string;
+        function STOP(msg: any): string;
+        function EVENT_DISPATCH(name: any, msg: any): string;
+        function NOT_FOUND(name: any): string;
+    }
 }

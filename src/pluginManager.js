@@ -25,7 +25,8 @@ const ERRORS = {
     INIT: (msg) => `Failed to initialize plugin: ${msg}`,
     GET_MANIFEST: (msg) => `Failed to get manifest: ${msg}`,
     STOP: (msg) => `Failed to stop plugin: ${msg}`,
-    EVENT_DISPATCH: (name, msg) => `Failed to dispatch event: ${msg} to plugin ${name}`
+    EVENT_DISPATCH: (name, msg) => `Failed to dispatch event: ${msg} to plugin ${name}`,
+    NOT_FOUND: (name) => `Plugin ${name} not found`
   }
 }
 
@@ -85,6 +86,8 @@ class PluginManager {
    * @param {string} name - name of the plugin
    */
   async stopPlugin (name) {
+    if (!this.plugins[name]) throw new Error(ERRORS.PLUGIN.NOT_FOUND(name))
+
     if (typeof this.plugins[name].plugin.stop === 'function') {
       try {
         await this.plugins[name].plugin.stop()
@@ -102,6 +105,8 @@ class PluginManager {
    *
    */
   removePlugin (name) {
+    if (!this.plugins[name]) throw new Error(ERRORS.PLUGIN_NOT_FOUND(name))
+
     if (this.plugins[name].active) return false
 
     delete this.plugins[name]
