@@ -3,9 +3,6 @@
 ## Description 
 Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey ("slashtag") which refers to a data store containing all supported payment endpoints.
 
-## Technical Summary
-Design approach is similar to core lightning.
-
 ### Architecure 
  Slashpay consists of core and plugins. Core is an event emitter service with JSON-RPC2.0 compatible interface. Plugins specify which events they subscribe to. There two possible modes for core to run plugins:
  - js library - required into core module, mainly used for mobile (current implementation)
@@ -19,11 +16,6 @@ Design approach is similar to core lightning.
 - [ ] Handling pass-through via RPC interface for specified plugins methods
 - [ ] Subscribing plugins for specified internal events
 - [ ] Have a specific “trigger” endpoint for triggering events (may be used for inter-plugin communication)
-
-##### Differences with Core-Lightning:
-
-- Events subscription is similar to core-lightning event notification. There are no hooks functionality now unless it will prove to be necessary.
-- There are no cli pass-through for plugins as cli is intended to be using rpc interface
 
 #### Plugin responsibilities:
 
