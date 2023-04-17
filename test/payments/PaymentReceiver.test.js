@@ -16,9 +16,8 @@ const pluginManager = new PluginManager()
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
 test('PaymentReceiver', t => {
-  const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
+  const paymentReceiver = new PaymentReceiver(db, storage, () => {})
 
-  t.alike(paymentReceiver.pluginManager, pluginManager)
   t.alike(paymentReceiver.db, db)
   t.alike(paymentReceiver.storage, storage)
   t.alike(paymentReceiver.notificationCallback.toString(), '() => {}')
@@ -27,9 +26,9 @@ test('PaymentReceiver', t => {
 test('PaymentReceiver.init', async t => {
   const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
 
-  const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
+  const paymentReceiver = new PaymentReceiver(db, storage, () => {})
 
-  await paymentReceiver.init()
+  await paymentReceiver.init(pluginManager)
 
   t.is(storage.create.callCount, 1)
   t.is(pluginDispatch.callCount, 1)
@@ -58,6 +57,6 @@ test('PaymentReceiver.generateSlashpayContent', t => {
 test('PaymentReceiver.getListOfSupportedPaymentMethods', t => {
   const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
 
-  const supportedPaymentMethods = paymentReceiver.getListOfSupportedPaymentMethods()
+  const supportedPaymentMethods = paymentReceiver.getListOfSupportedPaymentMethods(pluginManager)
   t.alike(supportedPaymentMethods, ['p2sh'])
 })

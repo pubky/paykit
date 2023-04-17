@@ -22,7 +22,6 @@ class PaymentManager {
    * @param {Object} config - configuration object
    */
   constructor (config) {
-    this.pluginManager = new PluginManager()
     this.config = config
     this.db = new Database(config.db)
     this.ready = false
@@ -43,12 +42,13 @@ class PaymentManager {
    * @returns {Promise<String>} - payment id
    */
   async sendPayment (paymentObject) {
+    const pluginManager = new PluginManager()
     const paymentFactory = new PaymentFactory(this.db)
     const payment = await paymentFactory.getOrCreate(paymentObject)
 
-    const paymentSender = new PaymentSender(this.pluginManager, payment, this.db, this.entryPointForPlugin)
+    const paymentSender = new PaymentSender(payment, this.db, this.entryPointForPlugin)
 
-    await paymentSender.submit()
+    await paymentSender.submit(pluginManager)
     return payment.id
   }
 
@@ -57,9 +57,11 @@ class PaymentManager {
    * @returns {Promise<void>}
    */
   async receivePayments () {
-    const paymentReceiver = new PaymentReceiver(this.pluginManager, this.db, this.entryPointForPlugin)
+    // TODO: load plugins
+    const pluginManager = new PluginManager()
+    const paymentReceiver = new PaymentReceiver(this.db, this.entryPointForPlugin)
 
-    await paymentReceiver.init()
+    await paymentReceiver.init(pluginManager)
   }
 
   /**
