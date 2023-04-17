@@ -1,8 +1,7 @@
-const Database = require('../db/database')
-const PluginManager = require('./pluginManager')
-const PaymentFactory = require('./paymentFactory')
-const PaymentSender = require('./paymentSender')
-const PaymentReceiver = require('./paymentReceiver')
+const { PluginManager } = require('../pluginManager')
+const { PaymentFactory } = require('./paymentFactory')
+const { PaymentSender } = require('./paymentSender')
+const { PaymentReceiver } = require('./paymentReceiver')
 
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
@@ -11,7 +10,6 @@ const PaymentReceiver = require('./paymentReceiver')
  * @param {Object} config - configuration object
  * @param {Object} config.db - configuration object for database
  * @param {String} config.db.path - path to the database
- * @property {PluginManager} pluginManager - instance of PluginManager class
  * @property {Object} config - configuration object
  * @property {Database} db - instance of Database class
  * @property {Boolean} ready - flag to indicate if the payment manager is ready
@@ -21,9 +19,9 @@ class PaymentManager {
    * @constructor
    * @param {Object} config - configuration object
    */
-  constructor (config) {
+  constructor (config, db) {
     this.config = config
-    this.db = new Database(config.db)
+    this.db = db
     this.ready = false
   }
 
@@ -42,9 +40,11 @@ class PaymentManager {
    * @returns {Promise<String>} - payment id
    */
   async sendPayment (paymentObject) {
-    const pluginManager = new PluginManager()
-    const paymentFactory = new PaymentFactory(this.db)
-    const payment = await paymentFactory.getOrCreate(paymentObject)
+    const pluginManager = new PluginManager(this.config)
+    const paymentFactory = new PaymentFactory(this.db, this.config)
+    const payment = await paymentFactory.getOrCreatePayment(paymentObject, {
+      // TODO: connect to remote storage to read payment data, note need a library here
+    })
 
     const paymentSender = new PaymentSender(payment, this.db, this.entryPointForPlugin)
 
@@ -57,9 +57,16 @@ class PaymentManager {
    * @returns {Promise<void>}
    */
   async receivePayments () {
-    // TODO: load plugins
-    const pluginManager = new PluginManager()
-    const paymentReceiver = new PaymentReceiver(this.db, this.entryPointForPlugin)
+    const pluginManager = new PluginManager(this.config)
+    await this.config.plugins.forEach(async ({ name }) => {
+      await pluginManager.loadPlugin(name)
+    })
+
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      // TODO: storage
+      this.entryPointForPlugin
+    )
 
     await paymentReceiver.init(pluginManager)
   }
@@ -75,12 +82,11 @@ class PaymentManager {
    */
   async entryPointForPlugin (payload) {
     if (payload.state === 'waitingForClient') {
-      this.askClient(payload)
-      return
+      return await this.askClient(payload)
     }
 
     if (payload.state === 'newPayment') {
-      this.db.createIncomingPayment(payload)
+      return await this.db.createIncomingPayment(payload)
     }
   }
 
@@ -92,9 +98,11 @@ class PaymentManager {
    */
   async entryPointForUser (data) {
     const paymentFactory = new PaymentFactory(this.db)
-    const payment = await paymentFactory.getOrCreate(data)
+    const payment = await paymentFactory.getOrCreate(data, {
+      // TODO: connect to remote storage to read payment data, note need a library here
+    })
 
-    const paymentSender = new PaymentSender(this.pluginManager, payment, this.db, this.entryPointForPlugin)
+    const paymentSender = new PaymentSender(payment, this.db, this.entryPointForPlugin)
     await paymentSender.forward(data)
   }
 
@@ -108,4 +116,6 @@ class PaymentManager {
   }
 }
 
-exports.PaymentManager = PaymentManager
+module.exports = {
+  PaymentManager
+}

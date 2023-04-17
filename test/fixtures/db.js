@@ -3,9 +3,11 @@ class DB {
     this.db = null
   }
 
+  init () {}
   getPayment () {}
   savePayment () {}
   updatePayment () {}
+  createIncomingPayment () {}
 }
 
 module.exports = {
