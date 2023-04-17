@@ -20,6 +20,12 @@ const ERRORS = {
     NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`,
     MISSING_LISTENER: (msg) => `${msg} event listener is not implemented`,
     MISSING_WATCH: (msg) => `${msg} must subscribe to "serve" event`
+  },
+  PLUGIN: {
+    INIT: (msg) => `Failed to initialize plugin: ${msg}`,
+    GET_MANIFEST: (msg) => `Failed to get manifest: ${msg}`,
+    STOP: (msg) => `Failed to stop plugin: ${msg}`,
+    EVENT_DISPATCH: (name, msg) => `Failed to dispatch event: ${msg} to plugin ${name}`
   }
 }
 
@@ -49,8 +55,19 @@ class PluginManager {
       throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
     }
 
-    const plugin = await module.init(storage)
-    const manifestRes = await module.getmanifest()
+    let plugin
+    try {
+      plugin = await module.init(storage)
+    } catch (e) {
+      throw new Error(ERRORS.PLUGIN.INIT(e.message))
+    }
+
+    let manifestRes
+    try {
+      manifestRes = await module.getmanifest()
+    } catch (e) {
+      throw new Error(ERRORS.PLUGIN.GET_MANIFEST(e.message))
+    }
 
     await this.validateManifest(manifestRes, plugin)
     const manifest = JSON.parse(JSON.stringify(manifestRes))
@@ -69,7 +86,11 @@ class PluginManager {
    */
   async stopPlugin (name) {
     if (typeof this.plugins[name].plugin.stop === 'function') {
-      await this.plugins[name].plugin.stop()
+      try {
+        await this.plugins[name].plugin.stop()
+      } catch (e) {
+        throw new Error(ERRORS.PLUGIN.STOP(e.message))
+      }
     }
     this.plugins[name].active = false
   }
@@ -110,7 +131,14 @@ class PluginManager {
     await Promise.all(
       Object.entries(this.plugins)
         .filter(([_name, plugin]) => (plugin.manifest.events.includes(event) && plugin.active))
-        .map(async ([_name, plugin]) => await plugin.plugin.onEvent(event, data))
+        .map(async ([name, plugin]) => {
+          try {
+            await plugin.plugin.onEvent(event, data)
+          } catch (e) {
+            ERRORS.PLUGIN.EVENT_DISPATCH(name, e.message)
+            // TODO: log error
+          }
+        })
     )
   }
 

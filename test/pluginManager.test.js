@@ -74,6 +74,53 @@ test('load plugins', async t => {
   })
 })
 
+test('plugin load init - error handling', async t => {
+  const pluginManager = new PluginManager()
+
+  sinon.replace(pluginAStub, 'init', sinon.fake.throws(new Error('test error')))
+  await t.exception(
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage),
+    ERRORS.PLUGIN.INIT('test error')
+  )
+
+  t.teardown(() => sinon.restore())
+})
+
+test('plugin load getmanifest - error handling', async t => {
+  const pluginManager = new PluginManager()
+
+  sinon.replace(pluginAStub, 'getmanifest', sinon.fake.throws(new Error('test error')))
+  await t.exception(
+    async () => await pluginManager.loadPlugin(pluginConfig.plugins[0], storage),
+    ERRORS.PLUGIN.GET_MANIFEST('test error')
+  )
+
+  t.teardown(() => sinon.restore())
+})
+
+test('plugin dispatch - error handling', async t => {
+  const pluginManager = new PluginManager()
+
+  const p = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  sinon.replace(p.plugin, 'onEvent', sinon.fake.throws(new Error('test error')))
+  await t.execution(async () => await pluginManager.dispatchEvent('testEvent', {}))
+
+  t.teardown(() => sinon.restore())
+})
+
+test('plugin stop - error handling', async t => {
+  const pluginManager = new PluginManager()
+
+  const p = await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
+  sinon.replace(p.plugin, 'stop', sinon.fake.throws(new Error('test error')))
+  await t.exception(
+    async () => await pluginManager.stopPlugin('testA'),
+    ERRORS.PLUGIN.STOP('test error')
+  )
+
+  t.teardown(() => sinon.restore())
+})
+
 test('load duplicate plugin', async t => {
   const pluginManager = new PluginManager()
   await pluginManager.loadPlugin(pluginConfig.plugins[0], storage)
