@@ -1,7 +1,7 @@
 const paymentParams = {
   clientPaymentId: 'clientPaymentId',
   amount: '100',
-  target: 'slashpay://driveKey/slashpay.json'
+  targetURL: 'slashpay://driveKey/slashpay.json'
 }
 
 module.exports = {
