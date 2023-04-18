@@ -1,5 +1,5 @@
 const ERROR = {
-  NOT_READY: 'SlashtagsAccessObject is not ready',
+  NOT_READY: 'SlashtagsAccessObject is not ready'
 }
 
 class SlashtagsAccessObject {
@@ -42,5 +42,5 @@ class SlashtagsAccessObject {
 
 module.exports = {
   SlashtagsAccessObject,
-  ERROR,
+  ERROR
 }

@@ -25,21 +25,21 @@ test('Payment.validatePaymentParams', t => {
   )
 
   t.execution(() => Payment.validatePaymentParams({ clientPaymentId: 'clientPaymentId', amount: '100', targetURL: 'targetURL' }))
- })
+})
 
 test('Payment.validatePaymentConfig', t => {
   t.exception(() => Payment.validatePaymentConfig({}), ERROR.NO_SENDING_PRIORITY)
   t.execution(() => Payment.validatePaymentConfig({ sendingPriority: ['p2sh', 'lightning'] }))
- })
+})
 
- test('Payment.validateDB', async t => {
+test('Payment.validateDB', async t => {
   const db = new DB()
   t.exception(() => Payment.validateDB(), ERROR.NO_DB)
   t.exception(() => Payment.validateDB(db), ERROR.DB_NOT_READY)
 
   await db.init()
   t.execution(() => Payment.validateDB(db))
- })
+})
 
 test('Payment.validatePaymentObject', t => {
   // TODO: add more tests
@@ -70,16 +70,16 @@ test('Payment - new', async t => {
   t.is(payment.currency, 'BTC')
   t.is(payment.denomination, 'BASE')
   t.is(payment.processingPlugin, null)
- })
+})
 
 test('Payment - existing', async t => {
   const db = new DB()
   await db.init()
   const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
+  const params = { ...paymentParams, id: 'id' }
   t.exception(() => {
-    const params = { ...paymentParams, id: 'id' }
-    new Payment(params, paymentConfig, db)
+    new Payment(params, paymentConfig, db) // eslint-disable-line
   }, ERROR.ALREADY_EXISTS('id'))
 })
 
@@ -87,11 +87,12 @@ test('Payment.init - payment file not found', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor() {
+        constructor () {
           this.ready = false
         }
-        async init() { this.ready = true }
-        async read() { return null }
+
+        async init () { this.ready = true }
+        async read () { return null }
       }
     }
   })
@@ -108,13 +109,14 @@ test('Payment.init - no matching plugins', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor() {
+        constructor () {
           this.ready = false
         }
-        async init() { this.ready = true }
-        async read() {
+
+        async init () { this.ready = true }
+        async read () {
           return {
-            paymentEndpoints: { 'paypal': '/paypal/slashpay.json', }
+            paymentEndpoints: { paypal: '/paypal/slashpay.json' }
           }
         }
       }
@@ -133,16 +135,17 @@ test('Payment.init - selected priority', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor() {
+        constructor () {
           this.ready = false
         }
-        async init() { this.ready = true }
-        async read() {
+
+        async init () { this.ready = true }
+        async read () {
           return {
             paymentEndpoints: {
-              'lightning': '/lightning/slashpay.json',
-              'p2sh': '/p2sh/slashpay.json',
-              'p2wsh': '/p2wsh/slashpay.json'
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
             }
           }
         }
@@ -217,7 +220,7 @@ test('Payment.delete', async t => {
   const { id } = payment
   await payment.delete()
 
-  got = await db.get(id)
+  let got = await db.get(id)
   t.is(got, null)
 
   got = await db.get(id, { removed: true })
@@ -249,7 +252,7 @@ test('Payment.update', async t => {
   payment.currency = 'USD'
   await payment.update()
 
-  got = await db.get(id)
+  const got = await db.get(id)
   t.alike(got, payment.serialize())
   t.is(got.amount, '200')
   t.is(got.currency, 'USD')
@@ -263,16 +266,17 @@ test('Payment.process - no next plugin', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor() {
+        constructor () {
           this.ready = false
         }
-        async init() { this.ready = true }
-        async read() {
+
+        async init () { this.ready = true }
+        async read () {
           return {
             paymentEndpoints: {
-              'lightning': '/lightning/slashpay.json',
-              'p2sh': '/p2sh/slashpay.json',
-              'p2wsh': '/p2wsh/slashpay.json'
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
             }
           }
         }
@@ -325,16 +329,17 @@ test('Payment.complete', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor() {
+        constructor () {
           this.ready = false
         }
-        async init() { this.ready = true }
-        async read() {
+
+        async init () { this.ready = true }
+        async read () {
           return {
             paymentEndpoints: {
-              'lightning': '/lightning/slashpay.json',
-              'p2sh': '/p2sh/slashpay.json',
-              'p2wsh': '/p2wsh/slashpay.json'
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
             }
           }
         }

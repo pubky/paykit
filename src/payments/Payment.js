@@ -49,13 +49,13 @@ class Payment {
     if (!db.ready) throw new Error(ERROR.DB_NOT_READY)
   }
 
-  /** 
+  /**
    * Validates payment object
    * @param {Payment} pO - payment object
    * @throws {Error} - if payment object is invalid
    * @returns {void}
    */
-  static validatePaymentObject(pO) {
+  static validatePaymentObject (pO) {
     if (!pO.id) throw new Error(ERROR.ID_REQUIRED)
     if (!pO.internalState) throw new Error(ERROR.INTERNAL_STATE_REQUIRED)
 
@@ -67,7 +67,7 @@ class Payment {
   }
 
   /**
-   * @constructor Payment 
+   * @constructor Payment
    * @param {PaymentParams} paymentParams
    * @property {string} [paymentParmas.id] - payment id
    * @property {PAYMENT_STATE} [paymentParams.internalState] - internal state of the payment
@@ -112,7 +112,7 @@ class Payment {
    * @returns {Promise<void>}
    * @throws {Error} - if no mutual plugins are available
    */
-  async init() {
+  async init () {
     const remoteStorage = new SlashtagsAccessObject()
     // XXX: url may contain path to payment file
     await remoteStorage.init(this.targetURL)
@@ -126,11 +126,11 @@ class Payment {
     if (!this.sendingPriority.length) throw new Error(ERROR.NO_MATCHING_PLUGINS)
   }
 
-  /** 
+  /**
    * Serialize payment object
    * @returns {SerializedPayment}
    */
-  serialize() {
+  serialize () {
     return {
       id: this.id,
       clientPaymentId: this.clientPaymentId,
@@ -161,13 +161,12 @@ class Payment {
    * @property {string|null} processingPlugin - plugin that is currently processing the payment
    */
 
-
   /**
    * Save payment to db
    * @returns {Promise<void>}
    * @throws {Error} - if payment is not valid
    */
-  async save() {
+  async save () {
     if (this.id) {
       const payment = await this.db.get(this.id, { removed: '*' })
       if (payment) throw new Error(ERROR.ALREADY_EXISTS(this.id))
@@ -185,11 +184,10 @@ class Payment {
    * @param {boolean} force - force delete
    * @returns {Promise<void>}
    */
-  async delete(force = false) {
+  async delete (force = false) {
     if (!force) {
       await this.db.update(this.id, { removed: true })
       // TODO: clean `this`
-      return
     } else {
       throw new Error(ERROR.NOT_ALLOWED)
     }
@@ -200,7 +198,7 @@ class Payment {
    * @returns {Promise<void>}
    * @throws {Error} - if payment is not valid
    */
-  async update() {
+  async update () {
     const serialized = this.serialize()
     Payment.validatePaymentObject(serialized)
     await this.db.update(this.id, serialized)
@@ -210,7 +208,7 @@ class Payment {
    * Process payment by iterating through sendingPriority and updating internalState
    * @returns {Promise<Payment>}
    */
-  async process() {
+  async process () {
     // TODO: consider using plugin object with state instead of three properties
     if (this.internalState === PAYMENT_STATE.COMPLETED) return this
     if (this.internalState === PAYMENT_STATE.FAILED) return this
@@ -244,7 +242,7 @@ class Payment {
    * @throws {Error} - if payment is not in progress
    * @returns {Promise<Payment>}
    */
-  async complete() {
+  async complete () {
     if (this.internalState !== PAYMENT_STATE.IN_PROGRESS) throw new Error(ERROR.CAN_NOT_COMPLETE(this.internalState))
 
     this.processedBy.push(this.processingPlugin)
