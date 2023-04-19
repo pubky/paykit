@@ -78,6 +78,7 @@ test('Payment - new', async t => {
   t.is(payment.amount, '100')
   t.is(payment.currency, 'BTC')
   t.is(payment.denomination, 'BASE')
+  t.is(payment.memo, '')
   t.is(payment.processingPlugin, null)
   t.is(payment.orderId, paymentParams.orderId)
   t.ok(payment.createdAt < Date.now())
@@ -187,6 +188,7 @@ test('Payment.serialize', async t => {
     internalState: PAYMENT_STATE.INITIAL,
     targetURL: 'slashpay://driveKey/slashpay.json',
     amount: '100',
+    memo: '',
     currency: 'BTC',
     denomination: 'BASE',
     sendingPriority: [],

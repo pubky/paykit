@@ -100,13 +100,16 @@ class Payment {
     this.orderId = paymentParams.orderId
     this.clientOrderId = paymentParams.clientOrderId
 
-    this.internalState = paymentParams.internalState || PAYMENT_STATE.INITIAL
-
     this.targetURL = paymentParams.targetURL
+    this.memo = paymentParams.memo || ''
+
+    // TODO: separate class
     this.amount = paymentParams.amount
     this.currency = paymentParams.currency || 'BTC'
     this.denomination = paymentParams.denomination || 'BASE' // satoshi
 
+    // TODO: separate class
+    this.internalState = paymentParams.internalState || PAYMENT_STATE.INITIAL
     this.processedBy = []
     this.processingPlugin = null
     this.sendingPriority = []
@@ -146,6 +149,7 @@ class Payment {
       clientOrderId: this.clientOrderId,
       internalState: this.internalState,
       targetURL: this.targetURL,
+      memo: this.memo,
       amount: this.amount,
       currency: this.currency,
       denomination: this.denomination,
