@@ -1,7 +1,8 @@
 const paymentParams = {
-  clientPaymentId: 'clientPaymentId',
+  orderId: 'internalOrderId',
+  clientOrderId: 'clientOrderId',
   amount: '100',
-  targetURL: 'slashpay://driveKey/slashpay.json'
+  targetURL: 'slashpay://driveKey/slashpay.json',
 }
 
 module.exports = {

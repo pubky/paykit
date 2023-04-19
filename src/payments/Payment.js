@@ -21,7 +21,9 @@ class Payment {
    * @returns {void}
    */
   static validatePaymentParams (paymentParams) {
-    if (!paymentParams.clientPaymentId) throw new Error(ERROR.CLIENT_ID_REQUIRED)
+    if (!paymentParams) throw new Error(ERROR.PARAMS_REQUIRED)
+    if (!paymentParams.orderId) throw new Error(ERROR.ORDER_ID_REQUIRED)
+    if (!paymentParams.clientOrderId) throw new Error(ERROR.CLIENT_ID_REQUIRED)
     if (!paymentParams.amount) throw new Error(ERROR.AMOUNT_REQUIRED)
     // if (!paymentParams.currency) throw new Error(ERROR.CURRENCY_REQUIRED)
     // if (!paymentParams.denomination) throw new Error(ERROR.DENOMINATION_REQUIRED)
@@ -72,7 +74,7 @@ class Payment {
    * @property {string} [paymentParmas.id] - payment id
    * @property {PAYMENT_STATE} [paymentParams.internalState] - internal state of the payment
    * @property {string} targetURL - destination of the payment
-   * @property {string} clientPaymentId - client payment id
+   * @property {string} clientOrderId - client payment id
    * @property {string} amount - amount of the payment
    * @property {string} [currency] - currency of the payment, default is BTC
    * @property {string} [denomination] - denomination of the payment, default is BASE
@@ -95,16 +97,23 @@ class Payment {
     if (paymentParams.id) throw new Error(ERROR.ALREADY_EXISTS(paymentParams.id))
 
     this.id = null
+    this.orderId = paymentParams.orderId
+    this.clientOrderId = paymentParams.clientOrderId
+
     this.internalState = paymentParams.internalState || PAYMENT_STATE.INITIAL
-    this.processedBy = []
+
     this.targetURL = paymentParams.targetURL
-    this.clientPaymentId = paymentParams.clientPaymentId
     this.amount = paymentParams.amount
     this.currency = paymentParams.currency || 'BTC'
     this.denomination = paymentParams.denomination || 'BASE' // satoshi
+
+    this.processedBy = []
     this.processingPlugin = null
     this.sendingPriority = []
     this.sentByPlugin = null
+
+    this.createdAt = Date.now()
+    this.exectuteAt = paymentParams.executionTimestamp || Date.now()
   }
 
   /**
@@ -133,7 +142,8 @@ class Payment {
   serialize () {
     return {
       id: this.id,
-      clientPaymentId: this.clientPaymentId,
+      orderId: this.orderId,
+      clientOrderId: this.clientOrderId,
       internalState: this.internalState,
       targetURL: this.targetURL,
       amount: this.amount,
@@ -150,7 +160,7 @@ class Payment {
    * Serialize payment object
    * @typedef {Object} SerializedPayment
    * @property {string|null} id - payment id
-   * @property {string} clientPaymentId - client payment id
+   * @property {string} clientOrderId - client payment id
    * @property {PAYMENT_STATE} internalState - internal state of the payment
    * @property {string} targetURL - destination of the payment
    * @property {string} amount - amount of the payment
@@ -209,7 +219,7 @@ class Payment {
    * @returns {Promise<Payment>}
    */
   async process () {
-    // TODO: consider using plugin object with state instead of three properties
+    // TODO: consider using separate state object/class instead of three properties
     if (this.internalState === PAYMENT_STATE.COMPLETED) return this
     if (this.internalState === PAYMENT_STATE.FAILED) return this
 
@@ -259,7 +269,7 @@ class Payment {
 /**
  * @typedef {Object} Error
  * @property {string} NO_PLUGINS - no plugins found
- * @property {string} CLIENT_ID_REQUIRED - clientPaymentId is required
+ * @property {string} CLIENT_ID_REQUIRED - clientOrderId is required
  * @property {string} AMOUNT_REQUIRED - amount is required
  * // @property {string} CURRENCY_REQUIRED - currency is required
  * // @property {string} DENOMINATION_REQUIRED - denomination is required
@@ -267,11 +277,13 @@ class Payment {
  * @property {string} NO_REMOTE_STORAGE - no remote storage provided
  */
 const ERROR = {
+  PARAMS_REQUIRED: 'params are required',
+  ORDER_ID_REQUIRED: 'orderId is required',
   ALREADY_EXISTS: (id) => `Payment id: ${id} already exists`,
   NO_DB: 'No database provided',
   DB_NOT_READY: 'Database is not ready',
   NO_MATCHING_PLUGINS: 'No plugins found',
-  CLIENT_ID_REQUIRED: 'clientPaymentId is required',
+  CLIENT_ID_REQUIRED: 'clientOrderId is required',
   AMOUNT_REQUIRED: 'amount is required',
   // CURRENCY_REQUIRED: 'currency is required',
   // DENOMINATION_REQUIRED: 'denomination is required',

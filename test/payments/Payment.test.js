@@ -13,18 +13,27 @@ test('Payment.generateId', t => {
 })
 
 test('Payment.validatePaymentParams', t => {
-  t.exception(() => Payment.validatePaymentParams({}), ERROR.CLIENT_ID_REQUIRED)
-  t.exception(() => Payment.validatePaymentParams({ clientPaymentId: 'clientPaymentId' }), ERROR.AMOUNT_REQUIRED)
-  t.exception(
-    () => Payment.validatePaymentParams({ clientPaymentId: 'clientPaymentId', amount: '100' }),
-    ERROR.TARGET_REQUIRED
-  )
-  t.exception(
-    () => Payment.validatePaymentParams({ id: 'id', clientPaymentId: 'clientPaymentId', amount: '100' }),
-    ERROR.ALREADY_EXISTS('id')
-  )
+  let params
+  t.exception(() => Payment.validatePaymentParams(params), ERROR.PARAMS_REQUIRED)
 
-  t.execution(() => Payment.validatePaymentParams({ clientPaymentId: 'clientPaymentId', amount: '100', targetURL: 'targetURL' }))
+  params = {}
+  t.exception(() => Payment.validatePaymentParams(params), ERROR.ORDER_ID_REQUIRED)
+
+  params.orderId = 'orderId'
+  t.exception(() => Payment.validatePaymentParams(params), ERROR.CLIENT_ID_REQUIRED)
+
+  params.clientOrderId = 'clientOrderId'
+  t.exception(() => Payment.validatePaymentParams(params), ERROR.AMOUNT_REQUIRED)
+
+  params.amount = '100'
+  t.exception(() => Payment.validatePaymentParams(params), ERROR.TARGET_REQUIRED)
+
+  params.id = 'id'
+  t.exception(() => Payment.validatePaymentParams(params), ERROR.ALREADY_EXISTS('id'))
+
+  delete params.id
+  params.targetURL = 'targetURL'
+  t.execution(() => Payment.validatePaymentParams(params))
 })
 
 test('Payment.validatePaymentConfig', t => {
@@ -65,11 +74,14 @@ test('Payment - new', async t => {
   t.is(payment.internalState, PAYMENT_STATE.INITIAL)
   t.alike(payment.processedBy, [])
   t.is(payment.targetURL, 'slashpay://driveKey/slashpay.json')
-  t.is(payment.clientPaymentId, 'clientPaymentId')
+  t.is(payment.clientOrderId, 'clientOrderId')
   t.is(payment.amount, '100')
   t.is(payment.currency, 'BTC')
   t.is(payment.denomination, 'BASE')
   t.is(payment.processingPlugin, null)
+  t.is(payment.orderId, paymentParams.orderId)
+  t.ok(payment.createdAt < Date.now())
+  t.ok(payment.exectuteAt < Date.now())
 })
 
 test('Payment - existing', async t => {
@@ -170,7 +182,8 @@ test('Payment.serialize', async t => {
   const serialized = payment.serialize()
   t.alike(serialized, {
     id: null,
-    clientPaymentId: 'clientPaymentId',
+    orderId: 'internalOrderId',
+    clientOrderId: 'clientOrderId',
     internalState: PAYMENT_STATE.INITIAL,
     targetURL: 'slashpay://driveKey/slashpay.json',
     amount: '100',
