@@ -1,3 +1,4 @@
+const { Payment } = require('./Payment')
 /**
  * PaymentSender
  * @class PaymentSender
@@ -11,8 +12,7 @@ class PaymentSender {
    * @param {DB} db
    * @param {Function} notificationCallback
    */
-  constructor (payment, db, notificationCallback) {
-    // TODO: validate input
+  constructor (payment, db, pluginManager, notificationCallback) {
     this.payment = payment
 
     if (!this.payment.sendingPriority.length) {
@@ -20,6 +20,7 @@ class PaymentSender {
     }
 
     this.db = db
+    this.pluginManager = pluginManager
     this.notificationCallback = notificationCallback
   }
 
@@ -29,17 +30,10 @@ class PaymentSender {
    * @returns {Promise<void>}
    * @throws {Error} - if no plugins for making payment are available
    */
-  async submit (pluginManager) {
-    const pluginName = this.payment.sendingPriority.shift()
-    if (!pluginName) {
-      throw new Error('No plugins to send payment')
-    }
-    this.payment.processingPluging = pluginName
-    await this.db.updatePayment(this.payment)
-
-    const { plugin } = await pluginManager.loadPlugin(pluginName)
-
-    await plugin.pay(this.payment, this.stateUpdateCallback)
+  async submit () {
+    const { processingPluging: pluginName } = await this.payment.process()
+    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
+    await plugin.pay(this.payment.serialize(), this.stateUpdateCallback)
   }
 
   /**
@@ -49,12 +43,10 @@ class PaymentSender {
    * @param {PaymentData} paymentData
    * @returns {Promise<void>}
    */
-  async forward (pluginManager, pluginName, paymentData) {
-    // TODO: make sure that payment exists and in correct state
+  async forward (pluginName) {
+    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
 
-    const { plugin } = await pluginManager.loadPlugin(pluginName)
-
-    await plugin.updatePayment(paymentData)
+    await plugin.updatePayment(this.payment.serialize())
   }
 
   /**
@@ -64,24 +56,24 @@ class PaymentSender {
    * @returns {Promise<void>}
    */
   async stateUpdateCallback (update) {
-    await this.db.updatePayment(update)
+    const payment = await Payment.find(update.id)
+    await payment.update(update)
+
     await this.notificationCallback(update)
 
     if (update.state === 'failed') {
-      this.payment.processedPlugins.push(this.payment.processingPluging)
-      this.payment.processingPluging = null
       try {
         await this.submit()
       } catch (e) {
         // failed to process by all plugins
         await this.notificationCallback(e)
+      } finally {
+        return
       }
-      return
-    }
-
-    if (update.state === 'success') {
-      this.payment.sentByPluging = this.payment.processingPluging
-      this.payment.processingPluging = null
+    } else if (update.state === 'success') {
+      await this.payment.complete()
+    } else {
+      // temporal plugin states
     }
   }
 }

@@ -1,7 +1,10 @@
 const { PluginManager } = require('../pluginManager')
-const { PaymentFactory } = require('./paymentFactory')
-const { PaymentSender } = require('./paymentSender')
-const { PaymentReceiver } = require('./paymentReceiver')
+
+const { Payment } = require('./Payment')
+const { PaymentSender } = require('./PaymentSender')
+const { PaymentReceiver } = require('./PaymentReceiver')
+
+const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
 
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
@@ -35,20 +38,27 @@ class PaymentManager {
   }
 
   /**
-   * Send a payment
+   * Create a payment
    * @param {Object} paymentObject - payment object
+   * @returns {Promise<Payment>} - instance of Payment class
+   */
+  async createPayment (paymentObject) {
+    const payment = await Payment.createPayment(paymentObject, {}, { db: this.db })
+    return payment
+  }
+
+  /**
+   * Send a payment
+   * @param {string} id - payment id
    * @returns {Promise<String>} - payment id
    */
-  async sendPayment (paymentObject) {
+  async sendPayment (id) {
     const pluginManager = new PluginManager(this.config)
-    const paymentFactory = new PaymentFactory(this.db, this.config)
-    const payment = await paymentFactory.getOrCreatePayment(paymentObject, {
-      // TODO: connect to remote storage to read payment data, note need a library here
-    })
+    const payment = await Payment.find(paymentObject.id, {}, { db: this.db })
 
-    const paymentSender = new PaymentSender(payment, this.db, this.entryPointForPlugin)
+    const paymentSender = new PaymentSender(payment, this.db, pluginManager, this.entryPointForPlugin)
 
-    await paymentSender.submit(pluginManager)
+    await paymentSender.submit()
     return payment.id
   }
 
@@ -57,19 +67,20 @@ class PaymentManager {
    * @returns {Promise<void>}
    */
   async receivePayments () {
+    const storage = new SlashtagsAccessObject()
     const pluginManager = new PluginManager(this.config)
     await this.config.plugins.forEach(async ({ name }) => {
       await pluginManager.loadPlugin(name)
     })
 
-    const paymentReceiver = new PaymentReceiver(
-      this.db,
-      // TODO: storage
-      this.entryPointForPlugin
-    )
-
-    await paymentReceiver.init(pluginManager)
+    const paymentReceiver = new PaymentReceiver(this.db, pluginManager, storage, this.entryPointForPlugin)
+    await paymentReceiver.init()
   }
+
+  /*
+   * NOTE: things below right now are implemented as callback functions
+   * but may alternatively be implemented as URLs for RPC APIs
+   */
 
   /**
    * Entry point for plugins to send data to the payment manager
@@ -86,32 +97,31 @@ class PaymentManager {
     }
 
     if (payload.state === 'newPayment') {
-      return await this.db.createIncomingPayment(payload)
+      const payment = new Payment(data, {}, { db: this.db })
+      await payment.save()
     }
   }
 
   /**
-   * Entry point for users to send data to the payment manager
+   * Entry point for users to send data to the payment manager which will be forwarded to plugin
    * @param {Object} data - data object
    * @param {String} data.paymentId - id of the related payment
    * @returns {Promise<void>}
    */
   async entryPointForUser (data) {
-    const paymentFactory = new PaymentFactory(this.db)
-    const payment = await paymentFactory.getOrCreate(data, {
-      // TODO: connect to remote storage to read payment data, note need a library here
-    })
+    const pluginManager = new PluginManager(this.config)
+    const payment = await Payment.find(data.id, this.db)
 
-    const paymentSender = new PaymentSender(payment, this.db, this.entryPointForPlugin)
-    await paymentSender.forward(data)
+    const paymentSender = new PaymentSender(payment, this.db, pluginManager, this.entryPointForPlugin)
+    await paymentSender.forward(pluginManager, data.pluginName)
   }
 
   /**
-   * Ask the client for data
+   * Entry point for plugin to send notification to the user
    * @param {Object} payment - payment object
    * @returns {Promise<void>}
    */
-  async askClient (payment) {
+  async userNotificationEndpoint (payment) {
     console.log('askClient', payment)
   }
 }

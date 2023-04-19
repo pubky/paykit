@@ -10,25 +10,25 @@ class PaymentReceiver {
    * @param {RemoteStorage} storage - instance of a local storage (e.g. HyperDrive)
    * @param {Function} notificationCallback - callback which is called when payment is received
    */
-  constructor (db, storage, notificationCallback) {
-    // TODO: validate arguments
+  constructor (db, pluginManager, storage, notificationCallback) {
     this.db = db // internal state storage
     this.storage = storage // internal public interface
     this.notificationCallback = notificationCallback
+    this.pluginManager = pluginManager
   }
 
   /**
    * @param {PluginManager} pluginManager - instance of a plugin manager
    * @returns {Promise<void>}
    */
-  async init (pluginManager) {
-    const paymentPluginNames = this.getListOfSupportedPaymentMethods(pluginManager)
+  async init () {
+    const paymentPluginNames = this.getListOfSupportedPaymentMethods(this.pluginManager)
     const slashpayFile = this.generateSlashpayContent(paymentPluginNames)
     const url = await this.storage.create('./slashpay.json', slashpayFile)
 
     // for now it is the same callback used for payment notifications
     // and for plugin status
-    await pluginManager.dispatchEvent('receivePayment', {
+    await this.pluginManager.dispatchEvent('receivePayment', {
       // TODO: define payload to make plugins create their own slashpay files
       notificationCallback: async (payload) => {
         await this.db.savePayment(payload)
@@ -41,10 +41,9 @@ class PaymentReceiver {
     // this can be done via tracking list of plugins which were included into
     // slashpay.json file and return list as a result of this method
     // then each plugin should report its readiness via RPC notification endpoint
-
-    paymentPluginNames.forEach((name) => {
-      pluginManager.plugins[name].readyToReceivePayments = false
-    })
+    // paymentPluginNames.forEach((name) => {
+    //   this.pluginManager.plugins[name].readyToReceivePayments = false
+    // })
 
     return url
   }
@@ -56,10 +55,7 @@ class PaymentReceiver {
    */
   generateSlashpayContent (paymentPluginNames) {
     const slashpayFile = { paymentEndpoints: {} }
-
-    paymentPluginNames.forEach((name) => {
-      slashpayFile.paymentEndpoints[name] = path.join('slashpay', name, 'slashpay.json')
-    })
+    paymentPluginNames.forEach(n => slashpayFile.paymentEndpoints[n] = path.join('slashpay', n, 'slashpay.json'))
 
     return slashpayFile
   }
@@ -68,8 +64,8 @@ class PaymentReceiver {
    * @method getListOfSupportedPaymentMethods
    * @returns {Array<String>} - list of payment plugin names
    */
-  getListOfSupportedPaymentMethods (pluginManager) {
-    return Object.entries(pluginManager.plugins)
+  getListOfSupportedPaymentMethods () {
+    return Object.entries(this.pluginManager.plugins)
       .filter(([_name, { manifest, active }]) => active && manifest.type === 'payment')
       .map(([name, _plugin]) => name)
   }
