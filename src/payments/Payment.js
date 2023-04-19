@@ -181,6 +181,7 @@ class Payment {
    * @throws {Error} - if payment is not valid
    */
   async save () {
+    // TODO: needs to be more sophisticated than this
     if (this.id) {
       const payment = await this.db.get(this.id, { removed: '*' })
       if (payment) throw new Error(ERROR.ALREADY_EXISTS(this.id))
@@ -268,6 +269,19 @@ class Payment {
 
     return this
   }
+
+  async cancel () {
+    if (this.internalState !== PAYMENT_STATE.INITIAL) throw new Error(ERROR.CAN_NOT_CANCEL(this.internalState))
+
+    this.processedBy.push(this.processingPlugin)
+    this.processingPlugin = null
+    this.internalState = PAYMENT_STATE.CANCELLED
+
+    await this.update()
+
+    return this
+  }
+
 }
 
 /**
@@ -294,6 +308,7 @@ const ERROR = {
   TARGET_REQUIRED: 'targetURL is required',
   NOT_ALLOWED: 'Not allowed',
   CAN_NOT_COMPLETE: (state) => `Can not complete payment in state: ${state}`,
+  CAN_NOT_CANCEL: (state) => `Can not cancel payment in state: ${state}`,
 
   NO_REMOTE_STORAGE: 'No remote storage provided',
   NO_PAYMENT_FILE: 'No payment file found',
@@ -306,14 +321,15 @@ const ERROR = {
  * @property {string} IN_PROGRESS - in progress state
  * @property {string} COMPLETED - completed state
  * @property {string} FAILED - failed state
- * @property {string} CANCELED - canceled state
+ * @property {string} CANCELLED - cancelled state
  */
 const PAYMENT_STATE = {
   INITIAL: 'initial',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
   FAILED: 'failed',
-  CANCELED: 'canceled'
+  CANCELLED: 'cancelled'
+
 }
 
 module.exports = {

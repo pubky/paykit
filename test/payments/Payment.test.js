@@ -381,3 +381,40 @@ test('Payment.complete', async t => {
 
   await t.exception(async () => await payment.complete(), ERROR.CAN_NOT_COMPLETE(PAYMENT_STATE.COMPLETED))
 })
+
+test('Payment.cancel', async t => {
+  const db = new DB()
+  await db.init()
+  const paymentConfig = { sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }
+
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const payment = new Payment(paymentParams, paymentConfig, db)
+  await payment.save()
+  await payment.init()
+
+  await payment.cancel()
+
+  t.is(payment.internalState, PAYMENT_STATE.CANCELLED)
+
+  await t.exception(async () => await payment.cancel(), ERROR.CAN_NOT_COMPLETE(PAYMENT_STATE.CANCELLED))
+})
