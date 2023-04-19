@@ -13,10 +13,9 @@ test('Payment.generateId', t => {
 })
 
 test('Payment.validatePaymentParams', t => {
-  let params
-  t.exception(() => Payment.validatePaymentParams(params), ERROR.PARAMS_REQUIRED)
+  t.exception(() => Payment.validatePaymentParams(), ERROR.PARAMS_REQUIRED)
 
-  params = {}
+  const params = {}
   t.exception(() => Payment.validatePaymentParams(params), ERROR.ORDER_ID_REQUIRED)
 
   params.orderId = 'orderId'

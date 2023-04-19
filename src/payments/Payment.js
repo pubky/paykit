@@ -281,7 +281,6 @@ class Payment {
 
     return this
   }
-
 }
 
 /**
