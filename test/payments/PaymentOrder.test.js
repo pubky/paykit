@@ -267,7 +267,7 @@ test('PaymentOrder - process', async t => {
   const paymentInstanceStub = {
     init: sinon.stub().resolves(),
     save: sinon.stub().resolves(),
-    process: sinon.stub().resolves()
+    process: sinon.stub().resolves('payment')
   }
   const paymentClassStub = sinon.stub().returns(paymentInstanceStub)
 
@@ -291,8 +291,9 @@ test('PaymentOrder - process', async t => {
   t.is(paymentInstanceStub.init.callCount, 1)
   t.is(paymentInstanceStub.save.callCount, 1)
 
-  await paymentOrder.process()
+  const payment = await paymentOrder.process()
 
   t.is(paymentOrder.state, ORDER_STATE.PROCESSING)
   t.is(paymentInstanceStub.process.callCount, 1)
+  t.is(payment, 'payment')
 })

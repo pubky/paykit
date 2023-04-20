@@ -67,13 +67,17 @@ class PaymentOrder {
     throw new Error(ERROR.NOT_IMPLEMENTED)
   }
 
+  /**
+   * @method process - Process order
+   * @returns {Promise<Payment>}
+   */
   async process () {
     if (this.state === ORDER_STATE.INITIALIZED) {
       // TODO: db transaction
       // first run
       this.state = ORDER_STATE.PROCESSING
       await this.update()
-      this.payments[0].process()
+      return this.payments[0].process()
     } else if (this.state === ORDER_STATE.PROCESSING) {
       throw new Error(ERROR.NOT_IMPLEMENTED)
       // TODO: check if there are any payments in progress
