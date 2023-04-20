@@ -215,6 +215,7 @@ class Payment {
    */
   async update () {
     const serialized = this.serialize()
+    // TODO: update itself as well
     Payment.validatePaymentObject(serialized)
     await this.db.update(this.id, serialized)
   }

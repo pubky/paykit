@@ -79,7 +79,11 @@ class PaymentOrder {
       await this.update()
       return this.payments[0].process()
     } else if (this.state === ORDER_STATE.PROCESSING) {
-      throw new Error(ERROR.NOT_IMPLEMENTED)
+      if (this.payments[0].pluginState === 'failed') {
+        return this.payments[0].process()
+      } else {
+        throw new Error(ERROR.NOT_IMPLEMENTED)
+      }
       // TODO: check if there are any payments in progress
       // if there are, then do nothing
       // if there are none, then check if there are any payments that are not yet in progress

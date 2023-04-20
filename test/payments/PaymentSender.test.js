@@ -1,8 +1,8 @@
 const sinon = require('sinon')
+const proxyquire = require('proxyquire')
 const { test } = require('brittle')
 
-const { DB } = require('../fixtures/db')
-const db = new DB()
+const { DB } = require('../../src/DB')
 
 const { Storage } = require('../fixtures/externalStorage')
 const remoteStorage = new Storage()
@@ -10,63 +10,266 @@ const remoteStorage = new Storage()
 const { PluginManager } = require('../../src/pluginManager')
 const { pluginConfig } = require('../fixtures/config.js')
 
-const { paymentParams } = require('../fixtures/paymentParams')
+const { orderParams } = require('../fixtures/paymentParams')
 
+const { PAYMENT_STATE } = require('../../src/payments/Payment')
 const { PaymentSender } = require('../../src/payments/PaymentSender')
-const { Payment } = require('../../src/payments/Payment')
+const { PaymentOrder } = require('../../src/payments/PaymentOrder')
 
-test('PaymentSender', async t => {
-  const payment = new Payment(paymentParams)
-  await payment.init(remoteStorage, ['p2sh', 'p2tr'])
-  const paymentSender = new PaymentSender(payment, db, () => {})
+test('PaymentSender - constructor', async t => {
+  const paymentInstanceStub = {
+    init: sinon.stub().resolves(),
+    save: sinon.stub().resolves()
+  }
+  const paymentClassStub = sinon.stub().returns(paymentInstanceStub)
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
+    './Payment': {
+      Payment: paymentClassStub
+    }
+  })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams }
+  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
+
+  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  await paymentOrder.init()
+
+  const { PaymentSender } = proxyquire('../../src/payments/PaymentSender', {
+    './PaymentOrder': { PaymentOrder }
+  })
+
+  const pluginManager = new PluginManager(pluginConfig)
+
+  const paymentSender = new PaymentSender(paymentOrder, db, pluginManager, () => {})
 
   t.alike(paymentSender.db, db)
-  t.alike(paymentSender.payment, payment)
+  t.alike(paymentSender.paymentOrder, paymentOrder)
   t.alike(paymentSender.notificationCallback.toString(), '() => {}')
 })
 
-test('PaymentSender.submit', async t => {
+test('PaymentSender - submit', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () { this.ready = false }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              p2sh: '/p2sh/slashpay.json',
+              p2tr: '/p2tr/slashpay.json',
+              lightning: '/lightning/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
+    './Payment': { Payment }
+  })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams }
+  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
+
+  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  await paymentOrder.init()
+  await paymentOrder.save()
+  const processStub = sinon.replace(paymentOrder, 'process', sinon.fake(paymentOrder.process))
+
+  const { PaymentSender } = proxyquire('../../src/payments/PaymentSender', {
+    './PaymentOrder': { PaymentOrder }
+  })
+
   const pluginManager = new PluginManager(pluginConfig)
 
-  const payment = new Payment(paymentParams)
-  await payment.init(remoteStorage, ['p2sh', 'p2tr'])
-  const dbSavePayment = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
-  const paymentSender = new PaymentSender(payment, db, () => {})
+  const paymentSender = new PaymentSender(paymentOrder, db, pluginManager, () => {})
+  await paymentSender.submit()
 
-  await paymentSender.submit(pluginManager)
-
-  t.is(dbSavePayment.callCount, 1)
-
-  t.teardown(() => {
-    sinon.restore()
-  })
+  t.is(Object.keys(pluginManager.plugins).length, 1)
+  t.is(pluginManager.plugins['p2sh'].plugin.pay.callCount, 1)
+  t.alike(pluginManager.plugins['p2sh'].plugin.pay.getCall(0).args, [paymentOrder.payments[0].serialize(), paymentSender.stateUpdateCallback])
+  t.is(processStub.callCount, 1)
 })
 
-test('PaymentSender.forward', async t => {
+test('PaymentSender - forward', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () { this.ready = false }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              p2sh: '/p2sh/slashpay.json',
+              p2tr: '/p2tr/slashpay.json',
+              lightning: '/lightning/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
+    './Payment': { Payment }
+  })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams }
+  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
+
+  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  await paymentOrder.init()
+  await paymentOrder.save()
+  const processStub = sinon.replace(paymentOrder, 'process', sinon.fake(paymentOrder.process))
+
+  const { PaymentSender } = proxyquire('../../src/payments/PaymentSender', {
+    './PaymentOrder': { PaymentOrder }
+  })
+
   const pluginManager = new PluginManager(pluginConfig)
 
-  const payment = new Payment(paymentParams)
-  await payment.init(remoteStorage, ['p2sh', 'p2tr'])
-  const paymentSender = new PaymentSender(payment, db, () => {})
+  const paymentSender = new PaymentSender(paymentOrder, db, pluginManager, () => {})
+  await paymentSender.forward('p2sh')
 
-  await paymentSender.forward(pluginManager, 'p2sh', paymentParams)
+  t.is(Object.keys(pluginManager.plugins).length, 1)
+  t.is(pluginManager.plugins['p2sh'].plugin.updatePayment.callCount, 1)
+  t.alike(pluginManager.plugins['p2sh'].plugin.updatePayment.getCall(0).args, [paymentOrder.payments[0].serialize()])
 })
 
-test('PaymentSender.stateUpdateCallback', async t => {
+test('PaymentSender - stateUpdateCallback (success)', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () { this.ready = false }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              p2sh: '/p2sh/slashpay.json',
+              p2tr: '/p2tr/slashpay.json',
+              lightning: '/lightning/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
+    './Payment': { Payment }
+  })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams }
+  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
+
+  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  await paymentOrder.init()
+  await paymentOrder.save()
+
+  const { PaymentSender } = proxyquire('../../src/payments/PaymentSender', {
+    './PaymentOrder': { PaymentOrder }
+  })
+
   const pluginManager = new PluginManager(pluginConfig)
 
-  const payment = new Payment(paymentParams)
-  await payment.init(remoteStorage, ['p2sh', 'p2tr'])
-  const dbSavePayment = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
-  const paymentSender = new PaymentSender(payment, db, () => {})
+  const paymentSender = new PaymentSender(paymentOrder, db, pluginManager, () => {})
 
-  await paymentSender.submit(pluginManager)
+  const payment = paymentOrder.payments[0]
+  const paymentUpdate = {
+    id: payment.id,
+    pluginState: 'success',
+  }
 
-  await paymentSender.stateUpdateCallback('p2sh', { state: 'pending' })
+  await paymentSender.submit()
+  await paymentSender.stateUpdateCallback(paymentUpdate)
 
-  t.is(dbSavePayment.callCount, 2)
+  const got = await db.get(payment.id)
 
-  t.teardown(() => {
-    sinon.restore()
+  t.is(got.id, payment.id)
+  t.is(got.internalState, PAYMENT_STATE.COMPLETED)
+})
+
+test('PaymentSender - stateUpdateCallback (success)', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () { this.ready = false }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              p2sh: '/p2sh/slashpay.json',
+              p2tr: '/p2tr/slashpay.json',
+            }
+          }
+        }
+      }
+    }
   })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
+    './Payment': { Payment }
+  })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams }
+  const orderConfig = { sendingPriority: ['p2sh', 'p2tr'] }
+
+  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  await paymentOrder.init()
+  await paymentOrder.save()
+
+  const { PaymentSender } = proxyquire('../../src/payments/PaymentSender', {
+    './PaymentOrder': { PaymentOrder }
+  })
+
+  const pluginManager = new PluginManager(pluginConfig)
+
+  const paymentSender = new PaymentSender(paymentOrder, db, pluginManager, () => {})
+
+  const payment = paymentOrder.payments[0]
+  let paymentUpdate = {
+    id: payment.id,
+    pluginState: 'failed',
+  }
+
+  await paymentSender.submit()
+  await paymentSender.stateUpdateCallback(paymentUpdate)
+
+  let got = await db.get(payment.id)
+
+  t.is(got.id, payment.id)
+  t.is(got.internalState, PAYMENT_STATE.IN_PROGRESS)
+
+  paymentUpdate = {
+    id: payment.id,
+    pluginState: 'success',
+  }
+
+  await paymentSender.stateUpdateCallback(paymentUpdate)
+  got = await db.get(payment.id)
+
+  t.is(got.id, payment.id)
+  t.is(got.internalState, PAYMENT_STATE.COMPLETED)
 })

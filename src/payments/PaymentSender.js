@@ -8,16 +8,12 @@ class PaymentSender {
    * Creates an instance of PaymentSender.
    * @constructor PaymentSender
    * @param {PluginManager} pluginManager
-   * @param {Payment} payment
+   * @param {PaymentOrder} paymentOrder
    * @param {DB} db
    * @param {Function} notificationCallback
    */
-  constructor (payment, db, pluginManager, notificationCallback) {
-    this.payment = payment
-
-    if (!this.payment.sendingPriority.length) {
-      throw new Error('No plugins to send payment')
-    }
+  constructor (paymentOrder, db, pluginManager, notificationCallback) {
+    this.paymentOrder = paymentOrder
 
     this.db = db
     this.pluginManager = pluginManager
@@ -31,9 +27,23 @@ class PaymentSender {
    * @throws {Error} - if no plugins for making payment are available
    */
   async submit () {
-    const { processingPluging: pluginName } = await this.payment.process()
-    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
-    await plugin.pay(this.payment.serialize(), this.stateUpdateCallback)
+    const payment = await this.paymentOrder.process()
+
+    if (!payment.processingPlugin) {
+      throw new Error('No plugins available for making payment')
+    }
+
+    // TODO: also check if plugin is enabled
+    let plugin
+    let loaded = this.pluginManager.plugins[payment.processingPlugin]
+    if (loaded) {
+      plugin = loaded.plugin
+    } else {
+      const loaded =  await this.pluginManager.loadPlugin(payment.processingPlugin)
+      plugin = loaded.plugin
+    }
+
+    await plugin.pay(payment.serialize(), this.stateUpdateCallback)
   }
 
   /**
@@ -43,25 +53,42 @@ class PaymentSender {
    * @param {PaymentData} paymentData
    * @returns {Promise<void>}
    */
+  // XXX: not sure if this is needed
   async forward (pluginName) {
-    const { plugin } = await this.pluginManager.loadPlugin(pluginName)
+    // TODO: also check if plugin is enabled
+    let plugin
+    let loaded = this.pluginManager.plugins[pluginName]
+    if (loaded) {
+      plugin = loaded.plugin
+    } else {
+      const loaded =  await this.pluginManager.loadPlugin(pluginName)
+      plugin = loaded.plugin
+    }
 
-    await plugin.updatePayment(this.payment.serialize())
+    // TODO: will probably require async db lookup
+    const payment = this.paymentOrder.payments[0]
+
+    await plugin.updatePayment(payment.serialize())
   }
 
   /**
-   * Update payment state
+   * Update payment state upon request of plugin
    * @method stateUpdateCallback
-   * @param {PaymentStateUpdate} update
+   * @param {PaymentStateUpdate} update (must contain pluginState)
    * @returns {Promise<void>}
    */
   async stateUpdateCallback (update) {
-    const payment = await Payment.find(update.id)
+    // TODO verify that it is correct payment
+    const payment = this.paymentOrder.payments[0]
+    // TODO: update itself as well
     await payment.update(update)
+    payment.pluginState = update.pluginState
+
 
     await this.notificationCallback(update)
 
-    if (update.state === 'failed') {
+    // TODO: implement properly
+    if (update.pluginState === 'failed') {
       try {
         await this.submit()
       } catch (e) {
@@ -70,8 +97,8 @@ class PaymentSender {
       } finally {
         return
       }
-    } else if (update.state === 'success') {
-      await this.payment.complete()
+    } else if (update.pluginState === 'success') {
+      await payment.complete()
     } else {
       // temporal plugin states
     }
