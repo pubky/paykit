@@ -96,55 +96,6 @@ test('PaymentSender - submit', async t => {
   t.is(processStub.callCount, 1)
 })
 
-test('PaymentSender - forward', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () { this.ready = false }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json',
-              lightning: '/lightning/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
-    './Payment': { Payment }
-  })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
-
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
-  await paymentOrder.init()
-  await paymentOrder.save()
-  const processStub = sinon.replace(paymentOrder, 'process', sinon.fake(paymentOrder.process))
-
-  const { PaymentSender } = proxyquire('../../src/payments/PaymentSender', {
-    './PaymentOrder': { PaymentOrder }
-  })
-
-  const pluginManager = new PluginManager(pluginConfig)
-
-  const paymentSender = new PaymentSender(paymentOrder, db, pluginManager, () => {})
-  await paymentSender.forward('p2sh')
-
-  t.is(Object.keys(pluginManager.plugins).length, 1)
-  t.is(pluginManager.plugins.p2sh.plugin.updatePayment.callCount, 1)
-  t.alike(pluginManager.plugins.p2sh.plugin.updatePayment.getCall(0).args, [paymentOrder.payments[0].serialize()])
-})
-
 test('PaymentSender - stateUpdateCallback (success)', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {

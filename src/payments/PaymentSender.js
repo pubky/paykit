@@ -45,30 +45,6 @@ class PaymentSender {
   }
 
   /**
-   * Forward payment to plugin
-   * @method forward
-   * @param {String} pluginName
-   * @param {PaymentData} paymentData
-   * @returns {Promise<void>}
-   */
-  async forward (pluginName) {
-    // TODO: also check if plugin is enabled
-    let plugin
-    const loaded = this.pluginManager.plugins[pluginName]
-    if (loaded) {
-      plugin = loaded.plugin
-    } else {
-      const loaded = await this.pluginManager.loadPlugin(pluginName)
-      plugin = loaded.plugin
-    }
-
-    // TODO: will probably require async db lookup
-    const payment = this.paymentOrder.payments[0]
-
-    await plugin.updatePayment(payment.serialize())
-  }
-
-  /**
    * Update payment state upon request of plugin
    * @method stateUpdateCallback
    * @param {PaymentStateUpdate} update (must contain pluginState)
