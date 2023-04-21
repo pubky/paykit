@@ -13,7 +13,6 @@ class PaymentSender {
    */
   constructor (paymentOrder, db, pluginManager, notificationCallback) {
     this.paymentOrder = paymentOrder
-
     this.db = db
     this.pluginManager = pluginManager
     this.notificationCallback = notificationCallback
