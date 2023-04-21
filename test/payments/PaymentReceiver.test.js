@@ -4,19 +4,22 @@ const { test } = require('brittle')
 const { DB } = require('../fixtures/db')
 const db = new DB()
 
-const storage = require('../fixtures/storageInstance')
+const { SlashtagsAccessObject } = require('../../src/SlashtagsAccessObject')
 
 const { PluginManager } = require('../../src/pluginManager')
 
 const { pluginConfig } = require('../fixtures/config.js')
 
-const pluginManager = new PluginManager()
-;(async () => await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage))()
-
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
-test('PaymentReceiver', t => {
-  const paymentReceiver = new PaymentReceiver(db, storage, () => {})
+test('PaymentReceiver', async t => {
+  const storage = new SlashtagsAccessObject('key', './dir')
+  await storage.init()
+
+  const pluginManager = new PluginManager(pluginConfig)
+  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+
+  const paymentReceiver = new PaymentReceiver(db, pluginManager, storage, () => {})
 
   t.alike(paymentReceiver.db, db)
   t.alike(paymentReceiver.storage, storage)
@@ -24,13 +27,21 @@ test('PaymentReceiver', t => {
 })
 
 test('PaymentReceiver.init', async t => {
+  const storage = new SlashtagsAccessObject('key', './dir')
+  await storage.init()
+  const storageCreate = sinon.replace(storage, 'create', sinon.fake(storage.create))
+
+  const pluginManager = new PluginManager()
+  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+
   const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
 
-  const paymentReceiver = new PaymentReceiver(db, storage, () => {})
+  const paymentReceiver = new PaymentReceiver(db, pluginManager, storage, () => {})
 
-  await paymentReceiver.init(pluginManager)
+  const res = await paymentReceiver.init()
 
-  t.is(storage.create.callCount, 1)
+  t.ok(res)
+  t.is(storageCreate.callCount, 1)
   t.is(pluginDispatch.callCount, 1)
 
   t.teardown(() => {
@@ -38,7 +49,13 @@ test('PaymentReceiver.init', async t => {
   })
 })
 
-test('PaymentReceiver.generateSlashpayContent', t => {
+test('PaymentReceiver.generateSlashpayContent', async t => {
+  const storage = new SlashtagsAccessObject('key', './dir')
+  await storage.init()
+
+  const pluginManager = new PluginManager(pluginConfig)
+  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+
   const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
 
   const slashpayContent = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'])
@@ -54,9 +71,15 @@ test('PaymentReceiver.generateSlashpayContent', t => {
   })
 })
 
-test('PaymentReceiver.getListOfSupportedPaymentMethods', t => {
-  const paymentReceiver = new PaymentReceiver(pluginManager, db, storage, () => {})
+test('PaymentReceiver.getListOfSupportedPaymentMethods', async t => {
+  const storage = new SlashtagsAccessObject('key', './dir')
+  await storage.init()
 
-  const supportedPaymentMethods = paymentReceiver.getListOfSupportedPaymentMethods(pluginManager)
+  const pluginManager = new PluginManager(pluginConfig)
+  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+
+  const paymentReceiver = new PaymentReceiver(db, pluginManager, storage, () => {})
+
+  const supportedPaymentMethods = paymentReceiver.getListOfSupportedPaymentMethods()
   t.alike(supportedPaymentMethods, ['p2sh'])
 })

@@ -18,11 +18,11 @@ class PaymentReceiver {
   }
 
   /**
-   * @param {PluginManager} pluginManager - instance of a plugin manager
-   * @returns {Promise<void>}
+   * Initialize, get ready to receive payments at returned URL
+   * @returns {Promise<String>} - url to local drive where slashpay.json file is located
    */
   async init () {
-    const paymentPluginNames = this.getListOfSupportedPaymentMethods(this.pluginManager)
+    const paymentPluginNames = this.getListOfSupportedPaymentMethods()
     const slashpayFile = this.generateSlashpayContent(paymentPluginNames)
     const url = await this.storage.create('./slashpay.json', slashpayFile)
 
