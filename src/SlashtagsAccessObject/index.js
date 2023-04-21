@@ -25,6 +25,8 @@ class SlashtagsAccessObject {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
     this.data[key] = value
+
+    return 'randomDriveKey'
   }
 
   async delete (key) {
