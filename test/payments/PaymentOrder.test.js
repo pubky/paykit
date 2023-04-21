@@ -295,3 +295,32 @@ test('PaymentOrder - process', async t => {
   t.is(paymentInstanceStub.process.callCount, 1)
   t.is(payment, 'payment')
 })
+
+test('PaymentOrder - find', async t => {
+  const paymentInstanceStub = {
+    init: sinon.stub().resolves(),
+    save: sinon.stub().resolves()
+  }
+  const paymentClassStub = sinon.stub().returns(paymentInstanceStub)
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
+    './Payment': {
+      Payment: paymentClassStub
+    }
+  })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
+
+  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  await paymentOrder.init()
+  const id = paymentOrder.id
+  await paymentOrder.save()
+
+  const got = await PaymentOrder.find(id, db)
+  t.alike(got.serialize(), paymentOrder.serialize())
+})
+
