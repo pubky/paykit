@@ -50,7 +50,6 @@ test('PaymentOrder - contructor (one time)', async t => {
   t.is(paymentOrder.denomination, params.denomination || 'BASE')
   t.is(paymentOrder.targetURL, params.targetURL)
   t.is(paymentOrder.memo, params.memo || '')
-  t.is(paymentOrder.sendingPriority, params.sendingPriority || orderConfig.sendingPriority)
 })
 
 test('PaymentOrder - contructor (reccuring)', async t => {
@@ -117,7 +116,6 @@ test('serialize', async t => {
     denomination: 'BASE',
     targetURL: params.targetURL,
     memo: '',
-    sendingPriority: orderConfig.sendingPriority,
     state: ORDER_STATE.CREATED
   })
 })

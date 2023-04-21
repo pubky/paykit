@@ -35,7 +35,7 @@ class PaymentOrder {
     this.denomination = orderParams.denomination || 'BASE'
     this.targetURL = orderParams.targetURL
     this.memo = orderParams.memo || ''
-    this.sendingPriority = orderParams.sendingPriority || orderConfig.sendingPriority
+    // this.sendingPriority = orderParams.sendingPriority || orderConfig.sendingPriority
 
     if (this.type === ORDER_TYPE.RECCURING) {
       throw new Error(ERROR.NOT_IMPLEMENTED)
@@ -135,7 +135,7 @@ class PaymentOrder {
       denomination: this.denomination,
       targetURL: this.targetURL,
       memo: this.memo,
-      sendingPriority: this.sendingPriority
+      // sendingPriority: this.sendingPriority
     }
   }
 
