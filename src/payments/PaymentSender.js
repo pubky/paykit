@@ -33,11 +33,11 @@ class PaymentSender {
 
     // TODO: also check if plugin is enabled
     let plugin
-    let loaded = this.pluginManager.plugins[payment.processingPlugin]
+    const loaded = this.pluginManager.plugins[payment.processingPlugin]
     if (loaded) {
       plugin = loaded.plugin
     } else {
-      const loaded =  await this.pluginManager.loadPlugin(payment.processingPlugin)
+      const loaded = await this.pluginManager.loadPlugin(payment.processingPlugin)
       plugin = loaded.plugin
     }
 
@@ -54,11 +54,11 @@ class PaymentSender {
   async forward (pluginName) {
     // TODO: also check if plugin is enabled
     let plugin
-    let loaded = this.pluginManager.plugins[pluginName]
+    const loaded = this.pluginManager.plugins[pluginName]
     if (loaded) {
       plugin = loaded.plugin
     } else {
-      const loaded =  await this.pluginManager.loadPlugin(pluginName)
+      const loaded = await this.pluginManager.loadPlugin(pluginName)
       plugin = loaded.plugin
     }
 
@@ -80,7 +80,6 @@ class PaymentSender {
     // TODO: update itself as well
     await payment.update(update)
     payment.pluginState = update.pluginState
-
 
     await this.notificationCallback(update)
 

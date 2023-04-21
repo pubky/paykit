@@ -326,4 +326,3 @@ test('PaymentOrder - find', async t => {
   const got = await PaymentOrder.find(id, db)
   t.alike(got.serialize(), paymentOrder.serialize())
 })
-

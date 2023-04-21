@@ -88,7 +88,7 @@ test('Payment - new', async t => {
 //   const db = new DB()
 //   await db.init()
 //   const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
-// 
+//
 //   const params = { ...paymentParams, id: 'id' }
 //   t.exception(() => {
 //     new Payment(params, paymentConfig, db) // eslint-disable-line

@@ -91,8 +91,8 @@ test('PaymentSender - submit', async t => {
   await paymentSender.submit()
 
   t.is(Object.keys(pluginManager.plugins).length, 1)
-  t.is(pluginManager.plugins['p2sh'].plugin.pay.callCount, 1)
-  t.alike(pluginManager.plugins['p2sh'].plugin.pay.getCall(0).args, [paymentOrder.payments[0].serialize(), paymentSender.stateUpdateCallback])
+  t.is(pluginManager.plugins.p2sh.plugin.pay.callCount, 1)
+  t.alike(pluginManager.plugins.p2sh.plugin.pay.getCall(0).args, [paymentOrder.payments[0].serialize(), paymentSender.stateUpdateCallback])
   t.is(processStub.callCount, 1)
 })
 
@@ -141,8 +141,8 @@ test('PaymentSender - forward', async t => {
   await paymentSender.forward('p2sh')
 
   t.is(Object.keys(pluginManager.plugins).length, 1)
-  t.is(pluginManager.plugins['p2sh'].plugin.updatePayment.callCount, 1)
-  t.alike(pluginManager.plugins['p2sh'].plugin.updatePayment.getCall(0).args, [paymentOrder.payments[0].serialize()])
+  t.is(pluginManager.plugins.p2sh.plugin.updatePayment.callCount, 1)
+  t.alike(pluginManager.plugins.p2sh.plugin.updatePayment.getCall(0).args, [paymentOrder.payments[0].serialize()])
 })
 
 test('PaymentSender - stateUpdateCallback (success)', async t => {
@@ -190,7 +190,7 @@ test('PaymentSender - stateUpdateCallback (success)', async t => {
   const payment = paymentOrder.payments[0]
   const paymentUpdate = {
     id: payment.id,
-    pluginState: 'success',
+    pluginState: 'success'
   }
 
   await paymentSender.submit()
@@ -213,7 +213,7 @@ test('PaymentSender - stateUpdateCallback (success)', async t => {
           return {
             paymentEndpoints: {
               p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json',
+              p2tr: '/p2tr/slashpay.json'
             }
           }
         }
@@ -246,7 +246,7 @@ test('PaymentSender - stateUpdateCallback (success)', async t => {
   const payment = paymentOrder.payments[0]
   let paymentUpdate = {
     id: payment.id,
-    pluginState: 'failed',
+    pluginState: 'failed'
   }
 
   await paymentSender.submit()
@@ -259,7 +259,7 @@ test('PaymentSender - stateUpdateCallback (success)', async t => {
 
   paymentUpdate = {
     id: payment.id,
-    pluginState: 'success',
+    pluginState: 'success'
   }
 
   await paymentSender.stateUpdateCallback(paymentUpdate)

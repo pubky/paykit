@@ -175,7 +175,7 @@ class PaymentOrder {
     await this.db.update(this.id, serialized)
   }
 
-  static async find(id, db) {
+  static async find (id, db) {
     const orderParams = await db.get(id)
     const paymentOrder = new PaymentOrder(orderParams, {}, db)
     await paymentOrder.init()

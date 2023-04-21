@@ -46,7 +46,7 @@ test('PaymentManager: createPaymentOrder', async t => {
           return {
             paymentEndpoints: {
               p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json',
+              p2tr: '/p2tr/slashpay.json'
             }
           }
         }
@@ -83,7 +83,7 @@ test('PaymentManager: sendPayment', async t => {
           return {
             paymentEndpoints: {
               p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json',
+              p2tr: '/p2tr/slashpay.json'
             }
           }
         }
