@@ -65,17 +65,20 @@ class PaymentManager {
 
   /**
    * Receive payments
-   * @returns {Promise<void>}
+   * @returns {Promise<string>}
    */
   async receivePayments () {
     const storage = new SlashtagsAccessObject()
+    await storage.init()
+
     const pluginManager = new PluginManager(this.config)
-    await this.config.plugins.forEach(async ({ name }) => {
-      await pluginManager.loadPlugin(name)
-    })
+
+    await Promise.all(Object.keys(this.config.plugins).map(async (name) => {
+      return await pluginManager.loadPlugin(name)
+    }))
 
     const paymentReceiver = new PaymentReceiver(this.db, pluginManager, storage, this.entryPointForPlugin)
-    await paymentReceiver.init()
+    return await paymentReceiver.init()
   }
 
   /*
@@ -86,20 +89,22 @@ class PaymentManager {
   /**
    * Entry point for plugins to send data to the payment manager
    * @param {Object} payload - payload object
-   * @param {String} payload.pluginName - name of the plugin
-   * @param {String} payload.paymentId - id of the payment
-   * @param {String} payload.state - state of the payment
-   * @param {String} payload.data - data to be sent to the payment manager
+   * @property {String} payload.pluginName - name of the plugin
+   * @property {String} payload.paymentId - id of the payment
+   * @property {String} payload.state - state of the payment
+   * @property {String} payload.data - data to be sent to the payment manager
    * @returns {Promise<void>}
    */
   async entryPointForPlugin (payload) {
-    if (payload.state === 'waitingForClient') {
-      return await this.askClient(payload)
+    if (payload.pluginState === 'newPayment') {
+      const payment = new Payment(payload, {
+        sendingPriority: payload.pluginName
+      }, this.db)
+      await payment.save()
     }
 
-    if (payload.state === 'newPayment') {
-      const payment = new Payment(data, {}, { db: this.db })
-      await payment.save()
+    if (payload.pluginState === 'waitingForClient') {
+      return await this.userNotificationEndpoint(payload)
     }
   }
 
@@ -111,10 +116,9 @@ class PaymentManager {
    */
   async entryPointForUser (data) {
     const pluginManager = new PluginManager(this.config)
-    const payment = await Payment.find(data.id, this.db)
-
-    const paymentSender = new PaymentSender(payment, this.db, pluginManager, this.entryPointForPlugin)
-    await paymentSender.forward(pluginManager, data.pluginName)
+    const { plugin } = await pluginManager.loadPlugin(data.pluginName)
+    // TODO check if plugin active exists
+    await plugin.updatePayment(data)
   }
 
   /**
