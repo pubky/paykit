@@ -1,6 +1,7 @@
 const { PluginManager } = require('../pluginManager')
 
 const { Payment } = require('./Payment')
+const { PaymentOrder } = require('./PaymentOrder')
 const { PaymentSender } = require('./PaymentSender')
 const { PaymentReceiver } = require('./PaymentReceiver')
 
@@ -40,26 +41,26 @@ class PaymentManager {
   /**
    * Create a payment
    * @param {Object} paymentObject - payment object
-   * @returns {Promise<Payment>} - instance of Payment class
+   * @returns {Promise<PaymentOrder>} - instance of Payment class
    */
-  async createPayment (paymentObject) {
-    const payment = await Payment.createPayment(paymentObject, {}, { db: this.db })
-    return payment
+  async createPaymentOrder (paymentObject) {
+    const paymentOrder = new PaymentOrder(paymentObject, this.config, this.db)
+    await paymentOrder.init()
+    await paymentOrder.save()
+
+    return paymentOrder.serialize()
   }
 
   /**
    * Send a payment
-   * @param {string} id - payment id
-   * @returns {Promise<String>} - payment id
+   * @param {string} id - paymentOrder id
+   * @returns {Promise<void>} - payment id
    */
   async sendPayment (id) {
     const pluginManager = new PluginManager(this.config)
-    const payment = await Payment.find(paymentObject.id, {}, { db: this.db })
-
-    const paymentSender = new PaymentSender(payment, this.db, pluginManager, this.entryPointForPlugin)
-
+    const paymentObject = await PaymentOrder.find(id, this.db)
+    const paymentSender = new PaymentSender(paymentObject, this.db, pluginManager, this.entryPointForPlugin)
     await paymentSender.submit()
-    return payment.id
   }
 
   /**

@@ -17,7 +17,13 @@ const paymentConfig = {
   ]
 }
 
+const config = {
+  ...pluginConfig,
+  ...paymentConfig
+}
+
 module.exports = {
   pluginConfig,
-  paymentConfig
+  paymentConfig,
+  config,
 }
