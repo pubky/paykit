@@ -1,15 +1,14 @@
-const { Payment } = require('./Payment')
 /**
- * PaymentSender
+ * PaymentSender - class for processing outgoing payment orders
  * @class PaymentSender
  */
 class PaymentSender {
   /**
    * Creates an instance of PaymentSender.
    * @constructor PaymentSender
-   * @param {PluginManager} pluginManager
    * @param {PaymentOrder} paymentOrder
    * @param {DB} db
+   * @param {PluginManager} pluginManager
    * @param {Function} notificationCallback
    */
   constructor (paymentOrder, db, pluginManager, notificationCallback) {
@@ -53,7 +52,6 @@ class PaymentSender {
    * @param {PaymentData} paymentData
    * @returns {Promise<void>}
    */
-  // XXX: not sure if this is needed
   async forward (pluginName) {
     // TODO: also check if plugin is enabled
     let plugin
