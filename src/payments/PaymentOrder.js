@@ -35,7 +35,7 @@ class PaymentOrder {
     this.denomination = orderParams.denomination || 'BASE'
     this.targetURL = orderParams.targetURL
     this.memo = orderParams.memo || ''
-    // this.sendingPriority = orderParams.sendingPriority || orderConfig.sendingPriority
+    this.sendingPriority = orderParams.sendingPriority || orderConfig.sendingPriority
 
     if (this.type === ORDER_TYPE.RECCURING) {
       throw new Error(ERROR.NOT_IMPLEMENTED)
@@ -54,8 +54,13 @@ class PaymentOrder {
   }
 
   async createOneTimeOrder () {
-    const payment = new Payment({ ...this.orderParams, orderId: this.id }, this.orderConfig, this.db)
+    const payment = new Payment(
+      { ...this.orderParams, orderId: this.id },
+      { ...this.orderConfig, ...this.orderParams },
+      this.db
+    )
     await payment.init()
+
     this.payments.push(payment)
 
     // TODO: save order and payment to db in a single transaction
@@ -135,7 +140,7 @@ class PaymentOrder {
       denomination: this.denomination,
       targetURL: this.targetURL,
       memo: this.memo,
-      // sendingPriority: this.sendingPriority
+      sendingPriority: this.sendingPriority
     }
   }
 

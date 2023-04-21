@@ -89,7 +89,9 @@ test('PaymentOrder - init', async t => {
   await paymentOrder.init()
 
   t.is(paymentClassStub.callCount, 1)
-  t.alike(paymentClassStub.args[0], [{ ...params, orderId: paymentOrder.id }, orderConfig, db])
+  t.alike(paymentClassStub.args[0][0], { ...params, orderId: paymentOrder.id })
+  t.alike(paymentClassStub.args[0][1].spendingPriority, orderConfig.spendingPriority)
+  t.alike(paymentClassStub.args[0][2], db)
   t.is(paymentInstanceStub.init.callCount, 1)
   t.alike(paymentOrder.payments, [paymentInstanceStub])
   t.ok(paymentOrder.id)
@@ -116,6 +118,7 @@ test('serialize', async t => {
     denomination: 'BASE',
     targetURL: params.targetURL,
     memo: '',
+    sendingPriority: orderConfig.sendingPriority,
     state: ORDER_STATE.CREATED
   })
 })
