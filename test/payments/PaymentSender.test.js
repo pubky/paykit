@@ -4,17 +4,12 @@ const { test } = require('brittle')
 
 const { DB } = require('../../src/DB')
 
-const { Storage } = require('../fixtures/externalStorage')
-const remoteStorage = new Storage()
-
 const { PluginManager } = require('../../src/pluginManager')
 const { pluginConfig } = require('../fixtures/config.js')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
 const { PAYMENT_STATE } = require('../../src/payments/Payment')
-const { PaymentSender } = require('../../src/payments/PaymentSender')
-const { PaymentOrder } = require('../../src/payments/PaymentOrder')
 
 test('PaymentSender - constructor', async t => {
   const paymentInstanceStub = {
