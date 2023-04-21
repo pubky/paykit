@@ -1,16 +1,14 @@
 const sinon = require('sinon')
 const proxyquire = require('proxyquire')
 
-const { skip, test } = require('brittle')
+const { test } = require('brittle')
 
 const { DB } = require('../../src/DB')
-const { SlashtagsAccessObject } = require('../../src/SlashtagsAccessObject')
 
 const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
 const { PaymentManager } = require('../../src/payments/PaymentManager')
-const { Payment } = require('../../src/payments/Payment')
 const { PluginManager } = require('../../src/pluginManager')
 
 test('PaymentManager: constructor', async t => {
@@ -114,7 +112,7 @@ test('PaymentManager: sendPayment', async t => {
 })
 
 test('PaymentManager: receivePayments', async t => {
-  const validConfig = {...config}
+  const validConfig = { ...config }
   validConfig.plugins = {
     p2sh: config.plugins.p2sh,
     p2tr: config.plugins.p2tr
@@ -141,7 +139,7 @@ test('PaymentManager: entryPointForPlugin new payment', async t => {
     orderId: 'testOrderId',
     clientOrderId: 'testClientOrderId',
     amount: '1000',
-    targetURL: 'sourgURL',
+    targetURL: 'sourgURL'
   })
 
   // FIXME: hardcoded id
@@ -173,7 +171,7 @@ test('PaymentManager: entryPointForPlugin waiting for client', async t => {
   const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
 
   await paymentManager.entryPointForPlugin({
-    pluginState: 'waitingForClient',
+    pluginState: 'waitingForClient'
   })
 
   t.is(stub.calledOnce, true)
@@ -183,15 +181,16 @@ test('PaymentManager: entryPointForUser', async t => {
   const updatePaymentStub = sinon.stub().resolves()
 
   const { PaymentManager } = proxyquire('../../src/payments/PaymentManager', {
-    '../pluginManager': { PluginManager: class PluginManager {
-      constructor () { }
-      async loadPlugin () {
-        return {
-          plugin: {
-            async updatePayment (args) { return await updatePaymentStub(args) }
+    '../pluginManager': {
+      PluginManager: class PluginManager {
+        constructor () { this.ready = true }
+        async loadPlugin () {
+          return {
+            plugin: {
+              async updatePayment (args) { return await updatePaymentStub(args) }
+            }
           }
         }
-      }
       }
     }
   })
@@ -201,8 +200,6 @@ test('PaymentManager: entryPointForUser', async t => {
 
   const data = { pluginName: 'p2sh', foo: 'bar' }
   await paymentManager.entryPointForUser(data)
-
-  const p2shStub = require('../fixtures/p2sh/main.js')
 
   t.ok(updatePaymentStub.calledOnce)
   t.alike(updatePaymentStub.getCall(0).args[0], data)

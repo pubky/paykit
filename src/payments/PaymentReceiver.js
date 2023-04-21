@@ -55,7 +55,9 @@ class PaymentReceiver {
    */
   generateSlashpayContent (paymentPluginNames) {
     const slashpayFile = { paymentEndpoints: {} }
-    paymentPluginNames.forEach(n => slashpayFile.paymentEndpoints[n] = path.join('slashpay', n, 'slashpay.json'))
+    paymentPluginNames.forEach((n) => {
+      slashpayFile.paymentEndpoints[n] = path.join('slashpay', n, 'slashpay.json')
+    })
 
     return slashpayFile
   }

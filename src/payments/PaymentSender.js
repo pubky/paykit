@@ -66,8 +66,6 @@ class PaymentSender {
       } catch (e) {
         // failed to process by all plugins
         await this.notificationCallback(e)
-      } finally {
-        return
       }
     } else if (update.pluginState === 'success') {
       await payment.complete()
