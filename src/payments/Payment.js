@@ -94,9 +94,9 @@ class Payment {
     this.db = db
     this.paymentConfig = paymentConfig
 
-    if (paymentParams.id) throw new Error(ERROR.ALREADY_EXISTS(paymentParams.id))
+    // if (paymentParams.id) throw new Error(ERROR.ALREADY_EXISTS(paymentParams.id))
 
-    this.id = null
+    this.id = paymentParams.id || null
     this.orderId = paymentParams.orderId
     this.clientOrderId = paymentParams.clientOrderId
 

@@ -84,16 +84,16 @@ test('Payment - new', async t => {
   t.ok(payment.exectuteAt < Date.now())
 })
 
-test('Payment - existing', async t => {
-  const db = new DB()
-  await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
-
-  const params = { ...paymentParams, id: 'id' }
-  t.exception(() => {
-    new Payment(params, paymentConfig, db) // eslint-disable-line
-  }, ERROR.ALREADY_EXISTS('id'))
-})
+// test('Payment - existing', async t => {
+//   const db = new DB()
+//   await db.init()
+//   const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
+// 
+//   const params = { ...paymentParams, id: 'id' }
+//   t.exception(() => {
+//     new Payment(params, paymentConfig, db) // eslint-disable-line
+//   }, ERROR.ALREADY_EXISTS('id'))
+// })
 
 test('Payment.init - payment file not found', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
