@@ -1,12 +1,12 @@
 const { assert } = require('../utils')
 
 const CURRENCIES = [
-  'BTC',
+  'BTC'
 ]
 
 const DENOMINATIONS = [
   'BASE', // satoshi
-  'MAIN', // bitcoin
+  'MAIN' // bitcoin
 ]
 
 class PaymentAmount {
@@ -43,7 +43,7 @@ class PaymentAmount {
     assert(typeof amount === 'string', ERRORS.AMOUNT_MUST_BE_NUMBERIC_STRING)
     assert(!isNaN(amount), ERRORS.AMOUNT_MUST_BE_NUMBERIC_STRING)
     assert(/^\d+$/.test(amount), ERRORS.AMOUNT_MUST_BE_POSITIVE_INTEGER)
-    assert(amount[0] !== '0', ERRORS.AMOUNT_MUST_BE_POSITIVE_INTEGER )
+    assert(amount[0] !== '0', ERRORS.AMOUNT_MUST_BE_POSITIVE_INTEGER)
 
     // NOTE: 21 million BTC in satoshi
     assert(amount.length <= 16, ERRORS.AMOUNT_EXCEEDS_MAX)
@@ -60,7 +60,7 @@ class PaymentAmount {
   }
 }
 
-ERRORS = {
+const ERRORS = {
   PARAMS_REQUIRED: 'params are required',
 
   AMOUNT_REQUIRED: 'amount is required',
@@ -72,7 +72,7 @@ ERRORS = {
   NOT_SUPPORTED_CURRENCY: (c) => `not supported currency: ${c}`,
 
   DENOMINATION_REQUIRED: 'denomination is required',
-  NOT_SUPPORTED_DENOMINATION: (d) => `not supported denomination: ${d}`,
+  NOT_SUPPORTED_DENOMINATION: (d) => `not supported denomination: ${d}`
 }
 
 module.exports = {
