@@ -80,8 +80,8 @@ test('Payment - new', async t => {
   t.is(payment.memo, '')
   t.is(payment.processingPlugin, null)
   t.is(payment.orderId, paymentParams.orderId)
-  t.ok(payment.createdAt < Date.now())
-  t.ok(payment.exectuteAt < Date.now())
+  t.ok(payment.createdAt <= Date.now())
+  t.ok(payment.exectuteAt <= Date.now())
 })
 
 // test('Payment - existing', async t => {
