@@ -50,10 +50,7 @@ class Payment {
     if (!pO.internalState) throw new Error(ERROR.INTERNAL_STATE_REQUIRED)
 
     Payment.validatePaymentParams(pO)
-
-    if (!pO.currency) throw new Error(ERROR.CURRENCY_REQUIRED)
-    if (!pO.denomination) throw new Error(ERROR.DENOMINATION_REQUIRED)
-    if (!pO.sendingPriority) throw new Error(ERROR.SENDING_PRIORITY_REQUIRED)
+    PaymentAmount.validate(pO)
   }
 
   /**

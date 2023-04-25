@@ -1,14 +1,33 @@
 const { assert } = require('../utils')
 
+/**
+ * @enum CURRENCIES
+ * @enum {String} - currency codes
+ * @property {String} BTC - bitcoin
+ */
 const CURRENCIES = [
   'BTC'
 ]
 
+/**
+ * @enum DENOMINATIONS
+ * @enum {String}
+ * @property {String} BASE - satoshi
+ * @property {String} MAIN - bitcoin
+ */
 const DENOMINATIONS = [
   'BASE', // satoshi
   'MAIN' // bitcoin
 ]
 
+/**
+ * PaymentAmount
+ * @class PaymentAmount represents the amount of a payment
+ * @param {Object} params
+ * @param {String} params.amount - amount in denomination
+ * @param {String} params.currency - currency code
+ * @param {String} params.denomination - denomination
+ */
 class PaymentAmount {
   constructor ({
     amount,
@@ -22,6 +41,9 @@ class PaymentAmount {
     this.denomination = denomination
   }
 
+  /**
+   * @returns {Object} serialized PaymentAmount
+   */
   serialize () {
     return {
       amount: this.amount,
@@ -30,6 +52,12 @@ class PaymentAmount {
     }
   }
 
+  /**
+   * @static validate
+   * @param {Object} params - params to validate
+   * @throws {Error} if params are invalid
+   * @returns {void}
+   */
   static validate (params) {
     assert(params, ERRORS.PARAMS_REQUIRED)
 
@@ -38,6 +66,12 @@ class PaymentAmount {
     PaymentAmount.validateDenomination(params.denomination)
   }
 
+  /**
+   * @static validateAmount
+   * @param {String} amount - amount to validate
+   * @throws {Error} if amount is invalid
+   * @returns {void}
+   */
   static validateAmount (amount) {
     assert(amount, ERRORS.AMOUNT_REQUIRED)
     assert(typeof amount === 'string', ERRORS.AMOUNT_MUST_BE_NUMBERIC_STRING)
@@ -49,17 +83,42 @@ class PaymentAmount {
     assert(amount.length <= 16, ERRORS.AMOUNT_EXCEEDS_MAX)
   }
 
+  /**
+   * @static validateCurrency
+   * @param {String} currency - currency to validate
+   * @throws {Error} if currency is invalid
+   * @returns {void}
+   */
   static validateCurrency (currency) {
     assert(currency, ERRORS.CURRENCY_REQUIRED)
     assert(CURRENCIES.includes(currency), ERRORS.NOT_SUPPORTED_CURRENCY(currency))
   }
 
+  /**
+   * @static validateDenomination
+   * @param {String} denomination - denomination to validate
+   * @throws {Error} if denomination is invalid
+   * @returns {void}
+   */
   static validateDenomination (denomination) {
     assert(denomination, ERRORS.DENOMINATION_REQUIRED)
     assert(DENOMINATIONS.includes(denomination), ERRORS.NOT_SUPPORTED_DENOMINATION(denomination))
   }
 }
 
+/**
+ * @constant ERRORS
+ * @type {Object} ERRORS
+ * @property {String} PARAMS_REQUIRED - params are required
+ * @property {String} AMOUNT_REQUIRED - amount is required
+ * @property {String} AMOUNT_MUST_BE_NUMBERIC_STRING - amount must be a numberic string
+ * @property {String} AMOUNT_MUST_BE_POSITIVE_INTEGER - amount must be positive integer
+ * @property {String} AMOUNT_EXCEEDS_MAX - amount exceeds 16 digits
+ * @property {String} CURRENCY_REQUIRED - currency is required
+ * @property {String} NOT_SUPPORTED_CURRENCY - not supported currency
+ * @property {String} DENOMINATION_REQUIRED - denomination is required
+ * @property {String} NOT_SUPPORTED_DENOMINATION - not supported denomination
+ */
 const ERRORS = {
   PARAMS_REQUIRED: 'params are required',
 
