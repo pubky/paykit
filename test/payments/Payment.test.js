@@ -6,6 +6,7 @@ const { DB } = require('../../src/DB')
 const { paymentParams } = require('../fixtures/paymentParams')
 
 const { Payment, PAYMENT_STATE, ERROR } = require('../../src/payments/Payment')
+const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 
 test('Payment.generateId', t => {
   const id = Payment.generateId()
@@ -68,9 +69,11 @@ test('Payment - new', async t => {
   t.alike(payment.processedBy, [])
   t.is(payment.targetURL, 'slashpay://driveKey/slashpay.json')
   t.is(payment.clientOrderId, 'clientOrderId')
-  t.is(payment.amount, '100')
-  t.is(payment.currency, 'BTC')
-  t.is(payment.denomination, 'BASE')
+  t.alike(payment.amount, new PaymentAmount({
+    amount: '100',
+    currency: 'BTC',
+    denomination: 'BASE'
+  }))
   t.is(payment.memo, '')
   t.is(payment.processingPlugin, null)
   t.is(payment.orderId, paymentParams.orderId)
@@ -235,14 +238,13 @@ test('Payment.update', async t => {
   const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   await payment.save()
   const { id } = payment
-  payment.amount = '200'
-  payment.currency = 'USD'
+  payment.amount = new PaymentAmount({ amount: '200', currency: 'BTC' })
   await payment.update()
 
   const got = await db.get(id)
   t.alike(got, payment.serialize())
   t.is(got.amount, '200')
-  t.is(got.currency, 'USD')
+  t.is(got.currency, 'BTC')
 })
 
 test('Payment.process - no next plugin', async t => {

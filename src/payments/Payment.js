@@ -1,4 +1,5 @@
 const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
+const { PaymentAmount } = require('./PaymentAmount')
 /**
  * Payment class
  * @class Payment
@@ -24,9 +25,6 @@ class Payment {
     if (!paymentParams) throw new Error(ERROR.PARAMS_REQUIRED)
     if (!paymentParams.orderId) throw new Error(ERROR.ORDER_ID_REQUIRED)
     if (!paymentParams.clientOrderId) throw new Error(ERROR.CLIENT_ID_REQUIRED)
-    if (!paymentParams.amount) throw new Error(ERROR.AMOUNT_REQUIRED)
-    // if (!paymentParams.currency) throw new Error(ERROR.CURRENCY_REQUIRED)
-    // if (!paymentParams.denomination) throw new Error(ERROR.DENOMINATION_REQUIRED)
     if (!paymentParams.targetURL) throw new Error(ERROR.TARGET_REQUIRED)
   }
 
@@ -65,10 +63,7 @@ class Payment {
    * @property {PAYMENT_STATE} [paymentParams.internalState] - internal state of the payment
    * @property {string} targetURL - destination of the payment
    * @property {string} clientOrderId - client payment id
-   * @property {string} amount - amount of the payment
-   * @property {string} [currency] - currency of the payment, default is BTC
-   * @property {string} [denomination] - denomination of the payment, default is BASE
-   *
+   * @property {Amount} amount - amount of the payment
    * @property {string[]} sendingPriority - list of plugins to use to send the payment
    *
    * @param {config} config
@@ -91,10 +86,11 @@ class Payment {
     this.targetURL = paymentParams.targetURL
     this.memo = paymentParams.memo || ''
 
-    // TODO: separate class
-    this.amount = paymentParams.amount
-    this.currency = paymentParams.currency || 'BTC'
-    this.denomination = paymentParams.denomination || 'BASE' // satoshi
+    this.amount = new PaymentAmount({
+      amount: paymentParams.amount,
+      currency: paymentParams.currency,
+      denomination: paymentParams.denomination
+    })
 
     // TODO: separate class
     this.internalState = paymentParams.internalState || PAYMENT_STATE.INITIAL
@@ -137,13 +133,13 @@ class Payment {
       internalState: this.internalState,
       targetURL: this.targetURL,
       memo: this.memo,
-      amount: this.amount,
       currency: this.currency,
       denomination: this.denomination,
       sendingPriority: this.sendingPriority,
       processedBy: this.processedBy,
       processingPlugin: this.processingPlugin,
-      sentByPlugin: this.sentByPlugin
+      sentByPlugin: this.sentByPlugin,
+      ...this.amount.serialize()
     }
   }
 
@@ -275,9 +271,6 @@ class Payment {
  * @typedef {Object} Error
  * @property {string} NO_PLUGINS - no plugins found
  * @property {string} CLIENT_ID_REQUIRED - clientOrderId is required
- * @property {string} AMOUNT_REQUIRED - amount is required
- * // @property {string} CURRENCY_REQUIRED - currency is required
- * // @property {string} DENOMINATION_REQUIRED - denomination is required
  * @property {string} TARGET_REQUIRED - targetURL is required
  * @property {string} NO_REMOTE_STORAGE - no remote storage provided
  */
@@ -289,9 +282,6 @@ const ERROR = {
   DB_NOT_READY: 'Database is not ready',
   NO_MATCHING_PLUGINS: 'No plugins found',
   CLIENT_ID_REQUIRED: 'clientOrderId is required',
-  AMOUNT_REQUIRED: 'amount is required',
-  // CURRENCY_REQUIRED: 'currency is required',
-  // DENOMINATION_REQUIRED: 'denomination is required',
   TARGET_REQUIRED: 'targetURL is required',
   NOT_ALLOWED: 'Not allowed',
   CAN_NOT_COMPLETE: (state) => `Can not complete payment in state: ${state}`,
