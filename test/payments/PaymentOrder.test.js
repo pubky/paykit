@@ -13,11 +13,8 @@ test('PaymentOrder - contructor (default type)', async t => {
   const db = new DB()
   await db.init()
 
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
-
-  const paymentOrder = new PaymentOrder(orderParams, orderConfig, db)
+  const paymentOrder = new PaymentOrder(orderParams, db)
   t.is(paymentOrder.orderParams, orderParams)
-  t.is(paymentOrder.orderConfig, orderConfig)
   t.is(paymentOrder.db, db)
   t.is(paymentOrder.clientOrderId, orderParams.clientOrderId)
   t.is(paymentOrder.type, orderParams.type || ORDER_TYPE.ONE_TIME)
@@ -31,11 +28,8 @@ test('PaymentOrder - contructor (one time)', async t => {
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
 
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
-
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   t.is(paymentOrder.orderParams, params)
-  t.is(paymentOrder.orderConfig, orderConfig)
   t.is(paymentOrder.db, db)
   t.is(paymentOrder.clientOrderId, params.clientOrderId)
   t.is(paymentOrder.type, params.type || ORDER_TYPE.ONE_TIME)
@@ -58,10 +52,8 @@ test('PaymentOrder - contructor (reccuring)', async t => {
 
   const params = { ...orderParams, type: ORDER_TYPE.RECCURING }
 
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
-
   t.exception(() => {
-    new PaymentOrder(params, orderConfig, db) // eslint-disable-line
+    new PaymentOrder(params, db) // eslint-disable-line
   }, ERROR.NOT_IMPLEMENTED)
 })
 
@@ -82,16 +74,14 @@ test('PaymentOrder - init', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   t.absent(paymentOrder.id)
   await paymentOrder.init()
 
   t.is(paymentClassStub.callCount, 1)
   t.alike(paymentClassStub.args[0][0], { ...params, orderId: paymentOrder.id })
-  t.alike(paymentClassStub.args[0][1].spendingPriority, orderConfig.spendingPriority)
-  t.alike(paymentClassStub.args[0][2], db)
+  t.alike(paymentClassStub.args[0][1], db)
   t.is(paymentInstanceStub.init.callCount, 1)
   t.alike(paymentOrder.payments, [paymentInstanceStub])
   t.ok(paymentOrder.id)
@@ -104,9 +94,8 @@ test('serialize', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   const serialized = paymentOrder.serialize()
   t.alike(serialized, {
     id: null,
@@ -118,7 +107,7 @@ test('serialize', async t => {
     denomination: 'BASE',
     targetURL: params.targetURL,
     memo: '',
-    sendingPriority: orderConfig.sendingPriority,
+    sendingPriority: params.sendingPriority,
     state: ORDER_STATE.CREATED
   })
 })
@@ -140,9 +129,8 @@ test('PaymentOrder - save', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   await paymentOrder.save()
 
@@ -168,9 +156,8 @@ test('PaymentOrder - update', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   await paymentOrder.save()
 
@@ -204,9 +191,8 @@ test('PaymentOrder - complete', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   await paymentOrder.save()
 
@@ -248,9 +234,8 @@ test('PaymentOrder - cancel', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   await paymentOrder.save()
 
@@ -282,9 +267,8 @@ test('PaymentOrder - process', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   await paymentOrder.save()
 
@@ -316,9 +300,8 @@ test('PaymentOrder - find', async t => {
   await db.init()
 
   const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   const id = paymentOrder.id
   await paymentOrder.save()

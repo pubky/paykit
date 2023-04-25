@@ -154,7 +154,7 @@ test('PaymentManager: entryPointForPlugin new payment', async t => {
     amount: '1000',
     currency: 'BTC',
     denomination: 'BASE',
-    sendingPriority: [],
+    sendingPriority: ['p2sh'],
     processedBy: [],
     processingPlugin: null,
     sentByPlugin: null

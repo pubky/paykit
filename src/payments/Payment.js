@@ -31,16 +31,6 @@ class Payment {
   }
 
   /**
-   * Validate payment object
-   * @param {PaymentParams} paymentParams - payment parameters
-   * @throws {Error} - if paymentParams is invalid
-   * @returns {void}
-   */
-  static validatePaymentConfig (paymentConfig) {
-    if (!paymentConfig.sendingPriority) throw new Error(ERROR.NO_SENDING_PRIORITY)
-  }
-
-  /**
    * Validate database
    * @param {DB} db - database
    * @throws {Error} - if db is invalid
@@ -79,20 +69,18 @@ class Payment {
    * @property {string} [currency] - currency of the payment, default is BTC
    * @property {string} [denomination] - denomination of the payment, default is BASE
    *
-   * @param {PaymentConfig} paymentConfig
    * @property {string[]} sendingPriority - list of plugins to use to send the payment
    *
    * @param {config} config
    * @property {config} db - database
    */
 
-  constructor (paymentParams, paymentConfig, db) {
+  constructor (paymentParams, db) {
     Payment.validatePaymentParams(paymentParams)
-    Payment.validatePaymentConfig(paymentConfig)
     Payment.validateDB(db)
 
     this.db = db
-    this.paymentConfig = paymentConfig
+    this.sendingPriority = paymentParams.sendingPriority || []
 
     // if (paymentParams.id) throw new Error(ERROR.ALREADY_EXISTS(paymentParams.id))
 
@@ -112,7 +100,6 @@ class Payment {
     this.internalState = paymentParams.internalState || PAYMENT_STATE.INITIAL
     this.processedBy = []
     this.processingPlugin = null
-    this.sendingPriority = []
     this.sentByPlugin = null
 
     this.createdAt = Date.now()
@@ -131,7 +118,7 @@ class Payment {
     const paymentFile = await remoteStorage.read('/slashpay.json')
     if (!paymentFile) throw new Error(ERROR.NO_PAYMENT_FILE)
 
-    this.sendingPriority = this.paymentConfig.sendingPriority.filter((p) => {
+    this.sendingPriority = this.sendingPriority.filter((p) => {
       return Object.keys(paymentFile.paymentEndpoints).includes(p)
     })
 

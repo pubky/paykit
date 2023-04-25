@@ -33,9 +33,8 @@ test('PaymentSender - constructor', async t => {
   await db.init()
 
   const params = { ...orderParams }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
 
   const { PaymentSender } = proxyquire('../../src/payments/PaymentSender', {
@@ -90,9 +89,8 @@ test('PaymentSender - submit', async t => {
   await db.init()
 
   const params = { ...orderParams }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   await paymentOrder.save()
   const processStub = sinon.replace(paymentOrder, 'process', sinon.fake(paymentOrder.process))
@@ -146,9 +144,8 @@ test('PaymentSender - stateUpdateCallback (success)', async t => {
   await db.init()
 
   const params = { ...orderParams }
-  const orderConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
   await paymentOrder.save()
 
@@ -202,9 +199,11 @@ test('PaymentSender - stateUpdateCallback (success)', async t => {
   await db.init()
 
   const params = { ...orderParams }
-  const orderConfig = { sendingPriority: ['p2sh', 'p2tr'] }
 
-  const paymentOrder = new PaymentOrder(params, orderConfig, db)
+  const paymentOrder = new PaymentOrder({
+    ...params,
+    sendingPriority: ['p2sh', 'p2tr']
+  }, db)
   await paymentOrder.init()
   await paymentOrder.save()
 

@@ -35,11 +35,6 @@ test('Payment.validatePaymentParams', t => {
   t.execution(() => Payment.validatePaymentParams(params))
 })
 
-test('Payment.validatePaymentConfig', t => {
-  t.exception(() => Payment.validatePaymentConfig({}), ERROR.NO_SENDING_PRIORITY)
-  t.execution(() => Payment.validatePaymentConfig({ sendingPriority: ['p2sh', 'lightning'] }))
-})
-
 test('Payment.validateDB', async t => {
   const db = new DB()
   t.exception(() => Payment.validateDB(), ERROR.NO_DB)
@@ -65,9 +60,8 @@ test('Payment.validatePaymentObject', t => {
 test('Payment - new', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
 
   t.is(payment.id, null)
   t.is(payment.internalState, PAYMENT_STATE.INITIAL)
@@ -84,17 +78,6 @@ test('Payment - new', async t => {
   t.ok(payment.exectuteAt <= Date.now())
 })
 
-// test('Payment - existing', async t => {
-//   const db = new DB()
-//   await db.init()
-//   const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
-//
-//   const params = { ...paymentParams, id: 'id' }
-//   t.exception(() => {
-//     new Payment(params, paymentConfig, db) // eslint-disable-line
-//   }, ERROR.ALREADY_EXISTS('id'))
-// })
-
 test('Payment.init - payment file not found', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
@@ -110,9 +93,8 @@ test('Payment.init - payment file not found', async t => {
   })
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
 
   await t.exception(async () => await payment.init(), ERROR.PAYMENT_FILE_NOT_FOUND)
 })
@@ -136,9 +118,8 @@ test('Payment.init - no matching plugins', async t => {
   })
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
 
   await t.exception(async () => await payment.init(), ERROR.NO_MATCHING_PLUGINS)
 })
@@ -166,9 +147,8 @@ test('Payment.init - selected priority', async t => {
   })
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   await payment.init()
   t.alike(payment.sendingPriority, ['p2sh', 'lightning'])
 })
@@ -176,9 +156,8 @@ test('Payment.init - selected priority', async t => {
 test('Payment.serialize', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   const serialized = payment.serialize()
   t.alike(serialized, {
     id: null,
@@ -190,7 +169,7 @@ test('Payment.serialize', async t => {
     memo: '',
     currency: 'BTC',
     denomination: 'BASE',
-    sendingPriority: [],
+    sendingPriority: ['p2sh', 'lightning'],
     processedBy: [],
     processingPlugin: null,
     sentByPlugin: null
@@ -200,9 +179,7 @@ test('Payment.serialize', async t => {
 test('Payment.save - iff entry is new', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
-
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   await payment.save()
   const got = await db.get(payment.id)
   t.alike(got, payment.serialize())
@@ -213,9 +190,8 @@ test('Payment.save - iff entry is new', async t => {
 test('Payment.save - overwites id if entry not found in DB', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   payment.id = 'new-totally-random-id'
   await payment.save()
   const got = await db.get(payment.id)
@@ -227,9 +203,8 @@ test('Payment.save - overwites id if entry not found in DB', async t => {
 test('Payment.delete', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   await payment.save()
   const { id } = payment
   await payment.delete()
@@ -244,9 +219,8 @@ test('Payment.delete', async t => {
 test('Payment.save - fails if entry is removed', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   await payment.save()
   const { id } = payment
   await payment.delete()
@@ -257,9 +231,8 @@ test('Payment.save - fails if entry is removed', async t => {
 test('Payment.update', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   await payment.save()
   const { id } = payment
   payment.amount = '200'
@@ -275,7 +248,6 @@ test('Payment.update', async t => {
 test('Payment.process - no next plugin', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning'] }
 
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
@@ -297,7 +269,7 @@ test('Payment.process - no next plugin', async t => {
       }
     }
   })
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
   await payment.save()
   await payment.init()
 
@@ -338,7 +310,6 @@ test('Payment.process - no next plugin', async t => {
 test('Payment.complete', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }
 
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
@@ -361,7 +332,7 @@ test('Payment.complete', async t => {
     }
   })
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }, db)
   await payment.save()
   await payment.init()
 
@@ -384,7 +355,6 @@ test('Payment.complete', async t => {
 test('Payment.cancel', async t => {
   const db = new DB()
   await db.init()
-  const paymentConfig = { sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }
 
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
@@ -407,7 +377,7 @@ test('Payment.cancel', async t => {
     }
   })
 
-  const payment = new Payment(paymentParams, paymentConfig, db)
+  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }, db)
   await payment.save()
   await payment.init()
 

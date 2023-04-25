@@ -11,10 +11,8 @@ class PaymentOrder {
 
   // TODO: add validators
 
-  // Do we really need orderConfig?
-  constructor (orderParams, orderConfig, db) {
+  constructor (orderParams, db) {
     this.orderParams = orderParams
-    this.orderConfig = orderConfig
     this.db = db
 
     this.id = null
@@ -35,7 +33,7 @@ class PaymentOrder {
     this.denomination = orderParams.denomination || 'BASE'
     this.targetURL = orderParams.targetURL
     this.memo = orderParams.memo || ''
-    this.sendingPriority = orderParams.sendingPriority || orderConfig.sendingPriority
+    this.sendingPriority = orderParams.sendingPriority
 
     if (this.type === ORDER_TYPE.RECCURING) {
       throw new Error(ERROR.NOT_IMPLEMENTED)
@@ -56,7 +54,6 @@ class PaymentOrder {
   async createOneTimeOrder () {
     const payment = new Payment(
       { ...this.orderParams, orderId: this.id },
-      { ...this.orderConfig, ...this.orderParams },
       this.db
     )
     await payment.init()
@@ -177,7 +174,7 @@ class PaymentOrder {
 
   static async find (id, db) {
     const orderParams = await db.get(id)
-    const paymentOrder = new PaymentOrder(orderParams, {}, db)
+    const paymentOrder = new PaymentOrder(orderParams, db)
     await paymentOrder.init()
 
     return paymentOrder

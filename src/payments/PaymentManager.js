@@ -44,7 +44,7 @@ class PaymentManager {
    * @returns {Promise<PaymentOrder>} - instance of Payment class
    */
   async createPaymentOrder (paymentObject) {
-    const paymentOrder = new PaymentOrder(paymentObject, this.config, this.db)
+    const paymentOrder = new PaymentOrder(paymentObject, this.db)
     await paymentOrder.init()
     await paymentOrder.save()
 
@@ -97,8 +97,9 @@ class PaymentManager {
    */
   async entryPointForPlugin (payload) {
     if (payload.pluginState === 'newPayment') {
-      const payment = new Payment(payload, {
-        sendingPriority: payload.pluginName
+      const payment = new Payment({
+        ...payload,
+        sendingPriority: [payload.pluginName]
       }, this.db)
       await payment.save()
     }
