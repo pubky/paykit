@@ -1,4 +1,4 @@
-const { PluginManager } = require('../pluginManager')
+const { PluginManager } = require('../plugins/PluginManager')
 
 const { Payment } = require('./Payment')
 const { PaymentOrder } = require('./PaymentOrder')

@@ -9,7 +9,7 @@ const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
 const { PaymentManager } = require('../../src/payments/PaymentManager')
-const { PluginManager } = require('../../src/pluginManager')
+const { PluginManager } = require('../../src/plugins/PluginManager')
 
 test('PaymentManager: constructor', async t => {
   const db = new DB()
@@ -97,7 +97,7 @@ test('PaymentManager: sendPayment', async t => {
   const p2shStub = require('../fixtures/p2sh/main.js')
   const { PaymentManager } = proxyquire('../../src/payments/PaymentManager', {
     './PaymentOrder': { PaymentOrder },
-    '../PluginManager': { PluginManager }
+    '../plugins/PluginManager': { PluginManager }
   })
   const db = new DB()
   const paymentManager = new PaymentManager(config, db)
@@ -181,7 +181,7 @@ test('PaymentManager: entryPointForUser', async t => {
   const updatePaymentStub = sinon.stub().resolves()
 
   const { PaymentManager } = proxyquire('../../src/payments/PaymentManager', {
-    '../pluginManager': {
+    '../plugins/PluginManager': {
       PluginManager: class PluginManager {
         constructor () { this.ready = true }
         async loadPlugin () {

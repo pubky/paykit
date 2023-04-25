@@ -6,7 +6,7 @@ const db = new DB()
 
 const { SlashtagsAccessObject } = require('../../src/SlashtagsAccessObject')
 
-const { PluginManager } = require('../../src/pluginManager')
+const { PluginManager } = require('../../src/plugins/PluginManager')
 
 const { pluginConfig } = require('../fixtures/config.js')
 
@@ -43,10 +43,6 @@ test('PaymentReceiver.init', async t => {
   t.ok(res)
   t.is(storageCreate.callCount, 1)
   t.is(pluginDispatch.callCount, 1)
-
-  t.teardown(() => {
-    sinon.restore()
-  })
 })
 
 test('PaymentReceiver.generateSlashpayContent', async t => {
@@ -64,10 +60,6 @@ test('PaymentReceiver.generateSlashpayContent', async t => {
       p2sh: 'slashpay/p2sh/slashpay.json',
       p2tr: 'slashpay/p2tr/slashpay.json'
     }
-  })
-
-  t.teardown(() => {
-    sinon.restore()
   })
 })
 

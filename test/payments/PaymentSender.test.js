@@ -4,7 +4,7 @@ const { test } = require('brittle')
 
 const { DB } = require('../../src/DB')
 
-const { PluginManager } = require('../../src/pluginManager')
+const { PluginManager } = require('../../src/plugins/PluginManager')
 const { pluginConfig } = require('../fixtures/config.js')
 
 const { orderParams } = require('../fixtures/paymentParams')
@@ -12,6 +12,11 @@ const { orderParams } = require('../fixtures/paymentParams')
 const { PAYMENT_STATE } = require('../../src/payments/Payment')
 
 test('PaymentSender - constructor', async t => {
+  const p2shStub = require('../fixtures/p2sh/main.js')
+  p2shStub.resetAll()
+  const p2trStub = require('../fixtures/p2tr/main.js')
+  p2trStub.resetAll()
+
   const paymentInstanceStub = {
     init: sinon.stub().resolves(),
     save: sinon.stub().resolves()
@@ -44,9 +49,20 @@ test('PaymentSender - constructor', async t => {
   t.alike(paymentSender.db, db)
   t.alike(paymentSender.paymentOrder, paymentOrder)
   t.alike(paymentSender.notificationCallback.toString(), '() => {}')
+
+  t.teardown(() => {
+    sinon.restore()
+    p2shStub.resetAll()
+    p2trStub.resetAll()
+  })
 })
 
 test('PaymentSender - submit', async t => {
+  const p2shStub = require('../fixtures/p2sh/main.js')
+  p2shStub.resetAll()
+  const p2trStub = require('../fixtures/p2tr/main.js')
+  p2trStub.resetAll()
+
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -94,6 +110,12 @@ test('PaymentSender - submit', async t => {
   t.is(pluginManager.plugins.p2sh.plugin.pay.callCount, 1)
   t.alike(pluginManager.plugins.p2sh.plugin.pay.getCall(0).args, [paymentOrder.payments[0].serialize(), paymentSender.stateUpdateCallback])
   t.is(processStub.callCount, 1)
+
+  t.teardown(() => {
+    sinon.restore()
+    p2shStub.resetAll()
+    p2trStub.resetAll()
+  })
 })
 
 test('PaymentSender - stateUpdateCallback (success)', async t => {
