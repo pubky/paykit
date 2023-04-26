@@ -19,7 +19,7 @@ test('PaymentState.validate', t => {
 test('PaymentState.constructor', t => {
   const pS = new PaymentState(uninitializedPayment)
 
-  t.is(pS.state, PAYMENT_STATE.INITIAL)
+  t.is(pS.internalState, PAYMENT_STATE.INITIAL)
   t.alike(pS.pendingPlugins, [])
   t.alike(pS.triedPlugins, [])
   t.is(pS.currentPlugin, null)
@@ -30,7 +30,7 @@ test('PaymentState.constructor', t => {
 test('PaymentState.serialize', t => {
   const pS = new PaymentState(uninitializedPayment)
   t.alike(pS.serialize(), {
-    state: PAYMENT_STATE.INITIAL,
+    internalState: PAYMENT_STATE.INITIAL,
     pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
@@ -43,7 +43,7 @@ test('PaymentState.currentState', t => {
   t.is(pS.currentState(), PAYMENT_STATE.INITIAL)
 
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.IN_PROGRESS
+  pS.internalState = PAYMENT_STATE.IN_PROGRESS
   t.is(pS.currentState(), PAYMENT_STATE.IN_PROGRESS)
 })
 
@@ -51,7 +51,7 @@ test('PaymentState.isInitial', t => {
   let pS = new PaymentState(uninitializedPayment)
   t.is(pS.isInitial(), true)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.IN_PROGRESS
+  pS.internalState = PAYMENT_STATE.IN_PROGRESS
   t.is(pS.isInitial(), false)
 })
 
@@ -59,7 +59,7 @@ test('PaymentState.isInProgress', t => {
   let pS = new PaymentState(uninitializedPayment)
   t.is(pS.isInProgress(), false)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.IN_PROGRESS
+  pS.internalState = PAYMENT_STATE.IN_PROGRESS
   t.is(pS.isInProgress(), true)
 })
 
@@ -67,7 +67,7 @@ test('PaymentState.isCompleted', t => {
   let pS = new PaymentState(uninitializedPayment)
   t.is(pS.isCompleted(), false)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.COMPLETED
+  pS.internalState = PAYMENT_STATE.COMPLETED
   t.is(pS.isCompleted(), true)
 })
 
@@ -75,7 +75,7 @@ test('PaymentState.isFailed', t => {
   let pS = new PaymentState(uninitializedPayment)
   t.is(pS.isFailed(), false)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.FAILED
+  pS.internalState = PAYMENT_STATE.FAILED
   t.is(pS.isFailed(), true)
 })
 
@@ -83,7 +83,7 @@ test('PaymentState.isCancelled', t => {
   let pS = new PaymentState(uninitializedPayment)
   t.is(pS.isCancelled(), false)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.CANCELLED
+  pS.internalState = PAYMENT_STATE.CANCELLED
   t.is(pS.isCancelled(), true)
 })
 
@@ -91,13 +91,13 @@ test('PaymentState.isFinal', t => {
   let pS = new PaymentState(uninitializedPayment)
   t.is(pS.isFinal(), false)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.COMPLETED
+  pS.internalState = PAYMENT_STATE.COMPLETED
   t.is(pS.isFinal(), true)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.FAILED
+  pS.internalState = PAYMENT_STATE.FAILED
   t.is(pS.isFinal(), true)
   pS = new PaymentState(uninitializedPayment)
-  pS.state = PAYMENT_STATE.CANCELLED
+  pS.internalState = PAYMENT_STATE.CANCELLED
   t.is(pS.isFinal(), true)
 })
 
@@ -105,7 +105,7 @@ test('PaymentState.cancel', async t => {
   const pS = new PaymentState(uninitializedPayment)
   await pS.cancel()
 
-  t.is(pS.state, PAYMENT_STATE.CANCELLED)
+  t.is(pS.internalState, PAYMENT_STATE.CANCELLED)
   t.is(update.callCount, 1)
 
   await t.exception(async () => await pS.cancel(), ERRORS.INVALID_STATE(PAYMENT_STATE.CANCELLED))
@@ -126,11 +126,11 @@ test('PaymentState.fail', async t => {
   let pS = new PaymentState(initializedPayment)
   await t.exception(async () => await pS.fail(), ERRORS.INVALID_STATE(PAYMENT_STATE.INITIAL))
 
-  pS.state = PAYMENT_STATE.IN_PROGRESS
+  pS.internalState = PAYMENT_STATE.IN_PROGRESS
 
   await pS.fail()
 
-  t.is(pS.state, PAYMENT_STATE.FAILED)
+  t.is(pS.internalState, PAYMENT_STATE.FAILED)
   t.is(update.callCount, 1)
 
   await t.exception(async () => await pS.fail(), ERRORS.INVALID_STATE(PAYMENT_STATE.FAILED))
@@ -157,10 +157,10 @@ test('PaymentState.tryNext', async t => {
   t.is(pS.currentPlugin, null)
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 0)
-  t.is(pS.state, PAYMENT_STATE.INITIAL)
+  t.is(pS.internalState, PAYMENT_STATE.INITIAL)
 
   await t.exception(async () => await pS.tryNext(), ERRORS.INVALID_STATE(PAYMENT_STATE.INITIAL))
-  pS.state = PAYMENT_STATE.IN_PROGRESS
+  pS.internalState = PAYMENT_STATE.IN_PROGRESS
 
   const start0 = Date.now()
   await pS.tryNext()
@@ -172,7 +172,7 @@ test('PaymentState.tryNext', async t => {
   t.alike(pS.triedPlugins, [])
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 1)
-  t.is(pS.state, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
   const start1 = Date.now()
   await pS.tryNext()
@@ -187,7 +187,7 @@ test('PaymentState.tryNext', async t => {
   t.ok(pS.triedPlugins[0].endAt <= start1)
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 2)
-  t.is(pS.state, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
   t.teardown(() => update.resetHistory())
 })
@@ -208,7 +208,7 @@ test('PaymentState.process', async t => {
   t.is(pS.currentPlugin, null)
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 0)
-  t.is(pS.state, PAYMENT_STATE.INITIAL)
+  t.is(pS.internalState, PAYMENT_STATE.INITIAL)
 
   const start0 = Date.now()
   await pS.process()
@@ -220,7 +220,7 @@ test('PaymentState.process', async t => {
   t.alike(pS.triedPlugins, [])
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 2)
-  t.is(pS.state, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
   const start1 = Date.now()
   await pS.process()
@@ -235,7 +235,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[0].endAt <= start1)
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 3)
-  t.is(pS.state, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
   const start2 = Date.now()
   await pS.process()
@@ -253,7 +253,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[1].endAt <= start2)
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 4)
-  t.is(pS.state, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
   const start3 = Date.now()
   await pS.process()
@@ -274,7 +274,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[2].endAt <= start3)
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 5)
-  t.is(pS.state, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
   const start4 = Date.now()
   await pS.process()
@@ -296,7 +296,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[3].endAt <= start4)
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 6)
-  t.is(pS.state, PAYMENT_STATE.FAILED)
+  t.is(pS.internalState, PAYMENT_STATE.FAILED)
 
   t.teardown(() => update.resetHistory())
 })
@@ -317,7 +317,7 @@ test('PaymentState.complete', async t => {
 
   await pS.process()
 
-  t.is(pS.state, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
   t.is(update.callCount, 2)
   t.is(pS.currentPlugin.name, 'plugin0')
   t.ok(pS.currentPlugin.startAt <= Date.now())
@@ -325,7 +325,7 @@ test('PaymentState.complete', async t => {
 
   await pS.complete()
 
-  t.is(pS.state, PAYMENT_STATE.COMPLETED)
+  t.is(pS.internalState, PAYMENT_STATE.COMPLETED)
   t.is(update.callCount, 3)
   t.is(pS.currentPlugin, null)
   t.is(pS.sentByPlugin.name, 'plugin0')

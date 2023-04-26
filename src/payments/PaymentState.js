@@ -2,10 +2,10 @@ class PaymentState {
   constructor (payment) {
     PaymentState.validate(payment)
 
-    if (this.sentByPlugin) {
-      this.state = PAYMENT_STATE.COMPLETED
+    if (payment.sentByPlugin) {
+      this.internalState = PAYMENT_STATE.COMPLETED
     } else {
-      this.state = payment.internalState || PAYMENT_STATE.INITIAL
+      this.internalState = payment.internalState || PAYMENT_STATE.INITIAL
     }
 
     this.pendingPlugins = payment.pendingPlugins || []
@@ -17,6 +17,10 @@ class PaymentState {
     this.payment = payment
   }
 
+  assignPendingPlugins(pendingPlugins) {
+    this.pendingPlugins = [...pendingPlugins]
+  }
+
   static validate (payment) {
     if (!payment) throw new Error('Payment is required')
     if (!payment.db) throw new Error('Payment db is required')
@@ -25,7 +29,7 @@ class PaymentState {
 
   serialize () {
     return {
-      state: this.state,
+      internalState: this.internalState,
       pendingPlugins: [...this.pendingPlugins],
       triedPlugins: [...this.triedPlugins],
       currentPlugin: { ...this.currentPlugin },
@@ -33,7 +37,7 @@ class PaymentState {
     }
   }
 
-  currentState () { return this.state }
+  currentState () { return this.internalState }
 
   isInitial () { return this.currentState() === PAYMENT_STATE.INITIAL }
 
@@ -48,20 +52,20 @@ class PaymentState {
   isFinal () { return this.isCompleted() || this.isFailed() || this.isCancelled() }
 
   async cancel () {
-    if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.state))
+    if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     if (this.currentPlugin) {
       // Belt and suspenders
-      // should not be possible as currentPlugin must not be assigned in initial state
+      // should not be possible as currentPlugin must not be assigned in initial internalState
       throw new Error('Cannot cancel while processing')
     }
 
-    this.state = PAYMENT_STATE.CANCELLED
+    this.internalState = PAYMENT_STATE.CANCELLED
     await this.payment.update()
   }
 
   async process () {
     if (this.isInitial()) {
-      this.state = PAYMENT_STATE.IN_PROGRESS
+      this.internalState = PAYMENT_STATE.IN_PROGRESS
       await this.payment.update()
     }
 
@@ -71,16 +75,16 @@ class PaymentState {
   }
 
   async fail () {
-    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
+    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     this.markCurrentPluginAsTried()
-    this.state = PAYMENT_STATE.FAILED
+    this.internalState = PAYMENT_STATE.FAILED
 
     await this.payment.update()
   }
 
   async tryNext () {
-    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
+    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     if (this.currentPlugin) this.markCurrentPluginAsTried()
 
@@ -89,11 +93,11 @@ class PaymentState {
   }
 
   async complete () {
-    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
+    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     this.sentByPlugin = this.markCurrentPluginAsTried()
 
-    this.state = PAYMENT_STATE.COMPLETED
+    this.internalState = PAYMENT_STATE.COMPLETED
     await this.payment.update()
   }
 
