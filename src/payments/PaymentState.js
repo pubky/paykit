@@ -1,4 +1,24 @@
+/**
+ * PaymentState class
+ * @class PaymentState
+ * @property {string} internalState - internal state
+ * @property {string[]} pendingPlugins - pending plugins
+ * @property {string[]} triedPlugins - tried plugins
+ * @property {StatePlugin} currentPlugin - current plugin
+ * @property {StatePlugin} sentByPlugin - sent by plugin
+ * @property {StatePlugin} payment - payment
+ */
 class PaymentState {
+  /**
+   * @param {Payment} payment - payment
+   * @param {string} [payment.internalState] - internal state
+   * @param {string[]} [payment.pendingPlugins] - pending plugins
+   * @param {string[]} [payment.triedPlugins] - tried plugins
+   * @param {StatePlugin} [payment.currentPlugin] - current plugin
+   * @param {StatePlugin} [payment.sentByPlugin] - sent by plugin
+   * @param {Payment} [payment.payment] - payment
+   * @throws {Error} - if payment is not provided
+   */
   constructor (payment) {
     PaymentState.validate(payment)
 
@@ -17,16 +37,40 @@ class PaymentState {
     this.payment = payment
   }
 
+  /**
+   * Assigns pending plugins
+   * @param {string[]} pendingPlugins - pending plugins
+   * @throws {Error} - if pendingPlugins is not an array
+   * @returns {void}
+   */
   assignPendingPlugins (pendingPlugins) {
+    if (!Array.isArray(pendingPlugins)) throw new Error(ERRORS.PENDING_PLUGINS_NOT_ARRAY)
     this.pendingPlugins = [...pendingPlugins]
   }
 
+  /**
+   * Validates payment
+   * @param {Payment} payment - payment
+   * @throws {Error} - if payment is not provided
+   * @throws {Error} - if payment db is not provided
+   * @throws {Error} - if payment db is not ready
+   * @returns {void}
+   */
   static validate (payment) {
     if (!payment) throw new Error('Payment is required')
     if (!payment.db) throw new Error('Payment db is required')
     if (!payment.db.ready) throw new Error('Payment db is not ready')
   }
 
+  /**
+   * Serializes payment state
+   * @returns {Object} - serialized payment state
+   * @returns {string} [returns.internalState] - internal state
+   * @returns {string[]} [returns.pendingPlugins] - pending plugins
+   * @returns {string[]} [returns.triedPlugins] - tried plugins
+   * @returns {StatePlugin} [returns.currentPlugin] - current plugin
+   * @returns {StatePlugin} [returns.sentByPlugin] - sent by plugin
+   */
   serialize () {
     return {
       internalState: this.internalState,
@@ -37,14 +81,58 @@ class PaymentState {
     }
   }
 
+  /**
+   * Returns current state
+   * @returns {string} - current state
+   */
   currentState = () => this.internalState
+
+  /**
+   * Returns true if current state is initial
+   * @returns {boolean} - true if current state is initial
+   * @returns {boolean} - false if current state is not initial
+   */
   isInitial = () => this.currentState() === PAYMENT_STATE.INITIAL
+
+  /**
+   * Returns true if current state is in progress
+   * @returns {boolean} - true if current state is in progress
+   * @returns {boolean} - false if current state is not in progress
+   */
   isInProgress = () => this.currentState() === PAYMENT_STATE.IN_PROGRESS
+
+  /**
+   * Returns true if current state is completed
+   * @returns {boolean} - true if current state is completed
+   * @returns {boolean} - false if current state is not completed
+   */
   isCompleted = () => this.currentState() === PAYMENT_STATE.COMPLETED
+
+  /**
+   * Returns true if current state is failed
+   * @returns {boolean} - true if current state is failed
+   * @returns {boolean} - false if current state is not failed
+   */
   isFailed = () => this.currentState() === PAYMENT_STATE.FAILED
+
+  /**
+   * Returns true if current state is cancelled
+   * @returns {boolean} - true if current state is cancelled
+   * @returns {boolean} - false if current state is not cancelled
+   */
   isCancelled = () => this.currentState() === PAYMENT_STATE.CANCELLED
+
+  /**
+   * Returns true if current state is final
+   * @returns {boolean} - true if current state is completed or failed or cancelled
+   * @returns {boolean} - false if current state is not completed or failed or cancelled
+   */
   isFinal = () => this.isCompleted() || this.isFailed() || this.isCancelled()
 
+  /**
+   * Cancel payment - sets internal state to cancelled and updates payment in db
+   * @throws {Error} - if current state is not initial
+   */
   async cancel () {
     if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     if (this.currentPlugin) {
@@ -57,17 +145,33 @@ class PaymentState {
     await this.payment.update()
   }
 
+  /**
+   * Process payment - sets internal state to in progress and updates payment in db for new payments
+   * fails payment if there are no pending plugins and updates payment in db
+   * tries next plugin if there are pending plugins and updates payment in db
+   * @throws {Error} - if current state is not initial
+   * @returns {boolean} - true if next plugin is tried
+   * @returns {boolean} - false if payment is failed
+   */
   async process () {
     if (this.isInitial()) {
       this.internalState = PAYMENT_STATE.IN_PROGRESS
       await this.payment.update()
     }
 
-    if (this.pendingPlugins.length === 0) return await this.fail()
+    if (this.pendingPlugins.length === 0) {
+      await this.fail()
+      return false
+    }
 
     return await this.tryNext()
   }
 
+  /**
+   * Fail payment - sets internal state to failed and updates payment in db
+   * @throws {Error} - if current state is not in progress
+   * @returns {void}
+   */
   async fail () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
@@ -76,6 +180,11 @@ class PaymentState {
     await this.payment.update()
   }
 
+  /**
+   * Try next plugin - sets current plugin to next pending plugin and updates payment in db
+   * @throws {Error} - if current state is not in progress
+   * @returns {void}
+   */
   async tryNext () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
@@ -84,6 +193,11 @@ class PaymentState {
     await this.payment.update()
   }
 
+  /**
+   * Complete payment - sets internal state to completed and updates payment in db
+   * @throws {Error} - if current state is not in progress
+   * @returns {void}
+   */
   async complete () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
@@ -92,10 +206,18 @@ class PaymentState {
     await this.payment.update()
   }
 
+  /**
+   * Returns completed current plugin
+   * @returns {StatePlugin} - completed current plugin with endAt timestamp
+   */
   getCompletedCurrentPlugin () {
     return { ...this.currentPlugin, endAt: Date.now() }
   }
 
+  /**
+   * Marks current plugin as tried and returns it
+   * @returns {StatePlugin} - completed current plugin with endAt timestamp
+   */
   markCurrentPluginAsTried () {
     const completedPlugin = this.getCompletedCurrentPlugin()
     this.triedPlugins.push({ ...completedPlugin })
@@ -121,9 +243,22 @@ const PAYMENT_STATE = {
   CANCELLED: 'cancelled'
 }
 
+/**
+ * @typedef {Object} ERRORS
+ * @property {function} INVALID_STATE - returns error message with invalid state
+ * @property {string} PENDING_PLUGINS_NOT_ARRAY - error message for pending plugins not array
+ */
 const ERRORS = {
-  INVALID_STATE: (s) => `Invalid state: ${s}`
+  INVALID_STATE: (s) => `Invalid state: ${s}`,
+  PENDING_PLUGINS_NOT_ARRAY: 'Pending plugins must be an array'
 }
+
+/**
+ * typedef {StatePlugin}
+ * @property {string} name - name of the plugin
+ * @property {number} startAt - start time
+ * @property {number} [endAt] - end time
+ */
 
 module.exports = {
   PaymentState,
