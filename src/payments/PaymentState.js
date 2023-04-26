@@ -26,10 +26,10 @@ class PaymentState {
   serialize () {
     return {
       state: this.state,
-      pendingPlugins: this.pendingPlugins,
-      triedPlugins: this.triedPlugins,
-      currentPlugin: this.currentPlugin,
-      sentByPlugin: this.sentByPlugin
+      pendingPlugins: [ ...this.pendingPlugins ],
+      triedPlugins: [ ...this.triedPlugins ],
+      currentPlugin: { ...this.currentPlugin },
+      sentByPlugin: { ...this.sentByPlugin }
     }
   }
 

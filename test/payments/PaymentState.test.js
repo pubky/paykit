@@ -33,8 +33,8 @@ test('PaymentState.serialize', t => {
     state: PAYMENT_STATE.INITIAL,
     pendingPlugins: [],
     triedPlugins: [],
-    currentPlugin: null,
-    sentByPlugin: null
+    currentPlugin: {},
+    sentByPlugin: {}
   })
 })
 
