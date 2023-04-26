@@ -1,100 +1,112 @@
 class PaymentState {
-  constructor(payment, state) {
-    this.state = payment.internalState || state || PAYMENT_STATE.INITIAL
-
-    // TODO: get from params
-    this.pendingPlugins = []
-    this.processedBy = []
-    this.processingPlugin = null
-    this.sentByPlugin = null
-
+  constructor (payment, state) {
     PaymentState.validate(payment)
+
+    if (this.sentByPlugin) {
+      this.state = PAYMENT_STATE.COMPLETED
+    } else {
+      this.state = payment.internalState || state || PAYMENT_STATE.INITIAL
+    }
+
+    this.pendingPlugins = payment.pendingPlugins || []
+    this.triedPlugins = payment.triedPlugins || []
+
+    this.currentPlugin = payment.currentPlugin || null
+    this.sentByPlugin = payment.sentByPlugin || null
+
     this.payment = payment
   }
 
-  static validate(payment) {
+  static validate (payment) {
     if (!payment) throw new Error('Payment is required')
     if (!payment.db) throw new Error('Payment db is required')
     if (!payment.db.ready) throw new Error('Payment db is not ready')
   }
 
-  serialize() {
+  serialize () {
     return {
       state: this.state,
       pendingPlugins: this.pendingPlugins,
-      processedBy: this.processedBy,
-      processingPlugin: this.processingPlugin,
+      triedPlugins: this.triedPlugins,
+      currentPlugin: this.currentPlugin,
       sentByPlugin: this.sentByPlugin
     }
   }
 
-  currentState() {
-    return this.state
-  }
+  currentState () { return this.state }
 
-  isInitial() {
-    return this.currentState() === PAYMENT_STATE.INITIAL
-  }
+  isInitial () { return this.currentState() === PAYMENT_STATE.INITIAL }
 
-  isInProgress() {
-    return this.currentState() === PAYMENT_STATE.IN_PROGRESS
-  }
+  isInProgress () { return this.currentState() === PAYMENT_STATE.IN_PROGRESS }
 
-  isCompleted() {
-    return this.currentState() === PAYMENT_STATE.COMPLETED
-  }
+  isCompleted () { return this.currentState() === PAYMENT_STATE.COMPLETED }
 
-  isFailed() {
-    return this.currentState() === PAYMENT_STATE.FAILED
-  }
+  isFailed () { return this.currentState() === PAYMENT_STATE.FAILED }
 
-  isCancelled() {
-    return this.currentState() === PAYMENT_STATE.CANCELLED
-  }
+  isCancelled () { return this.currentState() === PAYMENT_STATE.CANCELLED }
 
-  isFinal() {
-    return this.isCompleted() || this.isFailed() || this.isCancelled()
-  }
+  isFinal () { return this.isCompleted() || this.isFailed() || this.isCancelled() }
 
-  async cancel() {
+  async cancel () {
     if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.state))
+    if (this.currentPlugin) {
+      // Belt and suspenders
+      // should not be possible as currentPlugin must not be assigned in initial state
+      throw new Error('Cannot cancel while processing')
+    }
 
     this.state = PAYMENT_STATE.CANCELLED
     await this.payment.update()
   }
 
-  async fail() {
-    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
-
-    this.state = PAYMENT_STATE.FAILED
-    this.processingPlugin = null
-
-    await this.payment.update()
-  }
-
-  async proccess() {
-    if (!this.isInitial() || !this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
-
-    if (this.pendingPlugins.length === 0) {
-      await this.fail()
-      throw new Error('No plugins to process')
+  async process () {
+    if (this.isInitial()) {
+      this.state = PAYMENT_STATE.IN_PROGRESS
+      await this.payment.update()
     }
 
-    this.state = PAYMENT_STATE.IN_PROGRESS
-    this.processingPlugin = this.pendingPlugins.shift()
+    if (this.pendingPlugins.length === 0) return await this.fail()
+
+    return await this.tryNext()
+  }
+
+  async fail () {
+    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
+
+    this.markCurrentPluginAsTried()
+    this.state = PAYMENT_STATE.FAILED
 
     await this.payment.update()
   }
 
-  async complete() {
+  async tryNext () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
 
-    this.processedBy.push(this.processingPlugin)
-    this.sentByPlugin = this.procssingPluging
-    this.processingPlugin = null
+    if (this.currentPlugin) this.markCurrentPluginAsTried()
+
+    this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now() }
+    await this.payment.update()
+  }
+
+  async complete () {
+    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.state))
+
+    this.sentByPlugin = this.markCurrentPluginAsTried()
 
     this.state = PAYMENT_STATE.COMPLETED
     await this.payment.update()
+  }
+
+  getCompletedCurrentPlugin () {
+    return { ...this.currentPlugin, endAt: Date.now() }
+  }
+
+  markCurrentPluginAsTried () {
+    const completedPlugin = this.getCompletedCurrentPlugin()
+    this.triedPlugins.push({ ...completedPlugin })
+    this.currentPlugin = null
+
+    return completedPlugin
   }
 }
 
