@@ -36,7 +36,7 @@ class PaymentOrder {
     this.sendingPriority = orderParams.sendingPriority
 
     if (this.type === ORDER_TYPE.RECCURING) {
-      throw new Error(ERROR.NOT_IMPLEMENTED)
+      throw new Error(ERRORS.NOT_IMPLEMENTED)
     }
   }
 
@@ -66,7 +66,7 @@ class PaymentOrder {
 
   async createReccuringOrder () {
     // TODO: save order and payments to db in a single transaction
-    throw new Error(ERROR.NOT_IMPLEMENTED)
+    throw new Error(ERRORS.NOT_IMPLEMENTED)
   }
 
   /**
@@ -84,33 +84,33 @@ class PaymentOrder {
       if (this.payments[0].pluginState === 'failed') {
         return this.payments[0].process()
       } else {
-        throw new Error(ERROR.NOT_IMPLEMENTED)
+        throw new Error(ERRORS.NOT_IMPLEMENTED)
       }
       // TODO: check if there are any payments in progress
       // if there are, then do nothing
       // if there are none, then check if there are any payments that are not yet in progress
       // if there are, then start executing first related payment if its executeAt < Date.now()
     } else {
-      throw new Error(ERROR.CAN_NOT_PROCESS_ORDER)
+      throw new Error(ERRORS.CAN_NOT_PROCESS_ORDER)
     }
   }
 
   async complete () {
     if (this.state === ORDER_STATE.CANCELLED) {
-      throw new Error(ERROR.ORDER_CANCELLED)
+      throw new Error(ERRORS.ORDER_CANCELLED)
     }
 
     if (this.payments.every((payment) => payment.state === PAYMENT_STATE.COMPLETED)) {
       this.state = ORDER_STATE.COMPLETED
       await this.update()
     } else {
-      throw new Error(ERROR.OUTSTANDING_PAYMENTS)
+      throw new Error(ERRORS.OUTSTANDING_PAYMENTS)
     }
   }
 
   async cancel () {
     if (this.state === ORDER_STATE.COMPLETED) {
-      throw new Error(ERROR.ORDER_COMPLETED)
+      throw new Error(ERRORS.ORDER_COMPLETED)
     }
 
     // TODO: db transaction
@@ -149,7 +149,7 @@ class PaymentOrder {
     // save corresponding payments
     //    if (this.id) {
     //      const order = await this.db.get(this.id, { removed: '*' })
-    //      if (order) throw new Error(ERROR.ALREADY_EXISTS(this.id))
+    //      if (order) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
     //      // something very fishy is going on
     //    }
     //
@@ -181,7 +181,7 @@ class PaymentOrder {
   }
 }
 
-const ERROR = {
+const ERRORS = {
   NOT_IMPLEMENTED: 'Not implemented',
   ORDER_PARAMS_REQUIRED: 'Order params are required',
   ORDER_AMOUNT_REQUIRED: 'Order amount is required',
@@ -210,4 +210,4 @@ const ORDER_STATE = {
   CANCELLED: 'cancelled'
 }
 
-module.exports = { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERROR }
+module.exports = { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS }

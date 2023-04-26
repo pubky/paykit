@@ -7,7 +7,7 @@ const { PAYMENT_STATE } = require('../../src/payments/Payment')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
-const { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERROR } = require('../../src/payments/PaymentOrder')
+const { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 
 test('PaymentOrder - contructor (default type)', async t => {
   const db = new DB()
@@ -52,9 +52,7 @@ test('PaymentOrder - contructor (reccuring)', async t => {
 
   const params = { ...orderParams, type: ORDER_TYPE.RECCURING }
 
-  t.exception(() => {
-    new PaymentOrder(params, db) // eslint-disable-line
-  }, ERROR.NOT_IMPLEMENTED)
+  t.exception(() => { new PaymentOrder(params, db) }, ERRORS.NOT_IMPLEMENTED) // eslint-disable-line 
 })
 
 test('PaymentOrder - init', async t => {
@@ -203,9 +201,7 @@ test('PaymentOrder - complete', async t => {
   paymentOrder.state = ORDER_STATE.CANCELLED
   await paymentOrder.update()
 
-  await t.exception(async () => {
-    await paymentOrder.complete()
-  }, ERROR.ORDER_CANCELLED)
+  await t.exception(async () => { await paymentOrder.complete() }, ERRORS.ORDER_CANCELLED)
 
   paymentOrder.state = ORDER_STATE.PROCESSING
   await paymentOrder.update()
