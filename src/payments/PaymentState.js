@@ -1,11 +1,11 @@
 class PaymentState {
-  constructor (payment, state) {
+  constructor (payment) {
     PaymentState.validate(payment)
 
     if (this.sentByPlugin) {
       this.state = PAYMENT_STATE.COMPLETED
     } else {
-      this.state = payment.internalState || state || PAYMENT_STATE.INITIAL
+      this.state = payment.internalState || PAYMENT_STATE.INITIAL
     }
 
     this.pendingPlugins = payment.pendingPlugins || []
@@ -26,8 +26,8 @@ class PaymentState {
   serialize () {
     return {
       state: this.state,
-      pendingPlugins: [ ...this.pendingPlugins ],
-      triedPlugins: [ ...this.triedPlugins ],
+      pendingPlugins: [...this.pendingPlugins],
+      triedPlugins: [...this.triedPlugins],
       currentPlugin: { ...this.currentPlugin },
       sentByPlugin: { ...this.sentByPlugin }
     }
