@@ -27,6 +27,12 @@ test('PaymentState.constructor', t => {
   t.is(pS.payment, uninitializedPayment)
 })
 
+test('PaymentState.assignPendingPlugins', t => {
+  const pS = new PaymentState(uninitializedPayment)
+  pS.assignPendingPlugins(['plugin0', 'plugin1', 'plugin2'])
+  t.alike(pS.pendingPlugins, ['plugin0', 'plugin1', 'plugin2'])
+})
+
 test('PaymentState.serialize', t => {
   const pS = new PaymentState(uninitializedPayment)
   t.alike(pS.serialize(), {
