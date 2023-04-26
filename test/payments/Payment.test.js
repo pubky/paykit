@@ -84,7 +84,7 @@ test('Payment - new', async t => {
   t.is(payment.memo, '')
   t.is(payment.orderId, paymentParams.orderId)
   t.ok(payment.createdAt <= Date.now())
-  t.ok(payment.exectuteAt <= Date.now())
+  t.ok(payment.executeAt <= Date.now())
 })
 
 test('Payment.init - payment file not found', async t => {
@@ -279,7 +279,11 @@ test('Payment.process', async t => {
       }
     }
   })
-  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
+  const payment = new Payment({
+    ...paymentParams,
+    executeAt: new Date(Date.now() + 100000),
+    sendingPriority: ['p2sh', 'lightning']
+  }, db)
   await payment.save()
   await payment.init()
 
@@ -296,6 +300,11 @@ test('Payment.process', async t => {
   t.is(process.callCount, 0)
   t.is(update.callCount, 0)
 
+  await payment.process()
+  t.is(process.callCount, 0)
+  t.is(update.callCount, 0)
+
+  payment.executeAt = new Date(Date.now() - 1)
   await payment.process()
 
   serialized = payment.serialize()

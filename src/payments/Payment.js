@@ -86,7 +86,7 @@ class Payment {
     this.internalState = new PaymentState(this)
 
     this.createdAt = Date.now()
-    this.exectuteAt = paymentParams.executionTimestamp || Date.now()
+    this.executeAt = paymentParams.executeAt || Date.now()
   }
 
   /**
@@ -187,6 +187,7 @@ class Payment {
    * @returns {Promise<Payment>}
    */
   async process () {
+    if (this.executeAt > Date.now()) return this
     await this.internalState.process()
     return this
   }
