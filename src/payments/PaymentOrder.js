@@ -1,4 +1,5 @@
 const { Payment, PAYMENT_STATE } = require('./Payment')
+const { PaymentAmount } = require('./PaymentAmount')
 /**
  * @class PaymentOrder - This class is used to create a payments
  *
@@ -8,8 +9,6 @@ class PaymentOrder {
   static generateId () {
     return 'totally-random-order-id'
   }
-
-  // TODO: add validators
 
   constructor (orderParams, db) {
     this.orderParams = orderParams
@@ -28,9 +27,7 @@ class PaymentOrder {
 
     this.payments = []
 
-    this.amount = orderParams.amount
-    this.currency = orderParams.currency || 'BTC'
-    this.denomination = orderParams.denomination || 'BASE'
+    this.amount = new PaymentAmount(orderParams)
     this.targetURL = orderParams.targetURL
     this.memo = orderParams.memo || ''
     this.sendingPriority = orderParams.sendingPriority
@@ -132,12 +129,10 @@ class PaymentOrder {
       state: this.state,
       frequency: this.frequency,
 
-      amount: this.amount,
-      currency: this.currency,
-      denomination: this.denomination,
       targetURL: this.targetURL,
       memo: this.memo,
-      sendingPriority: this.sendingPriority
+      sendingPriority: this.sendingPriority,
+      ...this.amount.serialize()
     }
   }
 

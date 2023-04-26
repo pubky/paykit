@@ -4,6 +4,7 @@ const proxyquire = require('proxyquire')
 const { DB } = require('../../src/DB')
 
 const { PAYMENT_STATE } = require('../../src/payments/Payment')
+const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
@@ -39,9 +40,7 @@ test('PaymentOrder - contructor (one time)', async t => {
 
   t.is(paymentOrder.state, ORDER_STATE.CREATED)
 
-  t.is(paymentOrder.amount, params.amount)
-  t.is(paymentOrder.currency, params.currency || 'BTC')
-  t.is(paymentOrder.denomination, params.denomination || 'BASE')
+  t.alike(paymentOrder.amount, new PaymentAmount(params))
   t.is(paymentOrder.targetURL, params.targetURL)
   t.is(paymentOrder.memo, params.memo || '')
 })
