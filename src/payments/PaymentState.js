@@ -17,7 +17,7 @@ class PaymentState {
     this.payment = payment
   }
 
-  assignPendingPlugins(pendingPlugins) {
+  assignPendingPlugins (pendingPlugins) {
     this.pendingPlugins = [...pendingPlugins]
   }
 
@@ -37,19 +37,13 @@ class PaymentState {
     }
   }
 
-  currentState () { return this.internalState }
-
-  isInitial () { return this.currentState() === PAYMENT_STATE.INITIAL }
-
-  isInProgress () { return this.currentState() === PAYMENT_STATE.IN_PROGRESS }
-
-  isCompleted () { return this.currentState() === PAYMENT_STATE.COMPLETED }
-
-  isFailed () { return this.currentState() === PAYMENT_STATE.FAILED }
-
-  isCancelled () { return this.currentState() === PAYMENT_STATE.CANCELLED }
-
-  isFinal () { return this.isCompleted() || this.isFailed() || this.isCancelled() }
+  currentState = () => this.internalState
+  isInitial = () => this.currentState() === PAYMENT_STATE.INITIAL
+  isInProgress = () => this.currentState() === PAYMENT_STATE.IN_PROGRESS
+  isCompleted = () => this.currentState() === PAYMENT_STATE.COMPLETED
+  isFailed = () => this.currentState() === PAYMENT_STATE.FAILED
+  isCancelled = () => this.currentState() === PAYMENT_STATE.CANCELLED
+  isFinal = () => this.isCompleted() || this.isFailed() || this.isCancelled()
 
   async cancel () {
     if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
@@ -79,7 +73,6 @@ class PaymentState {
 
     this.markCurrentPluginAsTried()
     this.internalState = PAYMENT_STATE.FAILED
-
     await this.payment.update()
   }
 
@@ -87,7 +80,6 @@ class PaymentState {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     if (this.currentPlugin) this.markCurrentPluginAsTried()
-
     this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now() }
     await this.payment.update()
   }
@@ -96,7 +88,6 @@ class PaymentState {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     this.sentByPlugin = this.markCurrentPluginAsTried()
-
     this.internalState = PAYMENT_STATE.COMPLETED
     await this.payment.update()
   }
