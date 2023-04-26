@@ -1,12 +1,14 @@
 const { test } = require('brittle')
 const proxyquire = require('proxyquire')
+const sinon = require('sinon')
 
 const { DB } = require('../../src/DB')
 
 const { paymentParams } = require('../fixtures/paymentParams')
 
-const { Payment, PAYMENT_STATE, ERROR } = require('../../src/payments/Payment')
+const { Payment, PAYMENT_STATE, ERRORS } = require('../../src/payments/Payment')
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
+const { ERRORS: STATE_ERRORS } = require('../../src/payments/PaymentState')
 
 test('Payment.generateId', t => {
   const id = Payment.generateId()
@@ -14,22 +16,22 @@ test('Payment.generateId', t => {
 })
 
 test('Payment.validatePaymentParams', t => {
-  t.exception(() => Payment.validatePaymentParams(), ERROR.PARAMS_REQUIRED)
+  t.exception(() => Payment.validatePaymentParams(), ERRORS.PARAMS_REQUIRED)
 
   const params = {}
-  t.exception(() => Payment.validatePaymentParams(params), ERROR.ORDER_ID_REQUIRED)
+  t.exception(() => Payment.validatePaymentParams(params), ERRORS.ORDER_ID_REQUIRED)
 
   params.orderId = 'orderId'
-  t.exception(() => Payment.validatePaymentParams(params), ERROR.CLIENT_ID_REQUIRED)
+  t.exception(() => Payment.validatePaymentParams(params), ERRORS.CLIENT_ID_REQUIRED)
 
   params.clientOrderId = 'clientOrderId'
-  t.exception(() => Payment.validatePaymentParams(params), ERROR.AMOUNT_REQUIRED)
+  t.exception(() => Payment.validatePaymentParams(params), ERRORS.AMOUNT_REQUIRED)
 
   params.amount = '100'
-  t.exception(() => Payment.validatePaymentParams(params), ERROR.TARGET_REQUIRED)
+  t.exception(() => Payment.validatePaymentParams(params), ERRORS.TARGET_REQUIRED)
 
   params.id = 'id'
-  t.exception(() => Payment.validatePaymentParams(params), ERROR.ALREADY_EXISTS('id'))
+  t.exception(() => Payment.validatePaymentParams(params), ERRORS.ALREADY_EXISTS('id'))
 
   delete params.id
   params.targetURL = 'targetURL'
@@ -38,8 +40,8 @@ test('Payment.validatePaymentParams', t => {
 
 test('Payment.validateDB', async t => {
   const db = new DB()
-  t.exception(() => Payment.validateDB(), ERROR.NO_DB)
-  t.exception(() => Payment.validateDB(db), ERROR.DB_NOT_READY)
+  t.exception(() => Payment.validateDB(), ERRORS.NO_DB)
+  t.exception(() => Payment.validateDB(db), ERRORS.DB_NOT_READY)
 
   await db.init()
   t.execution(() => Payment.validateDB(db))
@@ -65,8 +67,13 @@ test('Payment - new', async t => {
   const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
 
   t.is(payment.id, null)
-  t.is(payment.internalState, PAYMENT_STATE.INITIAL)
-  t.alike(payment.processedBy, [])
+  t.alike(payment.internalState.serialize(), {
+    internalState: PAYMENT_STATE.INITIAL,
+    pendingPlugins: [],
+    triedPlugins: [],
+    currentPlugin: {},
+    sentByPlugin: {}
+  })
   t.is(payment.targetURL, 'slashpay://driveKey/slashpay.json')
   t.is(payment.clientOrderId, 'clientOrderId')
   t.alike(payment.amount, new PaymentAmount({
@@ -75,7 +82,6 @@ test('Payment - new', async t => {
     denomination: 'BASE'
   }))
   t.is(payment.memo, '')
-  t.is(payment.processingPlugin, null)
   t.is(payment.orderId, paymentParams.orderId)
   t.ok(payment.createdAt <= Date.now())
   t.ok(payment.exectuteAt <= Date.now())
@@ -99,7 +105,7 @@ test('Payment.init - payment file not found', async t => {
 
   const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
 
-  await t.exception(async () => await payment.init(), ERROR.PAYMENT_FILE_NOT_FOUND)
+  await t.exception(async () => await payment.init(), ERRORS.PAYMENT_FILE_NOT_FOUND)
 })
 
 test('Payment.init - no matching plugins', async t => {
@@ -124,7 +130,7 @@ test('Payment.init - no matching plugins', async t => {
 
   const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
 
-  await t.exception(async () => await payment.init(), ERROR.NO_MATCHING_PLUGINS)
+  await t.exception(async () => await payment.init(), ERRORS.NO_MATCHING_PLUGINS)
 })
 
 test('Payment.init - selected priority', async t => {
@@ -168,14 +174,15 @@ test('Payment.serialize', async t => {
     clientOrderId: 'clientOrderId',
     internalState: PAYMENT_STATE.INITIAL,
     targetURL: 'slashpay://driveKey/slashpay.json',
-    amount: '100',
     memo: '',
+    amount: '100',
     currency: 'BTC',
     denomination: 'BASE',
     sendingPriority: ['p2sh', 'lightning'],
-    processedBy: [],
-    processingPlugin: null,
-    sentByPlugin: null
+    pendingPlugins: [],
+    triedPlugins: [],
+    currentPlugin: {},
+    sentByPlugin: {}
   })
 })
 
@@ -187,7 +194,7 @@ test('Payment.save - iff entry is new', async t => {
   const got = await db.get(payment.id)
   t.alike(got, payment.serialize())
 
-  await t.exception(async () => await payment.save(), ERROR.ALREADY_EXISTS(payment.id))
+  await t.exception(async () => await payment.save(), ERRORS.ALREADY_EXISTS(payment.id))
 })
 
 test('Payment.save - overwites id if entry not found in DB', async t => {
@@ -228,7 +235,7 @@ test('Payment.save - fails if entry is removed', async t => {
   const { id } = payment
   await payment.delete()
 
-  await t.exception(async () => await payment.save(), ERROR.ALREADY_EXISTS(id))
+  await t.exception(async () => await payment.save(), ERRORS.ALREADY_EXISTS(id))
 })
 
 test('Payment.update', async t => {
@@ -247,9 +254,10 @@ test('Payment.update', async t => {
   t.is(got.currency, 'BTC')
 })
 
-test('Payment.process - no next plugin', async t => {
+test('Payment.process', async t => {
   const db = new DB()
   await db.init()
+  const update = sinon.replace(db, 'update', sinon.fake(db.update))
 
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
@@ -275,43 +283,83 @@ test('Payment.process - no next plugin', async t => {
   await payment.save()
   await payment.init()
 
-  t.alike(payment.sendingPriority, ['p2sh', 'lightning'])
-  t.is(payment.processedBy.length, 0)
-  t.is(payment.processingPlugin, null)
-  t.is(payment.internalState, PAYMENT_STATE.INITIAL)
+  const process = sinon.replace(payment.internalState, 'process', sinon.fake(payment.internalState.process))
+
+  let serialized
+
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.INITIAL)
+  t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
+  t.alike(serialized.triedPlugins, [])
+  t.alike(serialized.currentPlugin, {})
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 0)
+  t.is(update.callCount, 0)
 
   await payment.process()
 
-  t.alike(payment.sendingPriority, ['lightning'])
-  t.alike(payment.processedBy, [])
-  t.is(payment.processingPlugin, 'p2sh')
-  t.is(payment.internalState, PAYMENT_STATE.IN_PROGRESS)
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
+  t.alike(serialized.pendingPlugins, ['lightning'])
+
+  t.alike(serialized.triedPlugins, [])
+
+  t.is(serialized.currentPlugin.name, 'p2sh')
+  t.ok(serialized.currentPlugin.startAt <= Date.now())
+
+  t.alike(serialized.sentByPlugin, {})
+
+  t.is(process.callCount, 1)
+  t.is(update.callCount, 2)
 
   await payment.process()
 
-  t.alike(payment.sendingPriority, [])
-  t.alike(payment.processedBy, ['p2sh'])
-  t.is(payment.processingPlugin, 'lightning')
-  t.is(payment.internalState, PAYMENT_STATE.IN_PROGRESS)
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
+  t.alike(serialized.pendingPlugins, [])
+
+  t.is(serialized.triedPlugins.length, 1)
+  t.is(serialized.triedPlugins[0].name, 'p2sh')
+  t.ok(serialized.triedPlugins[0].startAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
+
+  t.is(serialized.currentPlugin.name, 'lightning')
+  t.ok(serialized.currentPlugin.startAt <= Date.now())
+
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 2)
+  t.is(update.callCount, 3)
 
   await payment.process()
 
-  t.alike(payment.sendingPriority, [])
-  t.alike(payment.processedBy, ['p2sh', 'lightning'])
-  t.is(payment.processingPlugin, null)
-  t.is(payment.internalState, PAYMENT_STATE.FAILED)
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.FAILED)
+  t.alike(serialized.pendingPlugins, [])
 
-  await payment.process()
+  t.is(serialized.triedPlugins.length, 2)
+  t.is(serialized.triedPlugins[0].name, 'p2sh')
+  t.ok(serialized.triedPlugins[0].startAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
+  t.is(serialized.triedPlugins[1].name, 'lightning')
+  t.ok(serialized.triedPlugins[1].startAt <= Date.now())
+  t.ok(serialized.triedPlugins[1].endAt <= Date.now())
+  t.ok(serialized.triedPlugins[1].endAt >= serialized.triedPlugins[0].startAt)
 
-  t.alike(payment.sendingPriority, [])
-  t.alike(payment.processedBy, ['p2sh', 'lightning'])
-  t.is(payment.processingPlugin, null)
-  t.is(payment.internalState, PAYMENT_STATE.FAILED)
+  t.alike(serialized.currentPlugin, {})
+
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 3)
+  t.is(update.callCount, 4)
+
+  t.teardown(() => sinon.restore())
 })
 
 test('Payment.complete', async t => {
   const db = new DB()
   await db.init()
+  const update = sinon.replace(db, 'update', sinon.fake(db.update))
 
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
@@ -325,8 +373,7 @@ test('Payment.complete', async t => {
           return {
             paymentEndpoints: {
               lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
+              p2sh: '/p2sh/slashpay.json'
             }
           }
         }
@@ -337,26 +384,73 @@ test('Payment.complete', async t => {
   const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }, db)
   await payment.save()
   await payment.init()
+  const process = sinon.replace(payment.internalState, 'process', sinon.fake(payment.internalState.process))
+  const complete = sinon.replace(payment.internalState, 'complete', sinon.fake(payment.internalState.complete))
 
-  await t.exception(async () => await payment.complete(), ERROR.CAN_NOT_COMPLETE(PAYMENT_STATE.INITIAL))
+  let serialized
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.INITIAL)
+  t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
+  t.alike(serialized.triedPlugins, [])
+  t.alike(serialized.currentPlugin, {})
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 0)
+  t.is(complete.callCount, 0)
+  t.is(update.callCount, 0)
+
+  await t.exception(async () => await payment.complete(), STATE_ERRORS.INVALID_STATE(PAYMENT_STATE.INITIAL))
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.INITIAL)
+  t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
+  t.alike(serialized.triedPlugins, [])
+  t.alike(serialized.currentPlugin, {})
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 0)
+  t.is(complete.callCount, 1)
+  t.is(update.callCount, 0)
 
   await payment.process()
-  await payment.process()
+
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
+  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.triedPlugins, [])
+  t.is(serialized.currentPlugin.name, 'p2sh')
+  t.ok(serialized.currentPlugin.startAt <= Date.now())
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 1)
+  t.is(complete.callCount, 1)
+  t.is(update.callCount, 2)
 
   await payment.complete()
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.COMPLETED)
+  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.is(serialized.triedPlugins.length, 1)
+  t.is(serialized.triedPlugins[0].name, 'p2sh')
+  t.ok(serialized.triedPlugins[0].startAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
+  t.alike(serialized.currentPlugin, {})
+  t.is(serialized.sentByPlugin.name, 'p2sh')
+  t.ok(serialized.sentByPlugin.startAt <= Date.now())
+  t.ok(serialized.sentByPlugin.endAt <= Date.now())
+  t.is(process.callCount, 1)
+  t.is(complete.callCount, 2)
+  t.is(update.callCount, 3)
 
-  t.is(payment.internalState, PAYMENT_STATE.COMPLETED)
-  t.is(payment.processingPlugin, null)
-  t.is(payment.sentByPlugin, 'lightning')
-  t.alike(payment.sendingPriority, ['p2wsh'])
-  t.alike(payment.processedBy, ['p2sh', 'lightning'])
+  await t.exception(async () => await payment.complete(), STATE_ERRORS.INVALID_STATE(PAYMENT_STATE.COMPLETED))
+  t.is(process.callCount, 1)
+  t.is(complete.callCount, 3)
+  t.is(update.callCount, 3)
 
-  await t.exception(async () => await payment.complete(), ERROR.CAN_NOT_COMPLETE(PAYMENT_STATE.COMPLETED))
+  t.teardown(() => sinon.restore())
 })
 
 test('Payment.cancel', async t => {
   const db = new DB()
   await db.init()
+  const update = sinon.replace(db, 'update', sinon.fake(db.update))
 
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
@@ -379,13 +473,21 @@ test('Payment.cancel', async t => {
     }
   })
 
-  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }, db)
+  const payment = new Payment({ ...paymentParams }, db)
   await payment.save()
   await payment.init()
+  const cancel = sinon.replace(payment.internalState, 'cancel', sinon.fake(payment.internalState.cancel))
 
   await payment.cancel()
+  const serialized = payment.serialize()
 
-  t.is(payment.internalState, PAYMENT_STATE.CANCELLED)
+  t.is(serialized.internalState, PAYMENT_STATE.CANCELLED)
+  t.is(update.callCount, 1)
+  t.is(cancel.callCount, 1)
 
-  await t.exception(async () => await payment.cancel(), ERROR.CAN_NOT_COMPLETE(PAYMENT_STATE.CANCELLED))
+  await t.exception(async () => await payment.cancel(), STATE_ERRORS.INVALID_STATE(PAYMENT_STATE.CANCELLED))
+  t.is(update.callCount, 1)
+  t.is(cancel.callCount, 2)
+
+  t.teardown(() => sinon.restore())
 })

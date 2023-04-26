@@ -1,5 +1,6 @@
 const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
 const { PaymentAmount } = require('./PaymentAmount')
+const { PaymentState, PAYMENT_STATE } = require('./PaymentState')
 /**
  * Payment class
  * @class Payment
@@ -22,10 +23,10 @@ class Payment {
    * @returns {void}
    */
   static validatePaymentParams (paymentParams) {
-    if (!paymentParams) throw new Error(ERROR.PARAMS_REQUIRED)
-    if (!paymentParams.orderId) throw new Error(ERROR.ORDER_ID_REQUIRED)
-    if (!paymentParams.clientOrderId) throw new Error(ERROR.CLIENT_ID_REQUIRED)
-    if (!paymentParams.targetURL) throw new Error(ERROR.TARGET_REQUIRED)
+    if (!paymentParams) throw new Error(ERRORS.PARAMS_REQUIRED)
+    if (!paymentParams.orderId) throw new Error(ERRORS.ORDER_ID_REQUIRED)
+    if (!paymentParams.clientOrderId) throw new Error(ERRORS.CLIENT_ID_REQUIRED)
+    if (!paymentParams.targetURL) throw new Error(ERRORS.TARGET_REQUIRED)
   }
 
   /**
@@ -35,8 +36,8 @@ class Payment {
    * @returns {void}
    */
   static validateDB (db) {
-    if (!db) throw new Error(ERROR.NO_DB)
-    if (!db.ready) throw new Error(ERROR.DB_NOT_READY)
+    if (!db) throw new Error(ERRORS.NO_DB)
+    if (!db.ready) throw new Error(ERRORS.DB_NOT_READY)
   }
 
   /**
@@ -46,8 +47,8 @@ class Payment {
    * @returns {void}
    */
   static validatePaymentObject (pO) {
-    if (!pO.id) throw new Error(ERROR.ID_REQUIRED)
-    if (!pO.internalState) throw new Error(ERROR.INTERNAL_STATE_REQUIRED)
+    if (!pO.id) throw new Error(ERRORS.ID_REQUIRED)
+    if (!pO.internalState) throw new Error(ERRORS.INTERNAL_STATE_REQUIRED)
 
     Payment.validatePaymentParams(pO)
     PaymentAmount.validate(pO)
@@ -57,7 +58,7 @@ class Payment {
    * @constructor Payment
    * @param {PaymentParams} paymentParams
    * @property {string} [paymentParmas.id] - payment id
-   * @property {PAYMENT_STATE} [paymentParams.internalState] - internal state of the payment
+   * @property {PaymentState} [paymentParams.internalState] - internal state of the payment
    * @property {string} targetURL - destination of the payment
    * @property {string} clientOrderId - client payment id
    * @property {Amount} amount - amount of the payment
@@ -74,8 +75,6 @@ class Payment {
     this.db = db
     this.sendingPriority = paymentParams.sendingPriority || []
 
-    // if (paymentParams.id) throw new Error(ERROR.ALREADY_EXISTS(paymentParams.id))
-
     this.id = paymentParams.id || null
     this.orderId = paymentParams.orderId
     this.clientOrderId = paymentParams.clientOrderId
@@ -83,17 +82,8 @@ class Payment {
     this.targetURL = paymentParams.targetURL
     this.memo = paymentParams.memo || ''
 
-    this.amount = new PaymentAmount({
-      amount: paymentParams.amount,
-      currency: paymentParams.currency,
-      denomination: paymentParams.denomination
-    })
-
-    // TODO: separate class
-    this.internalState = paymentParams.internalState || PAYMENT_STATE.INITIAL
-    this.processedBy = []
-    this.processingPlugin = null
-    this.sentByPlugin = null
+    this.amount = new PaymentAmount(paymentParams)
+    this.internalState = new PaymentState(this)
 
     this.createdAt = Date.now()
     this.exectuteAt = paymentParams.executionTimestamp || Date.now()
@@ -109,13 +99,14 @@ class Payment {
     // XXX: url may contain path to payment file
     await remoteStorage.init(this.targetURL)
     const paymentFile = await remoteStorage.read('/slashpay.json')
-    if (!paymentFile) throw new Error(ERROR.NO_PAYMENT_FILE)
+    if (!paymentFile) throw new Error(ERRORS.NO_PAYMENT_FILE)
 
-    this.sendingPriority = this.sendingPriority.filter((p) => {
+    const pendingPlugins = this.sendingPriority.filter((p) => {
       return Object.keys(paymentFile.paymentEndpoints).includes(p)
     })
 
-    if (!this.sendingPriority.length) throw new Error(ERROR.NO_MATCHING_PLUGINS)
+    if (!pendingPlugins.length) throw new Error(ERRORS.NO_MATCHING_PLUGINS)
+    this.internalState.assignPendingPlugins(pendingPlugins)
   }
 
   /**
@@ -127,16 +118,12 @@ class Payment {
       id: this.id,
       orderId: this.orderId,
       clientOrderId: this.clientOrderId,
-      internalState: this.internalState,
       targetURL: this.targetURL,
       memo: this.memo,
-      currency: this.currency,
-      denomination: this.denomination,
       sendingPriority: this.sendingPriority,
-      processedBy: this.processedBy,
-      processingPlugin: this.processingPlugin,
-      sentByPlugin: this.sentByPlugin,
-      ...this.amount.serialize()
+      // XXX: this is not a good idea as it relies on internal implementation
+      ...this.amount.serialize(),
+      ...this.internalState.serialize()
     }
   }
 
@@ -161,11 +148,9 @@ class Payment {
    * @throws {Error} - if payment is not valid
    */
   async save () {
-    // TODO: needs to be more sophisticated than this
     if (this.id) {
       const payment = await this.db.get(this.id, { removed: '*' })
-      if (payment) throw new Error(ERROR.ALREADY_EXISTS(this.id))
-      // something very fishy is going on
+      if (payment) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
     }
 
     this.id = Payment.generateId()
@@ -180,12 +165,10 @@ class Payment {
    * @returns {Promise<void>}
    */
   async delete (force = false) {
-    if (!force) {
-      await this.db.update(this.id, { removed: true })
-      // TODO: clean `this`
-    } else {
-      throw new Error(ERROR.NOT_ALLOWED)
+    if (force) {
+      throw new Error(ERRORS.NOT_ALLOWED)
     }
+    await this.db.update(this.id, { removed: true })
   }
 
   /**
@@ -195,7 +178,6 @@ class Payment {
    */
   async update () {
     const serialized = this.serialize()
-    // TODO: update itself as well
     Payment.validatePaymentObject(serialized)
     await this.db.update(this.id, serialized)
   }
@@ -205,31 +187,7 @@ class Payment {
    * @returns {Promise<Payment>}
    */
   async process () {
-    // TODO: consider using separate state object/class instead of three properties
-    if (this.internalState === PAYMENT_STATE.COMPLETED) return this
-    if (this.internalState === PAYMENT_STATE.FAILED) return this
-
-    if (!this.processingPlugin && this.internalState !== PAYMENT_STATE.IN_PROGRESS) {
-      this.processingPlugin = this.sendingPriority.shift()
-      this.internalState = PAYMENT_STATE.IN_PROGRESS
-      await this.update()
-      return this
-    }
-
-    this.processedBy.push(this.processingPlugin)
-
-    const nextPlugin = this.sendingPriority.shift()
-    if (!nextPlugin) {
-      this.processingPlugin = null
-      this.internalState = PAYMENT_STATE.FAILED
-      await this.update()
-      return this
-    }
-
-    this.processingPlugin = nextPlugin
-    this.internalState = PAYMENT_STATE.IN_PROGRESS
-    await this.update()
-
+    await this.internalState.process()
     return this
   }
 
@@ -239,27 +197,17 @@ class Payment {
    * @returns {Promise<Payment>}
    */
   async complete () {
-    if (this.internalState !== PAYMENT_STATE.IN_PROGRESS) throw new Error(ERROR.CAN_NOT_COMPLETE(this.internalState))
-
-    this.processedBy.push(this.processingPlugin)
-    this.sentByPlugin = this.processingPlugin
-    this.processingPlugin = null
-    this.internalState = PAYMENT_STATE.COMPLETED
-
-    await this.update()
-
+    await this.internalState.complete()
     return this
   }
 
+  /**
+   * Cancel payment by setting internalState to CANCELED
+   * @throws {Error} - if payment is not initial
+   * @returns {Promise<Payment>}
+   */
   async cancel () {
-    if (this.internalState !== PAYMENT_STATE.INITIAL) throw new Error(ERROR.CAN_NOT_CANCEL(this.internalState))
-
-    this.processedBy.push(this.processingPlugin)
-    this.processingPlugin = null
-    this.internalState = PAYMENT_STATE.CANCELLED
-
-    await this.update()
-
+    await this.internalState.cancel()
     return this
   }
 }
@@ -269,9 +217,8 @@ class Payment {
  * @property {string} NO_PLUGINS - no plugins found
  * @property {string} CLIENT_ID_REQUIRED - clientOrderId is required
  * @property {string} TARGET_REQUIRED - targetURL is required
- * @property {string} NO_REMOTE_STORAGE - no remote storage provided
  */
-const ERROR = {
+const ERRORS = {
   PARAMS_REQUIRED: 'params are required',
   ORDER_ID_REQUIRED: 'orderId is required',
   ALREADY_EXISTS: (id) => `Payment id: ${id} already exists`,
@@ -281,33 +228,11 @@ const ERROR = {
   CLIENT_ID_REQUIRED: 'clientOrderId is required',
   TARGET_REQUIRED: 'targetURL is required',
   NOT_ALLOWED: 'Not allowed',
-  CAN_NOT_COMPLETE: (state) => `Can not complete payment in state: ${state}`,
-  CAN_NOT_CANCEL: (state) => `Can not cancel payment in state: ${state}`,
-
-  NO_REMOTE_STORAGE: 'No remote storage provided',
-  NO_PAYMENT_FILE: 'No payment file found',
-  NO_SENDING_PRIORITY: 'No sending priority provided'
-}
-
-/**
- * @typedef {Object} PaymentState
- * @property {string} INITIAL - initial state
- * @property {string} IN_PROGRESS - in progress state
- * @property {string} COMPLETED - completed state
- * @property {string} FAILED - failed state
- * @property {string} CANCELLED - cancelled state
- */
-const PAYMENT_STATE = {
-  INITIAL: 'initial',
-  IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled'
-
+  NO_PAYMENT_FILE: 'No payment file found'
 }
 
 module.exports = {
   Payment,
   PAYMENT_STATE,
-  ERROR
+  ERRORS
 }
