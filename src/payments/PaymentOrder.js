@@ -1,5 +1,6 @@
 const { Payment, PAYMENT_STATE } = require('./Payment')
 const { PaymentAmount } = require('./PaymentAmount')
+const { PLUGINS_PAYMENT_STATES } = require('../plugins/utils')
 /**
  * @class PaymentOrder - This class is used to create a payments
  *
@@ -14,8 +15,10 @@ class PaymentOrder {
     this.orderParams = orderParams
     this.db = db
 
-    this.id = null
-    this.state = ORDER_STATE.CREATED
+    this.id = orderParams.id || null
+    this.clientOrderId = orderParams.clientOrderId
+
+    this.state = orderParams.state || ORDER_STATE.CREATED
 
     this.clientOrderId = orderParams.clientOrderId
     this.type = orderParams.type || ORDER_TYPE.ONE_TIME
@@ -46,6 +49,8 @@ class PaymentOrder {
     } else {
       await this.createOneTimeOrder()
     }
+
+    this.save()
   }
 
   async createOneTimeOrder () {
@@ -56,9 +61,6 @@ class PaymentOrder {
     await payment.init()
 
     this.payments.push(payment)
-
-    // TODO: save order and payment to db in a single transaction
-    // this.save()
   }
 
   async createReccuringOrder () {
@@ -71,33 +73,67 @@ class PaymentOrder {
    * @returns {Promise<Payment>}
    */
   async process () {
+    // If this is a first call for this order, move state to processing, select first outstanding payment and process it
+    // If this order is already in processing state, check payments plugin state, if it is in process return payment, if it is failed process payment again
+
+
+
+
+
+
+
+
+    const paymentInProgress = this.getPaymentInProgress()
+    if (paymentInProgress) return paymentInProgress
+
+    const payment = this.getFirstOutstandingPayment()
     if (this.state === ORDER_STATE.INITIALIZED) {
-      // TODO: db transaction
-      // first run
-      this.state = ORDER_STATE.PROCESSING
-      await this.update()
-      return this.payments[0].process()
+      return await this.processFirstTime(payment)
     } else if (this.state === ORDER_STATE.PROCESSING) {
-      if (this.payments[0].pluginState === 'failed') {
-        return this.payments[0].process()
-      } else {
-        throw new Error(ERRORS.NOT_IMPLEMENTED)
-      }
-      // TODO: check if there are any payments in progress
-      // if there are, then do nothing
-      // if there are none, then check if there are any payments that are not yet in progress
-      // if there are, then start executing first related payment if its executeAt < Date.now()
+      throw new Error(ERRORS.NOT_IMPLEMENTED)
     } else {
       throw new Error(ERRORS.CAN_NOT_PROCESS_ORDER)
     }
   }
+
+  async processFirstTime (payment) {
+    if (payment.executeAt > Date.now()) return
+
+    this.state = ORDER_STATE.PROCESSING
+    await this.update()
+    return await payment.process()
+  }
+
+  async processNextTime (payment) {
+    if (payment.pluginState === PLUGINS_PAYMENT_STATES.FAILED) {
+      // process with next plugin
+      return await payment.process()
+    } else if (payment.internalState.isCompleted()) {
+      throw new Error(ERRORS.NOT_IMPLEMENTED)
+    } else {
+      throw new Error(ERRORS.NOT_IMPLEMENTED)
+    }
+    // TODO: check if there are any payments in progress
+    // if there are, then do nothing
+    // if there are none, then check if there are any payments that are not yet in progress
+    // if there are, then start executing first related payment if its executeAt < Date.now()
+  }
+
+  getFirstOutstandingPayment () {
+    return this.payments.find((payment) => !payment.internalState.isFinal())
+  }
+
+  getPaymentInProgress () {
+    return this.payments.find((payment) => payment.internalState.isInProgress())
+  }
+
 
   async complete () {
     if (this.state === ORDER_STATE.CANCELLED) {
       throw new Error(ERRORS.ORDER_CANCELLED)
     }
 
-    if (this.payments.every((payment) => payment.state === PAYMENT_STATE.COMPLETED)) {
+    if (this.payments.every((payment) => payment.internalState.isCompleted())) {
       this.state = ORDER_STATE.COMPLETED
       await this.update()
     } else {
@@ -170,7 +206,8 @@ class PaymentOrder {
   static async find (id, db) {
     const orderParams = await db.get(id)
     const paymentOrder = new PaymentOrder(orderParams, db)
-    await paymentOrder.init()
+
+    // TODO: fill payments from db by orderId
 
     return paymentOrder
   }
