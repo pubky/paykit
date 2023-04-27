@@ -1,6 +1,6 @@
 const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
 const { PaymentAmount } = require('./PaymentAmount')
-const { PaymentState, PAYMENT_STATE } = require('./PaymentState')
+const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
 /**
  * Payment class
  * @class Payment
@@ -187,7 +187,10 @@ class Payment {
    * @returns {Promise<Payment>}
    */
   async process () {
-    await this.internalState.process()
+    try {
+      await this.internalState.process()
+    } catch (e) {
+    }
     return this
   }
 
@@ -234,5 +237,6 @@ const ERRORS = {
 module.exports = {
   Payment,
   PAYMENT_STATE,
+  PLUGIN_STATE,
   ERRORS
 }

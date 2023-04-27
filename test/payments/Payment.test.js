@@ -6,7 +6,7 @@ const { DB } = require('../../src/DB')
 
 const { paymentParams } = require('../fixtures/paymentParams')
 
-const { Payment, PAYMENT_STATE, ERRORS } = require('../../src/payments/Payment')
+const { Payment, PAYMENT_STATE, PLUGIN_STATE, ERRORS } = require('../../src/payments/Payment')
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 const { ERRORS: STATE_ERRORS } = require('../../src/payments/PaymentState')
 
@@ -306,12 +306,28 @@ test('Payment.process', async t => {
 
   t.is(serialized.currentPlugin.name, 'p2sh')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
+  t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
 
   t.alike(serialized.sentByPlugin, {})
 
   t.is(process.callCount, 1)
   t.is(update.callCount, 2)
 
+  // nothing changes as currently processed by plugin
+  await payment.process()
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
+  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.triedPlugins, [])
+  t.is(serialized.currentPlugin.name, 'p2sh')
+  t.ok(serialized.currentPlugin.startAt <= Date.now())
+  t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 2)
+  t.is(update.callCount, 2)
+
+  await payment.internalState.failCurrentPlugin()
+  t.is(update.callCount, 3)
   await payment.process()
 
   serialized = payment.serialize()
@@ -323,14 +339,36 @@ test('Payment.process', async t => {
   t.ok(serialized.triedPlugins[0].startAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
+  t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
 
   t.is(serialized.currentPlugin.name, 'lightning')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
+  t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
 
   t.alike(serialized.sentByPlugin, {})
-  t.is(process.callCount, 2)
-  t.is(update.callCount, 3)
+  t.is(process.callCount, 3)
+  t.is(update.callCount, 4)
 
+  // nothing changes as currently processed by plugin
+  await payment.process()
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
+  t.alike(serialized.pendingPlugins, [])
+  t.is(serialized.triedPlugins.length, 1)
+  t.is(serialized.triedPlugins[0].name, 'p2sh')
+  t.ok(serialized.triedPlugins[0].startAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
+  t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
+  t.is(serialized.currentPlugin.name, 'lightning')
+  t.ok(serialized.currentPlugin.startAt <= Date.now())
+  t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
+  t.alike(serialized.sentByPlugin, {})
+  t.is(process.callCount, 4)
+  t.is(update.callCount, 4)
+
+  await payment.internalState.failCurrentPlugin()
+  t.is(update.callCount, 5)
   await payment.process()
 
   serialized = payment.serialize()
@@ -342,16 +380,18 @@ test('Payment.process', async t => {
   t.ok(serialized.triedPlugins[0].startAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
+  t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
   t.is(serialized.triedPlugins[1].name, 'lightning')
   t.ok(serialized.triedPlugins[1].startAt <= Date.now())
   t.ok(serialized.triedPlugins[1].endAt <= Date.now())
   t.ok(serialized.triedPlugins[1].endAt >= serialized.triedPlugins[0].startAt)
+  t.is(serialized.triedPlugins[1].state, PLUGIN_STATE.FAILED)
 
   t.alike(serialized.currentPlugin, {})
 
   t.alike(serialized.sentByPlugin, {})
-  t.is(process.callCount, 3)
-  t.is(update.callCount, 4)
+  t.is(process.callCount, 5)
+  t.is(update.callCount, 6)
 
   t.teardown(() => sinon.restore())
 })
