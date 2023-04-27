@@ -1,3 +1,4 @@
+const { ERRORS: ORDER_ERRORS } = require('./PaymentOrder')
 /**
  * PaymentSender - class for processing outgoing payment orders
  * @class PaymentSender
@@ -11,9 +12,8 @@ class PaymentSender {
    * @param {PluginManager} pluginManager
    * @param {Function} notificationCallback
    */
-  constructor (paymentOrder, db, pluginManager, notificationCallback) {
+  constructor (paymentOrder, pluginManager, notificationCallback) {
     this.paymentOrder = paymentOrder
-    this.db = db
     this.pluginManager = pluginManager
     this.notificationCallback = notificationCallback
   }
@@ -26,18 +26,19 @@ class PaymentSender {
    */
   async submit () {
     const payment = await this.paymentOrder.process()
+    const currentPlugin = payment.internalState.currentPlugin
 
-    if (!payment.processingPlugin) {
-      throw new Error('No plugins available for making payment')
-    }
+    if (!currentPlugin) throw new Error(ERRORS.NO_PLUGINS_AVAILABLE)
 
-    // TODO: also check if plugin is enabled
     let plugin
-    const loaded = this.pluginManager.plugins[payment.processingPlugin]
+    const loaded = this.pluginManager.plugins[currentPlugin.name]
     if (loaded) {
+      // XXX: this should never happen
+      if (!loaded.isActive) throw new Error('Plugin is not active')
+
       plugin = loaded.plugin
     } else {
-      const loaded = await this.pluginManager.loadPlugin(payment.processingPlugin)
+      const loaded = await this.pluginManager.loadPlugin(currentPlugin.name)
       plugin = loaded.plugin
     }
 
@@ -51,28 +52,80 @@ class PaymentSender {
    * @returns {Promise<void>}
    */
   async stateUpdateCallback (update) {
-    // TODO verify that it is correct payment
-    const payment = this.paymentOrder.payments[0]
-    // TODO: update itself as well
-    await payment.update(update)
-    payment.pluginState = update.pluginState
+    const payment = this.paymentOrder.getPaymentInProgress()
+    // XXX: this should never happen
+    if (!payment) throw new Error('No payment in process')
 
-    await this.notificationCallback(update)
+    // TODO: implement properly but first decide what "properly" means
+    payment.pluginUpdate = update
+    await payment.update()
+    await this.handlePluginState(payment)
+  }
 
-    // TODO: implement properly
-    if (update.pluginState === 'failed') {
-      try {
-        await this.submit()
-      } catch (e) {
-        // failed to process by all plugins
-        await this.notificationCallback(e)
-      }
-    } else if (update.pluginState === 'success') {
-      await payment.complete()
+  /**
+   * Handle plugin state
+   * @method handlePluginState
+   * @param {Payment} payment
+   * @returns {Promise<void>}
+   */
+  async handlePluginState (payment) {
+    // TODO: pluginStates should be conventional
+    if (payment.pluginUpdate.pluginState === 'failed') {
+      await this.handleFailure(payment)
+    } else if (payment.pluginUpdate.pluginState === 'success') {
+      await this.handleSuccess(payment)
     } else {
-      // temporal plugin states
+      await this.notificationCallback(payment)
     }
   }
+
+  /**
+   * Handle payment failure
+   * @method handleFailure
+   * @param {Payment} payment
+   * @returns {Promise<void>}
+   */
+  async handleFailure (payment) {
+    await payment.internalState.failCurrentPlugin()
+    try {
+      await this.submit()
+    } catch (e) {
+      if (e.message === ERRORS.NO_PLUGINS_AVAILABLE) return await this.notificationCallback(e)
+
+      throw e
+    }
+  }
+
+  /**
+   * Handle payment success
+   * @method handleSuccess
+   * @param {Payment} payment
+   * @returns {Promise<void>}
+   */
+  async handleSuccess (payment) {
+    await payment.complete()
+
+    // XXX: notification for micropayments will be too much
+    await this.notificationCallback(payment)
+
+    try {
+      await this.paymentOrder.complete()
+    } catch (e) {
+      if (ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
+        // RECURRING PAYMENT territory
+        return
+      }
+      throw e
+    }
+  }
+}
+
+/**
+ * @typedef {Object} ERRORS
+ * @property {String} NO_PLUGINS_AVAILABLE
+ */
+const ERRORS = {
+  NO_PLUGINS_AVAILABLE: 'No plugins available for making payment'
 }
 
 module.exports = {
