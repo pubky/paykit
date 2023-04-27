@@ -52,7 +52,7 @@ class PaymentOrder {
     this.memo = orderParams.memo || ''
     this.sendingPriority = orderParams.sendingPriority
 
-    if (this.type === ORDER_TYPE.RECCURING) {
+    if (this.type === ORDER_TYPE.RECURRING) {
       throw new Error(ERRORS.NOT_IMPLEMENTED)
     }
   }
@@ -65,8 +65,8 @@ class PaymentOrder {
     this.id = PaymentOrder.generateId()
     // TODO: check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
-    if (this.orderParams.type === ORDER_TYPE.RECCURING) {
-      await this.createReccuringOrder()
+    if (this.orderParams.type === ORDER_TYPE.RECURRING) {
+      await this.createRecurringOrder()
     } else {
       await this.createOneTimeOrder()
     }
@@ -88,7 +88,7 @@ class PaymentOrder {
     this.payments.push(payment)
   }
 
-  async createReccuringOrder () {
+  async createRecurringOrder () {
     // TODO: save order and payments to db in a single transaction
     throw new Error(ERRORS.NOT_IMPLEMENTED)
   }
@@ -303,11 +303,11 @@ const ERRORS = {
 /**
  * @typedef {Object} ORDER_TYPE
  * @property {string} ONE_TIME
- * @property {string} RECCURING
+ * @property {string} RECURRING
  */
 const ORDER_TYPE = {
   ONE_TIME: 'one-time',
-  RECCURING: 'reccuring'
+  RECURRING: 'recurring'
 }
 
 /**

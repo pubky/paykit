@@ -76,11 +76,11 @@ test('PaymentOrder - new (one time)', async t => {
   t.is(paymentOrder.memo, params.memo || '')
 })
 
-test('PaymentOrder - new (reccuring)', async t => {
+test('PaymentOrder - new (recurring)', async t => {
   const db = new DB()
   await db.init()
 
-  const params = { ...orderParams, type: ORDER_TYPE.RECCURING }
+  const params = { ...orderParams, type: ORDER_TYPE.RECURRING }
 
   t.exception(() => { new PaymentOrder(params, db) }, ERRORS.NOT_IMPLEMENTED) // eslint-disable-line 
 })
@@ -235,10 +235,10 @@ test('PaymentOrder.canProcess', async t => {
   t.ok(paymentOrder.canProcess())
 })
 
-test('PaymentOrder.createReccuringOrder', async t => {
+test('PaymentOrder.createRecurringOrder', async t => {
   const paymentOrder = await getPaymentOrderInstance()
 
-  await t.exception(async () => await paymentOrder.createReccuringOrder(), ERRORS.NOT_IMPLEMENTED)
+  await t.exception(async () => await paymentOrder.createRecurringOrder(), ERRORS.NOT_IMPLEMENTED)
 })
 
 test('PaymentOrder.createOneTimeOrder', async t => {
