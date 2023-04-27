@@ -10,7 +10,7 @@ const { orderParams } = require('../fixtures/paymentParams')
 
 const { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 
-test('PaymentOrder - contructor (default type)', async t => {
+test('PaymentOrder - new (default type)', async t => {
   const db = new DB()
   await db.init()
 
@@ -23,7 +23,7 @@ test('PaymentOrder - contructor (default type)', async t => {
   t.is(paymentOrder.frequency, null)
 })
 
-test('PaymentOrder - contructor (one time)', async t => {
+test('PaymentOrder - new (one time)', async t => {
   const db = new DB()
   await db.init()
 
@@ -45,7 +45,7 @@ test('PaymentOrder - contructor (one time)', async t => {
   t.is(paymentOrder.memo, params.memo || '')
 })
 
-test('PaymentOrder - contructor (reccuring)', async t => {
+test('PaymentOrder - new (reccuring)', async t => {
   const db = new DB()
   await db.init()
 
@@ -54,7 +54,7 @@ test('PaymentOrder - contructor (reccuring)', async t => {
   t.exception(() => { new PaymentOrder(params, db) }, ERRORS.NOT_IMPLEMENTED) // eslint-disable-line 
 })
 
-test('PaymentOrder - init', async t => {
+test('PaymentOrder.init', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -124,7 +124,7 @@ test('PaymentOrder - init', async t => {
   })
 })
 
-test('serialize', async t => {
+test('PaymentOrder.serialize', async t => {
   const db = new DB()
   await db.init()
 
@@ -147,7 +147,7 @@ test('serialize', async t => {
   })
 })
 
-test('PaymentOrder - save', async t => {
+test('PaymentOrder.save', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -214,7 +214,7 @@ test('PaymentOrder - save', async t => {
   })
 })
 
-test('PaymentOrder - update', async t => {
+test('PaymentOrder.update', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -260,7 +260,7 @@ test('PaymentOrder - update', async t => {
   t.is(got.amount, '101')
 })
 
-test('PaymentOrder - complete', async t => {
+test('PaymentOrder.complete', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -320,7 +320,7 @@ test('PaymentOrder - complete', async t => {
   t.is(paymentOrder.state, ORDER_STATE.COMPLETED)
 })
 
-test('PaymentOrder - process', async t => {
+test('PaymentOrder.process', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -425,7 +425,7 @@ test('PaymentOrder - process', async t => {
   t.ok(serialized.sentByPlugin.endAt <= Date.now())
 })
 
-test('PaymentOrder - cancel', async t => {
+test('PaymentOrder.cancel', async t => {
   const paymentInstanceStub = {
     init: sinon.stub().resolves(),
     save: sinon.stub().resolves(),
@@ -457,7 +457,7 @@ test('PaymentOrder - cancel', async t => {
   t.is(paymentInstanceStub.cancel.callCount, 1)
 })
 
-test('PaymentOrder - find', async t => {
+test('PaymentOrder.find', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
