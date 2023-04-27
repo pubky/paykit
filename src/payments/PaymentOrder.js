@@ -1,9 +1,7 @@
 const { Payment, PAYMENT_STATE } = require('./Payment')
 const { PaymentAmount } = require('./PaymentAmount')
-const { PLUGINS_PAYMENT_STATES } = require('../plugins/utils')
 /**
  * @class PaymentOrder - This class is used to create a payments
- *
  */
 
 class PaymentOrder {
@@ -73,50 +71,33 @@ class PaymentOrder {
    * @returns {Promise<Payment>}
    */
   async process () {
-    // If this is a first call for this order, move state to processing, select first outstanding payment and process it
-    // If this order is already in processing state, check payments plugin state, if it is in process return payment, if it is failed process payment again
-
-
-
-
-
-
-
+    if (!this.readyToProcess()) throw new Error(ERRORS.CAN_NOT_PROCESS_ORDER)
 
     const paymentInProgress = this.getPaymentInProgress()
-    if (paymentInProgress) return paymentInProgress
+    if (paymentInProgress) return await paymentInProgress.process()
 
     const payment = this.getFirstOutstandingPayment()
-    if (this.state === ORDER_STATE.INITIALIZED) {
-      return await this.processFirstTime(payment)
-    } else if (this.state === ORDER_STATE.PROCESSING) {
-      throw new Error(ERRORS.NOT_IMPLEMENTED)
+    if (payment) {
+      return await this.processPayment(payment)
     } else {
-      throw new Error(ERRORS.CAN_NOT_PROCESS_ORDER)
+      // XXX: consider moving out of this class?
+      return await this.complete()
     }
   }
 
-  async processFirstTime (payment) {
+  readyToProcess () {
+    return this.state === ORDER_STATE.INITIALIZED || this.state === ORDER_STATE.PROCESSING
+  }
+
+  async processPayment (payment) {
     if (payment.executeAt > Date.now()) return
 
-    this.state = ORDER_STATE.PROCESSING
-    await this.update()
-    return await payment.process()
-  }
-
-  async processNextTime (payment) {
-    if (payment.pluginState === PLUGINS_PAYMENT_STATES.FAILED) {
-      // process with next plugin
-      return await payment.process()
-    } else if (payment.internalState.isCompleted()) {
-      throw new Error(ERRORS.NOT_IMPLEMENTED)
-    } else {
-      throw new Error(ERRORS.NOT_IMPLEMENTED)
+    if (this.state !== ORDER_STATE.PROCESSING) {
+      this.state = ORDER_STATE.PROCESSING
+      await this.update()
     }
-    // TODO: check if there are any payments in progress
-    // if there are, then do nothing
-    // if there are none, then check if there are any payments that are not yet in progress
-    // if there are, then start executing first related payment if its executeAt < Date.now()
+
+    return await payment.process()
   }
 
   getFirstOutstandingPayment () {
@@ -127,18 +108,18 @@ class PaymentOrder {
     return this.payments.find((payment) => payment.internalState.isInProgress())
   }
 
-
   async complete () {
-    if (this.state === ORDER_STATE.CANCELLED) {
-      throw new Error(ERRORS.ORDER_CANCELLED)
-    }
+    if (this.state === ORDER_STATE.CANCELLED) throw new Error(ERRORS.ORDER_CANCELLED)
+    if (this.state === ORDER_STATE.COMPLETED) throw new Error(ERRORS.ORDER_COMPLETED)
 
-    if (this.payments.every((payment) => payment.internalState.isCompleted())) {
+    if (this.payments.every((payment) => payment.internalState.isFinal())) {
       this.state = ORDER_STATE.COMPLETED
       await this.update()
     } else {
       throw new Error(ERRORS.OUTSTANDING_PAYMENTS)
     }
+
+    return this.payments[this.payments.length - 1]
   }
 
   async cancel () {

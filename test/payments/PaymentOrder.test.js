@@ -3,8 +3,7 @@ const sinon = require('sinon')
 const proxyquire = require('proxyquire')
 const { DB } = require('../../src/DB')
 
-const { PAYMENT_STATE } = require('../../src/payments/Payment')
-const { PaymentState } = require('../../src/payments/PaymentState')
+const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentState')
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 
 const { orderParams } = require('../fixtures/paymentParams')
@@ -261,7 +260,7 @@ test('PaymentOrder - update', async t => {
   t.is(got.amount, '101')
 })
 
-test('PaymentOrder - process', async t => {
+test('PaymentOrder - complete', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -293,9 +292,71 @@ test('PaymentOrder - process', async t => {
   const paymentOrder = new PaymentOrder(params, db)
   await paymentOrder.init()
 
+  t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
+
   t.ok(paymentOrder.id)
-  const payment = await paymentOrder.process()
-  const serialized = payment.serialize()
+
+  paymentOrder.state = ORDER_STATE.CANCELLED
+  await paymentOrder.update()
+  await t.exception(async () => { await paymentOrder.complete() }, ERRORS.ORDER_CANCELLED)
+  t.is(paymentOrder.state, ORDER_STATE.CANCELLED)
+
+  paymentOrder.state = ORDER_STATE.INITIALIZED
+  await paymentOrder.update()
+
+  await t.exception(async () => { await paymentOrder.complete() }, ERRORS.OUTSTANDING_PAYMENTS)
+  t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
+
+  await paymentOrder.process()
+  await t.exception(async () => { await paymentOrder.complete() }, ERRORS.OUTSTANDING_PAYMENTS)
+  t.is(paymentOrder.state, ORDER_STATE.PROCESSING)
+
+  await paymentOrder.payments[0].internalState.complete()
+  await paymentOrder.complete()
+
+  t.is(paymentOrder.state, ORDER_STATE.COMPLETED)
+
+  await t.exception(async () => { await paymentOrder.complete() }, ERRORS.ORDER_COMPLETED)
+  t.is(paymentOrder.state, ORDER_STATE.COMPLETED)
+})
+
+test('PaymentOrder - process', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+  await paymentOrder.init()
+  let payment
+  let serialized
+
+  t.ok(paymentOrder.id)
+  payment = await paymentOrder.process()
+  serialized = payment.serialize()
   t.alike(serialized, paymentOrder.payments[0].serialize())
 
   t.is(serialized.id, payment.id)
@@ -314,91 +375,88 @@ test('PaymentOrder - process', async t => {
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.absent(serialized.currentPlugin.endAt)
 
+  // same order
   const paymentInProgress = await paymentOrder.process()
   t.alike(paymentInProgress.serialize(), serialized)
+
+  await paymentOrder.payments[0].internalState.failCurrentPlugin()
+
+  payment = await paymentOrder.process()
+  serialized = payment.serialize()
+  t.alike(serialized, paymentOrder.payments[0].serialize())
+
+  t.is(serialized.id, payment.id)
+  t.is(serialized.orderId, paymentOrder.id)
+  t.is(serialized.clientOrderId, orderParams.clientOrderId)
+  t.is(serialized.targetURL, orderParams.targetURL)
+  t.is(serialized.memo, '')
+  t.alike(serialized.sendingPriority, orderParams.sendingPriority)
+  t.is(serialized.amount, orderParams.amount)
+  t.is(serialized.currency, 'BTC')
+  t.is(serialized.denomination, 'BASE')
+  t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
+
+  t.alike(serialized.pendingPlugins, [])
+  t.is(serialized.triedPlugins.length, 1)
+  t.is(serialized.triedPlugins[0].name, 'p2sh')
+  t.ok(serialized.triedPlugins[0].startAt <= Date.now())
+  t.ok(serialized.triedPlugins[0].endAt <= Date.now())
+
+  t.is(serialized.currentPlugin.name, 'lightning')
+  t.ok(serialized.currentPlugin.startAt <= Date.now())
+
+  await payment.complete()
+  payment = await paymentOrder.process()
+
+  t.is(paymentOrder.state, ORDER_STATE.COMPLETED)
+
+  serialized = payment.serialize()
+  t.is(serialized.internalState, PAYMENT_STATE.COMPLETED)
+  t.alike(serialized.currentPlugin, {})
+  t.alike(serialized.pendingPlugins, [])
+  t.is(serialized.triedPlugins.length, 2)
+  t.is(serialized.triedPlugins[0].name, 'p2sh')
+  t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
+  t.is(serialized.triedPlugins[1].name, 'lightning')
+  t.is(serialized.triedPlugins[1].state, PLUGIN_STATE.SUCCESS)
+  t.is(serialized.sentByPlugin.name, 'lightning')
+  t.is(serialized.sentByPlugin.state, PLUGIN_STATE.SUCCESS)
+  t.ok(serialized.sentByPlugin.startAt <= Date.now())
+  t.ok(serialized.sentByPlugin.endAt <= Date.now())
 })
 
-//test('PaymentOrder - complete', async t => {
-//  const { Payment } = proxyquire('../../src/payments/Payment', {
-//    '../SlashtagsAccessObject': {
-//      SlashtagsAccessObject: class SlashtagsAccessObject {
-//        constructor () {
-//          this.ready = false
-//        }
-//
-//        async init () { this.ready = true }
-//        async read () {
-//          return {
-//            paymentEndpoints: {
-//              lightning: '/lightning/slashpay.json',
-//              p2sh: '/p2sh/slashpay.json',
-//              p2wsh: '/p2wsh/slashpay.json'
-//            }
-//          }
-//        }
-//      }
-//    }
-//  })
-//
-//  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-//
-//  const db = new DB()
-//  await db.init()
-//
-//  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-//
-//  const paymentOrder = new PaymentOrder(params, db)
-//  await paymentOrder.init()
-//
-//  const swapState = paymentOrder.state
-//
-//  t.ok(paymentOrder.id)
-//
-//  paymentOrder.state = ORDER_STATE.CANCELLED
-//  await paymentOrder.update()
-//  await t.exception(async () => { await paymentOrder.complete() }, ERRORS.ORDER_CANCELLED)
-//
-//  paymentOrder.state = swapState
-//  await paymentOrder.update()
-//
-//  paymentOrder.payments[0].state = PAYMENT_STATE.COMPLETED
-//
-//  await paymentOrder.complete()
-//  t.is(paymentOrder.state, ORDER_STATE.COMPLETED)
-//})
-//
-//test('PaymentOrder - cancel', async t => {
-//  const paymentInstanceStub = {
-//    init: sinon.stub().resolves(),
-//    save: sinon.stub().resolves(),
-//    cancel: sinon.stub().resolves()
-//  }
-//  const paymentClassStub = sinon.stub().returns(paymentInstanceStub)
-//
-//  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
-//    './Payment': {
-//      Payment: paymentClassStub
-//    }
-//  })
-//
-//  const db = new DB()
-//  await db.init()
-//
-//  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-//
-//  const paymentOrder = new PaymentOrder(params, db)
-//  await paymentOrder.init()
-//
-//  t.ok(paymentOrder.id)
-//  t.is(paymentInstanceStub.init.callCount, 1)
-//  t.is(paymentInstanceStub.save.callCount, 1)
-//
-//  await paymentOrder.cancel()
-//
-//  t.is(paymentOrder.state, ORDER_STATE.CANCELLED)
-//  t.is(paymentInstanceStub.cancel.callCount, 1)
-//})
-//
+test('PaymentOrder - cancel', async t => {
+  const paymentInstanceStub = {
+    init: sinon.stub().resolves(),
+    save: sinon.stub().resolves(),
+    cancel: sinon.stub().resolves()
+  }
+  const paymentClassStub = sinon.stub().returns(paymentInstanceStub)
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
+    './Payment': {
+      Payment: paymentClassStub
+    }
+  })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+  await paymentOrder.init()
+
+  t.ok(paymentOrder.id)
+  t.is(paymentInstanceStub.init.callCount, 1)
+  t.is(paymentInstanceStub.save.callCount, 1)
+
+  await paymentOrder.cancel()
+
+  t.is(paymentOrder.state, ORDER_STATE.CANCELLED)
+  t.is(paymentInstanceStub.cancel.callCount, 1)
+})
+
 test('PaymentOrder - find', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
