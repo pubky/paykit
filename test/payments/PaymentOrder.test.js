@@ -1,5 +1,4 @@
 const { test } = require('brittle')
-const sinon = require('sinon')
 const proxyquire = require('proxyquire')
 const { DB } = require('../../src/DB')
 
@@ -335,7 +334,7 @@ test('PaymentOrder.getPaymentInProgress', async t => {
   t.alike(paymentOrder.getPaymentInProgress(), payment)
 })
 
-test('PaymentOrder.readyToProcess', async t => {
+test('PaymentOrder.canProcess', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -366,10 +365,10 @@ test('PaymentOrder.readyToProcess', async t => {
 
   const paymentOrder = new PaymentOrder(params, db)
 
-  t.not(paymentOrder.readyToProcess())
+  t.not(paymentOrder.canProcess())
 
   await paymentOrder.init()
-  t.ok(paymentOrder.readyToProcess())
+  t.ok(paymentOrder.canProcess())
 })
 
 test('PaymentOrder.createReccuringOrder', async t => {
@@ -456,7 +455,7 @@ test('PaymentOrder.createOneTimeOrder', async t => {
     currency: 'BTC',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: [ 'p2sh', 'lightning' ],
+    pendingPlugins: ['p2sh', 'lightning'],
     triedPlugins: [],
     currentPlugin: {},
     sentByPlugin: {}
@@ -513,7 +512,7 @@ test('PaymentOrder.processPayment', async t => {
     currency: 'BTC',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: [ 'p2sh', 'lightning' ],
+    pendingPlugins: ['p2sh', 'lightning'],
     triedPlugins: [],
     currentPlugin: {},
     sentByPlugin: {}
@@ -702,19 +701,28 @@ test('PaymentOrder.process', async t => {
 })
 
 test('PaymentOrder.cancel', async t => {
-  const paymentInstanceStub = {
-    init: sinon.stub().resolves(),
-    save: sinon.stub().resolves(),
-    cancel: sinon.stub().resolves()
-  }
-  const paymentClassStub = sinon.stub().returns(paymentInstanceStub)
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
 
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
-    './Payment': {
-      Payment: paymentClassStub
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
     }
   })
 
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
   const db = new DB()
   await db.init()
 
@@ -724,13 +732,11 @@ test('PaymentOrder.cancel', async t => {
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
-  t.is(paymentInstanceStub.init.callCount, 1)
-  t.is(paymentInstanceStub.save.callCount, 1)
 
   await paymentOrder.cancel()
 
   t.is(paymentOrder.state, ORDER_STATE.CANCELLED)
-  t.is(paymentInstanceStub.cancel.callCount, 1)
+  t.is(paymentOrder.payments[0].serialize().internalState, PAYMENT_STATE.CANCELLED)
 })
 
 test('PaymentOrder.find', async t => {
