@@ -9,7 +9,7 @@ const { orderParams } = require('../fixtures/paymentParams')
 
 const { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 
-async function getPaymentOrderInstance() {
+async function getPaymentOrderInstance () {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {
       SlashtagsAccessObject: class SlashtagsAccessObject {
@@ -23,7 +23,7 @@ async function getPaymentOrderInstance() {
             paymentEndpoints: {
               lightning: '/lightning/slashpay.json',
               p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
+              p2tr: '/p2tr/slashpay.json'
             }
           }
         }
@@ -263,7 +263,7 @@ test('PaymentOrder.createOneTimeOrder', async t => {
     currency: 'BTC',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: ['p2sh', 'lightning'],
+    pendingPlugins: ['p2sh', 'p2tr'],
     triedPlugins: [],
     currentPlugin: {},
     sentByPlugin: {}
@@ -292,7 +292,7 @@ test('PaymentOrder.processPayment', async t => {
     currency: 'BTC',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: ['p2sh', 'lightning'],
+    pendingPlugins: ['p2sh', 'p2tr'],
     triedPlugins: [],
     currentPlugin: {},
     sentByPlugin: {}
@@ -368,7 +368,7 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.currency, 'BTC')
   t.is(serialized.denomination, 'BASE')
   t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
-  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.pendingPlugins, ['p2tr'])
   t.alike(serialized.triedPlugins, [])
   t.is(serialized.currentPlugin.name, 'p2sh')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
@@ -401,7 +401,7 @@ test('PaymentOrder.process', async t => {
   t.ok(serialized.triedPlugins[0].startAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt <= Date.now())
 
-  t.is(serialized.currentPlugin.name, 'lightning')
+  t.is(serialized.currentPlugin.name, 'p2tr')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
 
   await payment.complete()
@@ -416,9 +416,9 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.triedPlugins.length, 2)
   t.is(serialized.triedPlugins[0].name, 'p2sh')
   t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
-  t.is(serialized.triedPlugins[1].name, 'lightning')
+  t.is(serialized.triedPlugins[1].name, 'p2tr')
   t.is(serialized.triedPlugins[1].state, PLUGIN_STATE.SUCCESS)
-  t.is(serialized.sentByPlugin.name, 'lightning')
+  t.is(serialized.sentByPlugin.name, 'p2tr')
   t.is(serialized.sentByPlugin.state, PLUGIN_STATE.SUCCESS)
   t.ok(serialized.sentByPlugin.startAt <= Date.now())
   t.ok(serialized.sentByPlugin.endAt <= Date.now())

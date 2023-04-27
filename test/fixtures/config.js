@@ -11,7 +11,6 @@ const pluginConfig = {
 
 const paymentConfig = {
   sendingPriority: [
-    'lightning',
     'p2sh',
     'p2tr'
   ]
