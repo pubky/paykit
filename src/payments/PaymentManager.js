@@ -96,6 +96,12 @@ class PaymentManager {
    * @returns {Promise<void>}
    */
   async entryPointForPlugin (payload) {
+    if (payload instanceof Payment) {
+      // if (payload.pluginState === 'waitingForClient')
+      return await this.userNotificationEndpoint(payload)
+    }
+
+    // new incoming payment
     if (payload.pluginState === 'newPayment') {
       const payment = new Payment({
         ...payload,
@@ -104,9 +110,7 @@ class PaymentManager {
       await payment.save()
     }
 
-    if (payload.pluginState === 'waitingForClient') {
-      return await this.userNotificationEndpoint(payload)
-    }
+    // TODO: some other cases / default case?
   }
 
   /**
