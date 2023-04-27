@@ -9,6 +9,38 @@ const { orderParams } = require('../fixtures/paymentParams')
 
 const { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 
+async function getPaymentOrderInstance() {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  return new PaymentOrder(params, db)
+}
+
 test('PaymentOrder - new (default type)', async t => {
   const db = new DB()
   await db.init()
@@ -54,42 +86,14 @@ test('PaymentOrder - new (reccuring)', async t => {
 })
 
 test('PaymentOrder.init', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   t.absent(paymentOrder.id)
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
   t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
 
-  const got = await db.get(paymentOrder.id)
+  const got = await paymentOrder.db.get(paymentOrder.id)
   t.alike(got, {
     id: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
@@ -147,39 +151,11 @@ test('PaymentOrder.serialize', async t => {
 })
 
 test('PaymentOrder.save', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
-  const gotOrder = await db.get(paymentOrder.id)
+  const gotOrder = await paymentOrder.db.get(paymentOrder.id)
   t.alike(gotOrder, {
     id: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
@@ -194,7 +170,7 @@ test('PaymentOrder.save', async t => {
     denomination: 'BASE'
   })
 
-  const gotPayment = await db.get(paymentOrder.payments[0].id)
+  const gotPayment = await paymentOrder.db.get(paymentOrder.payments[0].id)
   t.alike(gotPayment, {
     id: 'totally-random-id',
     orderId: paymentOrder.id,
@@ -214,81 +190,25 @@ test('PaymentOrder.save', async t => {
 })
 
 test('PaymentOrder.update', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
   let got
 
   t.ok(paymentOrder.id)
-  got = await db.get(paymentOrder.id)
+  got = await paymentOrder.db.get(paymentOrder.id)
   t.is(got.amount, '100')
 
   paymentOrder.amount = new PaymentAmount({ amount: '101' })
   await paymentOrder.update()
 
-  got = await db.get(paymentOrder.id)
+  got = await paymentOrder.db.get(paymentOrder.id)
 
   t.alike(got, paymentOrder.serialize())
   t.is(got.amount, '101')
 })
 
 test('PaymentOrder.getFirstOutstandingPayment', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   t.absent(paymentOrder.getFirstOutstandingPayment())
 
   await paymentOrder.init()
@@ -296,35 +216,7 @@ test('PaymentOrder.getFirstOutstandingPayment', async t => {
 })
 
 test('PaymentOrder.getPaymentInProgress', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   t.absent(paymentOrder.getPaymentInProgress())
 
   await paymentOrder.init()
@@ -335,35 +227,7 @@ test('PaymentOrder.getPaymentInProgress', async t => {
 })
 
 test('PaymentOrder.canProcess', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
 
   t.not(paymentOrder.canProcess())
 
@@ -372,69 +236,13 @@ test('PaymentOrder.canProcess', async t => {
 })
 
 test('PaymentOrder.createReccuringOrder', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
 
   await t.exception(async () => await paymentOrder.createReccuringOrder(), ERRORS.NOT_IMPLEMENTED)
 })
 
 test('PaymentOrder.createOneTimeOrder', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
 
   await t.exception(async () => await paymentOrder.createOneTimeOrder(), ERRORS.ORDER_ID_REQUIRED)
 
@@ -463,35 +271,7 @@ test('PaymentOrder.createOneTimeOrder', async t => {
 })
 
 test('PaymentOrder.processPayment', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
 
   await t.exception(async () => await paymentOrder.createOneTimeOrder(), ERRORS.ORDER_ID_REQUIRED)
 
@@ -536,35 +316,7 @@ test('PaymentOrder.processPayment', async t => {
 })
 
 test('PaymentOrder.complete', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
 
   t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
@@ -596,35 +348,7 @@ test('PaymentOrder.complete', async t => {
 })
 
 test('PaymentOrder.process', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
   let payment
   let serialized
@@ -701,34 +425,7 @@ test('PaymentOrder.process', async t => {
 })
 
 test('PaymentOrder.cancel', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
@@ -740,37 +437,10 @@ test('PaymentOrder.cancel', async t => {
 })
 
 test('PaymentOrder.find', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
+  const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
   const id = paymentOrder.id
 
-  const got = await PaymentOrder.find(id, db)
+  const got = await PaymentOrder.find(id, paymentOrder.db)
   t.alike(got.serialize(), paymentOrder.serialize())
 })
