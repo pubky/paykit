@@ -301,8 +301,8 @@ test('Payment.process', async t => {
   t.is(update.callCount, 0)
 
   await payment.process()
-  t.is(process.callCount, 0)
-  t.is(update.callCount, 0)
+  t.is(process.callCount, 1)
+  t.is(update.callCount, 2)
 
   payment.executeAt = new Date(Date.now() - 1)
   await payment.process()
@@ -319,7 +319,7 @@ test('Payment.process', async t => {
 
   t.alike(serialized.sentByPlugin, {})
 
-  t.is(process.callCount, 1)
+  t.is(process.callCount, 2)
   t.is(update.callCount, 2)
 
   // nothing changes as currently processed by plugin
@@ -332,7 +332,7 @@ test('Payment.process', async t => {
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.alike(serialized.sentByPlugin, {})
-  t.is(process.callCount, 2)
+  t.is(process.callCount, 3)
   t.is(update.callCount, 2)
 
   await payment.internalState.failCurrentPlugin()
@@ -355,7 +355,7 @@ test('Payment.process', async t => {
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
 
   t.alike(serialized.sentByPlugin, {})
-  t.is(process.callCount, 3)
+  t.is(process.callCount, 4)
   t.is(update.callCount, 4)
 
   // nothing changes as currently processed by plugin
@@ -373,7 +373,7 @@ test('Payment.process', async t => {
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.alike(serialized.sentByPlugin, {})
-  t.is(process.callCount, 4)
+  t.is(process.callCount, 5)
   t.is(update.callCount, 4)
 
   await payment.internalState.failCurrentPlugin()
@@ -399,7 +399,7 @@ test('Payment.process', async t => {
   t.alike(serialized.currentPlugin, {})
 
   t.alike(serialized.sentByPlugin, {})
-  t.is(process.callCount, 5)
+  t.is(process.callCount, 6)
   t.is(update.callCount, 6)
 
   t.teardown(() => sinon.restore())
