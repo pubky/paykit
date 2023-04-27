@@ -1,7 +1,7 @@
 const { test } = require('brittle')
 const sinon = require('sinon')
 
-const { PaymentState, PAYMENT_STATE, ERRORS } = require('../../src/payments/PaymentState')
+const { PaymentState, PAYMENT_STATE, PLUGIN_STATE, ERRORS } = require('../../src/payments/PaymentState')
 const update = sinon.stub()
 const uninitializedPayment = {
   update,
@@ -119,7 +119,31 @@ test('PaymentState.cancel', async t => {
   t.teardown(() => update.resetHistory())
 })
 
+test('PaymentState.failCurrentPlugin', async t => {
+  const pS = new PaymentState(uninitializedPayment)
+  await t.exception(async () => await pS.failCurrentPlugin(), ERRORS.INVALID_STATE(PAYMENT_STATE.INITIAL))
+
+  pS.internalState = PAYMENT_STATE.IN_PROGRESS
+  await t.exception(async () => await pS.failCurrentPlugin(), 'No current plugin')
+
+  pS.currentPlugin = { name: 'plugin0', startAt: Date.now() }
+  await pS.failCurrentPlugin()
+
+  t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
+  t.is(pS.currentPlugin, null)
+  t.is(pS.sentByPlugin, null)
+  t.is(pS.triedPlugins.length, 1)
+  t.is(pS.triedPlugins[0].name, 'plugin0')
+  t.ok(pS.triedPlugins[0].startAt <= Date.now())
+  t.ok(pS.triedPlugins[0].endAt <= Date.now())
+  t.is(pS.triedPlugins[0].state, PLUGIN_STATE.FAILED)
+  t.is(update.callCount, 1)
+
+  t.teardown(() => update.resetHistory())
+})
+
 test('PaymentState.fail', async t => {
+  let pS
   const initializedPayment = {
     update,
     db: { ready: true },
@@ -129,15 +153,29 @@ test('PaymentState.fail', async t => {
     sentByPlugin: null
   }
 
-  let pS = new PaymentState(initializedPayment)
+  pS = new PaymentState(initializedPayment)
   await t.exception(async () => await pS.fail(), ERRORS.INVALID_STATE(PAYMENT_STATE.INITIAL))
 
   pS.internalState = PAYMENT_STATE.IN_PROGRESS
+  pS.currentPlugin = { name: 'pluginX', startAt: Date.now() }
+  await pS.fail()
 
+  t.is(update.callCount, 2)
+  t.is(pS.internalState, PAYMENT_STATE.FAILED)
+  t.is(pS.currentPlugin, null)
+  t.is(pS.sentByPlugin, null)
+  t.is(pS.triedPlugins.length, 1)
+  t.is(pS.triedPlugins[0].name, 'pluginX')
+  t.ok(pS.triedPlugins[0].startAt <= Date.now())
+  t.ok(pS.triedPlugins[0].endAt <= Date.now())
+  t.is(pS.triedPlugins[0].state, PLUGIN_STATE.FAILED)
+
+  pS = new PaymentState(initializedPayment)
+  pS.internalState = PAYMENT_STATE.IN_PROGRESS
   await pS.fail()
 
   t.is(pS.internalState, PAYMENT_STATE.FAILED)
-  t.is(update.callCount, 1)
+  t.is(update.callCount, 3)
 
   await t.exception(async () => await pS.fail(), ERRORS.INVALID_STATE(PAYMENT_STATE.FAILED))
 
@@ -180,6 +218,10 @@ test('PaymentState.tryNext', async t => {
   t.is(update.callCount, 1)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
+  await t.exception(async () => await pS.tryNext(), ERRORS.PLUGIN_IN_PROGRESS('plugin0'))
+  await pS.failCurrentPlugin()
+  t.is(update.callCount, 2)
+
   const start1 = Date.now()
   await pS.tryNext()
 
@@ -192,7 +234,7 @@ test('PaymentState.tryNext', async t => {
   t.ok(pS.triedPlugins[0].startAt >= start0)
   t.ok(pS.triedPlugins[0].endAt <= start1)
   t.is(pS.sentByPlugin, null)
-  t.is(update.callCount, 2)
+  t.is(update.callCount, 3)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
   t.teardown(() => update.resetHistory())
@@ -223,10 +265,15 @@ test('PaymentState.process', async t => {
   t.is(pS.currentPlugin.name, 'plugin0')
   t.ok(pS.currentPlugin.startAt >= start0)
   t.ok(pS.currentPlugin.startAt <= Date.now())
+  t.is(pS.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.alike(pS.triedPlugins, [])
   t.is(pS.sentByPlugin, null)
   t.is(update.callCount, 2)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
+
+  await t.exception(async () => await pS.process(), ERRORS.PLUGIN_IN_PROGRESS('plugin0'))
+  await pS.failCurrentPlugin()
+  t.is(update.callCount, 3)
 
   const start1 = Date.now()
   await pS.process()
@@ -235,13 +282,19 @@ test('PaymentState.process', async t => {
   t.is(pS.currentPlugin.name, 'plugin1')
   t.ok(pS.currentPlugin.startAt >= start1)
   t.ok(pS.currentPlugin.startAt <= Date.now())
+  t.is(pS.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.is(pS.triedPlugins.length, 1)
   t.is(pS.triedPlugins[0].name, 'plugin0')
   t.ok(pS.triedPlugins[0].startAt >= start0)
   t.ok(pS.triedPlugins[0].endAt <= start1)
+  t.is(pS.triedPlugins[0].state, PLUGIN_STATE.FAILED)
   t.is(pS.sentByPlugin, null)
-  t.is(update.callCount, 3)
+  t.is(update.callCount, 4)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
+
+  await t.exception(async () => await pS.process(), ERRORS.PLUGIN_IN_PROGRESS('plugin1'))
+  await pS.failCurrentPlugin()
+  t.is(update.callCount, 5)
 
   const start2 = Date.now()
   await pS.process()
@@ -250,16 +303,23 @@ test('PaymentState.process', async t => {
   t.is(pS.currentPlugin.name, 'plugin2')
   t.ok(pS.currentPlugin.startAt >= start2)
   t.ok(pS.currentPlugin.startAt <= Date.now())
+  t.is(pS.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.is(pS.triedPlugins.length, 2)
   t.is(pS.triedPlugins[0].name, 'plugin0')
   t.ok(pS.triedPlugins[0].startAt >= start0)
   t.ok(pS.triedPlugins[0].endAt <= start1)
+  t.is(pS.triedPlugins[0].state, PLUGIN_STATE.FAILED)
   t.is(pS.triedPlugins[1].name, 'plugin1')
   t.ok(pS.triedPlugins[1].startAt >= start1)
   t.ok(pS.triedPlugins[1].endAt <= start2)
+  t.is(pS.triedPlugins[1].state, PLUGIN_STATE.FAILED)
   t.is(pS.sentByPlugin, null)
-  t.is(update.callCount, 4)
+  t.is(update.callCount, 6)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
+
+  await t.exception(async () => await pS.process(), ERRORS.PLUGIN_IN_PROGRESS('plugin2'))
+  await pS.failCurrentPlugin()
+  t.is(update.callCount, 7)
 
   const start3 = Date.now()
   await pS.process()
@@ -268,19 +328,27 @@ test('PaymentState.process', async t => {
   t.is(pS.currentPlugin.name, 'plugin3')
   t.ok(pS.currentPlugin.startAt >= start3)
   t.ok(pS.currentPlugin.startAt <= Date.now())
+  t.is(pS.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.is(pS.triedPlugins.length, 3)
   t.is(pS.triedPlugins[0].name, 'plugin0')
   t.ok(pS.triedPlugins[0].startAt >= start0)
   t.ok(pS.triedPlugins[0].endAt <= start1)
+  t.is(pS.triedPlugins[0].state, PLUGIN_STATE.FAILED)
   t.is(pS.triedPlugins[1].name, 'plugin1')
   t.ok(pS.triedPlugins[1].startAt >= start1)
   t.ok(pS.triedPlugins[1].endAt <= start2)
+  t.is(pS.triedPlugins[1].state, PLUGIN_STATE.FAILED)
   t.is(pS.triedPlugins[2].name, 'plugin2')
   t.ok(pS.triedPlugins[2].startAt >= start2)
   t.ok(pS.triedPlugins[2].endAt <= start3)
+  t.is(pS.triedPlugins[2].state, PLUGIN_STATE.FAILED)
   t.is(pS.sentByPlugin, null)
-  t.is(update.callCount, 5)
+  t.is(update.callCount, 8)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
+
+  await t.exception(async () => await pS.process(), ERRORS.PLUGIN_IN_PROGRESS('plugin3'))
+  await pS.failCurrentPlugin()
+  t.is(update.callCount, 9)
 
   const start4 = Date.now()
   await pS.process()
@@ -291,17 +359,21 @@ test('PaymentState.process', async t => {
   t.is(pS.triedPlugins[0].name, 'plugin0')
   t.ok(pS.triedPlugins[0].startAt >= start0)
   t.ok(pS.triedPlugins[0].endAt <= start1)
+  t.is(pS.triedPlugins[0].state, PLUGIN_STATE.FAILED)
   t.is(pS.triedPlugins[1].name, 'plugin1')
   t.ok(pS.triedPlugins[1].startAt >= start1)
   t.ok(pS.triedPlugins[1].endAt <= start2)
+  t.is(pS.triedPlugins[1].state, PLUGIN_STATE.FAILED)
   t.is(pS.triedPlugins[2].name, 'plugin2')
   t.ok(pS.triedPlugins[2].startAt >= start2)
   t.ok(pS.triedPlugins[2].endAt <= start3)
+  t.is(pS.triedPlugins[2].state, PLUGIN_STATE.FAILED)
   t.is(pS.triedPlugins[3].name, 'plugin3')
   t.ok(pS.triedPlugins[3].startAt >= start3)
   t.ok(pS.triedPlugins[3].endAt <= start4)
+  t.is(pS.triedPlugins[3].state, PLUGIN_STATE.FAILED)
   t.is(pS.sentByPlugin, null)
-  t.is(update.callCount, 6)
+  t.is(update.callCount, 10)
   t.is(pS.internalState, PAYMENT_STATE.FAILED)
 
   t.teardown(() => update.resetHistory())
@@ -327,6 +399,7 @@ test('PaymentState.complete', async t => {
   t.is(update.callCount, 2)
   t.is(pS.currentPlugin.name, 'plugin0')
   t.ok(pS.currentPlugin.startAt <= Date.now())
+  t.is(pS.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.is(pS.sentByPlugin, null)
 
   await pS.complete()
@@ -337,6 +410,7 @@ test('PaymentState.complete', async t => {
   t.is(pS.sentByPlugin.name, 'plugin0')
   t.ok(pS.sentByPlugin.startAt <= Date.now())
   t.ok(pS.sentByPlugin.endAt <= Date.now())
+  t.is(pS.sentByPlugin.state, PLUGIN_STATE.SUCCESS)
 
   t.teardown(() => update.resetHistory())
 })

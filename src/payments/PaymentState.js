@@ -159,12 +159,27 @@ class PaymentState {
       await this.payment.update()
     }
 
+    if (this.currentPlugin) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
+
     if (this.pendingPlugins.length === 0) {
       await this.fail()
       return false
     }
 
     return await this.tryNext()
+  }
+
+  /**
+   * Mark current plugin as tried with failed state
+   * @returns {void}
+   */
+  async failCurrentPlugin () {
+    if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
+    // XXX: this should not be possible
+    if (!this.currentPlugin) throw new Error('No current plugin')
+
+    this.markCurrentPluginAsTried(PLUGIN_STATE.FAILED)
+    await this.payment.update()
   }
 
   /**
@@ -175,7 +190,8 @@ class PaymentState {
   async fail () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
-    this.markCurrentPluginAsTried()
+    if (this.currentPlugin) await this.failCurrentPlugin()
+
     this.internalState = PAYMENT_STATE.FAILED
     await this.payment.update()
   }
@@ -187,9 +203,9 @@ class PaymentState {
    */
   async tryNext () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
+    if (this.currentPlugin) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
 
-    if (this.currentPlugin) this.markCurrentPluginAsTried()
-    this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now() }
+    this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now(), state: PLUGIN_STATE.SUBMITTED }
     await this.payment.update()
   }
 
@@ -201,26 +217,18 @@ class PaymentState {
   async complete () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
-    this.sentByPlugin = this.markCurrentPluginAsTried()
+    this.sentByPlugin = this.markCurrentPluginAsTried(PLUGIN_STATE.SUCCESS)
     this.internalState = PAYMENT_STATE.COMPLETED
     await this.payment.update()
-  }
-
-  /**
-   * Returns completed current plugin
-   * @returns {StatePlugin} - completed current plugin with endAt timestamp
-   */
-  getCompletedCurrentPlugin () {
-    return { ...this.currentPlugin, endAt: Date.now() }
   }
 
   /**
    * Marks current plugin as tried and returns it
    * @returns {StatePlugin} - completed current plugin with endAt timestamp
    */
-  markCurrentPluginAsTried () {
-    const completedPlugin = this.getCompletedCurrentPlugin()
-    this.triedPlugins.push({ ...completedPlugin })
+  markCurrentPluginAsTried (state) {
+    const completedPlugin = { ...this.currentPlugin, endAt: Date.now(), state }
+    this.triedPlugins.push(completedPlugin)
     this.currentPlugin = null
 
     return completedPlugin
@@ -244,24 +252,39 @@ const PAYMENT_STATE = {
 }
 
 /**
+ * @typedef {Object} PluginState
+ * @property {string} SUBMITTED - submitted to plugin
+ * @property {string} FAILED - failed by plugin
+ * @property {string} SUCCESS - succeeded by plugin
+ */
+const PLUGIN_STATE = {
+  SUBMITTED: 'submitted',
+  FAILED: 'failed',
+  SUCCESS: 'success'
+}
+
+/**
  * @typedef {Object} ERRORS
  * @property {function} INVALID_STATE - returns error message with invalid state
  * @property {string} PENDING_PLUGINS_NOT_ARRAY - error message for pending plugins not array
  */
 const ERRORS = {
   INVALID_STATE: (s) => `Invalid state: ${s}`,
-  PENDING_PLUGINS_NOT_ARRAY: 'Pending plugins must be an array'
+  PENDING_PLUGINS_NOT_ARRAY: 'Pending plugins must be an array',
+  PLUGIN_IN_PROGRESS: (name) => `Cannot try next plugin while processing ${name}`
 }
 
 /**
  * typedef {StatePlugin}
  * @property {string} name - name of the plugin
  * @property {number} startAt - start time
+ * @property {string} state - state of the plugin
  * @property {number} [endAt] - end time
  */
 
 module.exports = {
   PaymentState,
   PAYMENT_STATE,
+  PLUGIN_STATE,
   ERRORS
 }
