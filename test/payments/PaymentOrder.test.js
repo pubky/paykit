@@ -260,6 +260,282 @@ test('PaymentOrder.update', async t => {
   t.is(got.amount, '101')
 })
 
+test('PaymentOrder.getFirstOutstandingPayment', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+  t.absent(paymentOrder.getFirstOutstandingPayment())
+
+  await paymentOrder.init()
+  t.alike(paymentOrder.getFirstOutstandingPayment(), paymentOrder.payments[0])
+})
+
+test('PaymentOrder.getPaymentInProgress', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+  t.absent(paymentOrder.getPaymentInProgress())
+
+  await paymentOrder.init()
+  t.absent(paymentOrder.getPaymentInProgress())
+
+  const payment = await paymentOrder.process()
+  t.alike(paymentOrder.getPaymentInProgress(), payment)
+})
+
+test('PaymentOrder.readyToProcess', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+
+  t.not(paymentOrder.readyToProcess())
+
+  await paymentOrder.init()
+  t.ok(paymentOrder.readyToProcess())
+})
+
+test('PaymentOrder.createReccuringOrder', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+
+  await t.exception(async () => await paymentOrder.createReccuringOrder(), ERRORS.NOT_IMPLEMENTED)
+})
+
+test('PaymentOrder.createOneTimeOrder', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+
+  await t.exception(async () => await paymentOrder.createOneTimeOrder(), ERRORS.ORDER_ID_REQUIRED)
+
+  paymentOrder.id = '1234'
+  await paymentOrder.createOneTimeOrder()
+
+  t.is(paymentOrder.payments.length, 1)
+
+  const payment = paymentOrder.payments[0].serialize()
+  t.alike(payment, {
+    id: null,
+    orderId: paymentOrder.id,
+    clientOrderId: orderParams.clientOrderId,
+    targetURL: orderParams.targetURL,
+    memo: '',
+    sendingPriority: orderParams.sendingPriority,
+    amount: orderParams.amount,
+    currency: 'BTC',
+    denomination: 'BASE',
+    internalState: PAYMENT_STATE.INITIAL,
+    pendingPlugins: [ 'p2sh', 'lightning' ],
+    triedPlugins: [],
+    currentPlugin: {},
+    sentByPlugin: {}
+  })
+})
+
+test('PaymentOrder.processPayment', async t => {
+  const { Payment } = proxyquire('../../src/payments/Payment', {
+    '../SlashtagsAccessObject': {
+      SlashtagsAccessObject: class SlashtagsAccessObject {
+        constructor () {
+          this.ready = false
+        }
+
+        async init () { this.ready = true }
+        async read () {
+          return {
+            paymentEndpoints: {
+              lightning: '/lightning/slashpay.json',
+              p2sh: '/p2sh/slashpay.json',
+              p2wsh: '/p2wsh/slashpay.json'
+            }
+          }
+        }
+      }
+    }
+  })
+
+  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
+
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+
+  const paymentOrder = new PaymentOrder(params, db)
+
+  await t.exception(async () => await paymentOrder.createOneTimeOrder(), ERRORS.ORDER_ID_REQUIRED)
+
+  paymentOrder.id = '1234'
+  await paymentOrder.createOneTimeOrder()
+
+  t.is(paymentOrder.payments.length, 1)
+
+  const payment = paymentOrder.payments[0].serialize()
+  t.alike(payment, {
+    id: null,
+    orderId: paymentOrder.id,
+    clientOrderId: orderParams.clientOrderId,
+    targetURL: orderParams.targetURL,
+    memo: '',
+    sendingPriority: orderParams.sendingPriority,
+    amount: orderParams.amount,
+    currency: 'BTC',
+    denomination: 'BASE',
+    internalState: PAYMENT_STATE.INITIAL,
+    pendingPlugins: [ 'p2sh', 'lightning' ],
+    triedPlugins: [],
+    currentPlugin: {},
+    sentByPlugin: {}
+  })
+
+  payment.executeAt = new Date() + 10000
+  let res
+
+  res = await paymentOrder.processPayment(paymentOrder.payments[0])
+  t.alike(
+    { ...res.serialize(), executeAt: payment.executeAt },
+    { ...payment, internalState: PAYMENT_STATE.IN_PROGRESS }
+  )
+
+  payment.executeAt = new Date() - 10000
+  res = await paymentOrder.processPayment(paymentOrder.payments[0])
+  const serialized = res.serialize()
+
+  t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
+  t.is(serialized.currentPlugin.name, 'p2sh')
+})
+
 test('PaymentOrder.complete', async t => {
   const { Payment } = proxyquire('../../src/payments/Payment', {
     '../SlashtagsAccessObject': {

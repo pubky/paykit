@@ -76,6 +76,8 @@ class PaymentOrder {
     const paymentInProgress = this.getPaymentInProgress()
     if (paymentInProgress) return await paymentInProgress.process()
 
+    // TODO: refactor this if completion is moved out of this class
+    // by moving getFirstOutstandingPayment() to processPayment
     const payment = this.getFirstOutstandingPayment()
     if (payment) {
       return await this.processPayment(payment)
@@ -90,7 +92,7 @@ class PaymentOrder {
   }
 
   async processPayment (payment) {
-    if (payment.executeAt > Date.now()) return
+    if (payment.executeAt > Date.now()) return payment
 
     if (this.state !== ORDER_STATE.PROCESSING) {
       this.state = ORDER_STATE.PROCESSING
