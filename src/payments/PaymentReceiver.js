@@ -7,6 +7,7 @@ class PaymentReceiver {
   /**
    * @constructor PaymentReceiver
    * @param {DB} db - instance of a database
+   * @param {PluginManager} pluginManager - instance of a plugin manager
    * @param {RemoteStorage} storage - instance of a local storage (e.g. HyperDrive)
    * @param {Function} notificationCallback - callback which is called when payment is received
    */
@@ -32,7 +33,7 @@ class PaymentReceiver {
       // TODO: define payload to make plugins create their own slashpay files
       notificationCallback: async (payload) => {
         await this.db.savePayment(payload)
-        this.notificationCallback(payload)
+        await this.notificationCallback(payload)
       }
     })
 
@@ -67,8 +68,8 @@ class PaymentReceiver {
    * @returns {Array<String>} - list of payment plugin names
    */
   getListOfSupportedPaymentMethods () {
-    return Object.entries(this.pluginManager.plugins)
-      .filter(([_name, { manifest, active }]) => active && manifest.type === 'payment')
+    return Object.entries(this.pluginManager.getPlugins(true))
+      .filter(([_name, { manifest }]) => manifest.type === 'payment')
       .map(([name, _plugin]) => name)
   }
 }
