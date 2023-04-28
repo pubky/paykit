@@ -68,6 +68,9 @@ function validateNumericString (value, msgPrefix) {
  * @returns {boolean} - true if object is empty
  */
 function isEmptyObject (value) {
+  if (value === null) return true
+  if (typeof value !== 'object') return true
+
   return Object.keys(value).length === 0 && value.constructor === Object
 }
 
