@@ -46,7 +46,6 @@ class PaymentManager {
   async createPaymentOrder (paymentObject) {
     const paymentOrder = new PaymentOrder(paymentObject, this.db)
     await paymentOrder.init()
-    await paymentOrder.save()
 
     return paymentOrder.serialize()
   }
@@ -58,8 +57,8 @@ class PaymentManager {
    */
   async sendPayment (id) {
     const pluginManager = new PluginManager(this.config)
-    const paymentObject = await PaymentOrder.find(id, this.db)
-    const paymentSender = new PaymentSender(paymentObject, this.db, pluginManager, this.entryPointForPlugin)
+    const paymentOrder = await PaymentOrder.find(id, this.db)
+    const paymentSender = new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin)
     await paymentSender.submit()
   }
 

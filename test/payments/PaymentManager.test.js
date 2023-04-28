@@ -9,7 +9,7 @@ const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
 const { PaymentManager } = require('../../src/payments/PaymentManager')
-const { PluginManager } = require('../../src/plugins/PluginManager')
+const { Payment } = require('../../src/payments/Payment')
 
 test('PaymentManager: constructor', async t => {
   const db = new DB()
@@ -30,37 +30,10 @@ test('PaymentManager: init', async t => {
   t.is(paymentManager.ready, true)
   t.is(init.calledOnce, true)
 
-  t.teardown(() => {
-    init.restore()
-  })
+  t.teardown(() => sinon.restore())
 })
 
 test('PaymentManager: createPaymentOrder', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () { this.ready = false }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
-    './Payment': { Payment }
-  })
-
-  const { PaymentManager } = proxyquire('../../src/payments/PaymentManager', {
-    './PaymentOrder': { PaymentOrder }
-  })
-
   const db = new DB()
 
   const paymentManager = new PaymentManager(config, db)
@@ -73,39 +46,15 @@ test('PaymentManager: createPaymentOrder', async t => {
 })
 
 test('PaymentManager: sendPayment', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () { this.ready = false }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', {
-    './Payment': { Payment }
-  })
-
   const p2shStub = require('../fixtures/p2sh/main.js')
-  const { PaymentManager } = proxyquire('../../src/payments/PaymentManager', {
-    './PaymentOrder': { PaymentOrder },
-    '../plugins/PluginManager': { PluginManager }
-  })
+
   const db = new DB()
   const paymentManager = new PaymentManager(config, db)
   await paymentManager.init()
 
-  const payment = await paymentManager.createPaymentOrder(paymentParams)
+  const paymentOrder = await paymentManager.createPaymentOrder(paymentParams)
 
-  await paymentManager.sendPayment(payment.id)
+  await paymentManager.sendPayment(paymentOrder.id)
 
   t.ok(p2shStub.init.calledOnce)
   t.ok(p2shStub.init.getCall(0).returnValue.pay.calledOnce)
@@ -155,9 +104,12 @@ test('PaymentManager: entryPointForPlugin new payment', async t => {
     currency: 'BTC',
     denomination: 'BASE',
     sendingPriority: ['p2sh'],
-    processedBy: [],
-    processingPlugin: null,
-    sentByPlugin: null
+    pendingPlugins: [],
+    triedPlugins: [],
+    currentPlugin: {},
+    sentByPlugin: {},
+    createdAt: payment.createdAt,
+    executeAt: payment.executeAt
   })
 })
 
@@ -168,13 +120,16 @@ test('PaymentManager: entryPointForPlugin waiting for client', async t => {
   const paymentManager = new PaymentManager(config, db)
   await paymentManager.init()
 
+  const paymentOrder = await paymentManager.createPaymentOrder(paymentParams)
+  const payments = await db.getPayments(paymentOrder.id)
+
   const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
 
-  await paymentManager.entryPointForPlugin({
-    pluginState: 'waitingForClient'
-  })
+  await paymentManager.entryPointForPlugin(new Payment(payments[0], db, config))
 
   t.is(stub.calledOnce, true)
+
+  t.teardown(() => sinon.restore())
 })
 
 test('PaymentManager: entryPointForUser', async t => {
@@ -203,4 +158,6 @@ test('PaymentManager: entryPointForUser', async t => {
 
   t.ok(updatePaymentStub.calledOnce)
   t.alike(updatePaymentStub.getCall(0).args[0], data)
+
+  t.teardown(() => sinon.restore())
 })
