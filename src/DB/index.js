@@ -48,6 +48,13 @@ class DB {
     if (options.removed === true) return res.removed === true ? copy : null
     if (options.removed === false) return res.removed === false ? copy : null
   }
+
+  async getPayments (orderId) {
+    if (!this.ready) throw new Error(ERROR.NOT_READY)
+
+    const payments = Object.values(this.db).filter(payment => payment.orderId === orderId)
+    return payments
+  }
 }
 
 module.exports = { DB, ERROR }
