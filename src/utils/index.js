@@ -62,10 +62,20 @@ function validateNumericString (value, msgPrefix) {
   assert(!isNaN(value), `${msgPrefix} must be a numeric string`)
 }
 
+/**
+ * Return true if object
+ * @param {Object} value - value to validate
+ * @returns {boolean} - true if object is empty
+ */
+function isEmptyObject (value) {
+  return Object.keys(value).length === 0 && value.constructor === Object
+}
+
 module.exports = {
   assert,
   validatePresent,
   validateType,
   validateNotEmpty,
-  validateNumericString
+  validateNumericString,
+  isEmptyObject
 }

@@ -1,3 +1,4 @@
+const { isEmptyObject } = require('../utils')
 /**
  * PaymentState class
  * @class PaymentState
@@ -130,7 +131,7 @@ class PaymentState {
    */
   async cancel () {
     if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
-    if (this.currentPlugin) {
+    if (!isEmptyObject(this.currentPlugin)) {
       // Belt and suspenders
       // should not be possible as currentPlugin must not be assigned in initial internalState
       throw new Error('Cannot cancel while processing')
@@ -154,7 +155,7 @@ class PaymentState {
       await this.payment.update()
     }
 
-    if (this.currentPlugin) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
+    if (!isEmptyObject(this.currentPlugin)) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
 
     if (this.pendingPlugins.length === 0) {
       await this.fail()
@@ -171,7 +172,7 @@ class PaymentState {
   async failCurrentPlugin () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     // XXX: this should not be possible
-    if (!this.currentPlugin) throw new Error('No current plugin')
+    if (isEmptyObject(this.currentPlugin)) throw new Error('No current plugin')
 
     this.markCurrentPluginAsTried(PLUGIN_STATE.FAILED)
     await this.payment.update()
@@ -185,7 +186,7 @@ class PaymentState {
   async fail () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
-    if (this.currentPlugin) await this.failCurrentPlugin()
+    if (!isEmptyObject(this.currentPlugin)) await this.failCurrentPlugin()
 
     this.internalState = PAYMENT_STATE.FAILED
     await this.payment.update()
@@ -198,7 +199,7 @@ class PaymentState {
    */
   async tryNext () {
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
-    if (this.currentPlugin) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
+    if (!isEmptyObject(this.currentPlugin)) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
 
     this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now(), state: PLUGIN_STATE.SUBMITTED }
     await this.payment.update()
