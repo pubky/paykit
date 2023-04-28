@@ -91,7 +91,9 @@ test('PaymentOrder.init', async t => {
     pendingPlugins: orderParams.sendingPriority,
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {}
+    sentByPlugin: {},
+    createdAt: paymentOrder.payments[0].createdAt,
+    executeAt: paymentOrder.payments[0].executeAt
   })
 })
 
@@ -149,7 +151,9 @@ test('PaymentOrder.save', async t => {
     pendingPlugins: orderParams.sendingPriority,
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {}
+    sentByPlugin: {},
+    createdAt: paymentOrder.payments[0].createdAt,
+    executeAt: paymentOrder.payments[0].executeAt
   })
 })
 
@@ -230,7 +234,9 @@ test('PaymentOrder.createOneTimeOrder', async t => {
     pendingPlugins: ['p2sh', 'p2tr'],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {}
+    sentByPlugin: {},
+    createdAt: paymentOrder.payments[0].createdAt,
+    executeAt: paymentOrder.payments[0].executeAt
   })
 })
 
@@ -259,7 +265,9 @@ test('PaymentOrder.processPayment', async t => {
     pendingPlugins: ['p2sh', 'p2tr'],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {}
+    sentByPlugin: {},
+    createdAt: paymentOrder.payments[0].createdAt,
+    executeAt: paymentOrder.payments[0].executeAt
   })
 
   payment.executeAt = new Date() + 10000
