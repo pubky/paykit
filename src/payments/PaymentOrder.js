@@ -261,8 +261,7 @@ class PaymentOrder {
   static async find (id, db) {
     const orderParams = await db.get(id)
     const paymentOrder = new PaymentOrder(orderParams, db)
-
-    // TODO: fill payments from db by orderId
+    paymentOrder.payments = (await db.getPayments(id)).map(p => new Payment(p, db))
 
     return paymentOrder
   }
