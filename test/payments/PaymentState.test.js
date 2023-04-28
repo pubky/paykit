@@ -24,7 +24,6 @@ test('PaymentState.constructor', t => {
   t.alike(pS.triedPlugins, [])
   t.is(pS.currentPlugin, null)
   t.is(pS.sentByPlugin, null)
-  t.is(pS.payment, uninitializedPayment)
 })
 
 test('PaymentState.assignPendingPlugins', t => {

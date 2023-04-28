@@ -19,20 +19,15 @@ class PaymentState {
    * @param {Payment} [payment.payment] - payment
    * @throws {Error} - if payment is not provided
    */
-  constructor (payment) {
+  constructor (payment, params = {}) {
     PaymentState.validate(payment)
 
-    if (payment.sentByPlugin) {
-      this.internalState = PAYMENT_STATE.COMPLETED
-    } else {
-      this.internalState = payment.internalState || PAYMENT_STATE.INITIAL
-    }
+    this.internalState = payment.internalState || params.internalState || PAYMENT_STATE.INITIAL
+    this.pendingPlugins = payment.pendingPlugins || params.pendingPlugins || []
+    this.triedPlugins = payment.triedPlugins || params.triedPlugins || []
 
-    this.pendingPlugins = payment.pendingPlugins || []
-    this.triedPlugins = payment.triedPlugins || []
-
-    this.currentPlugin = payment.currentPlugin || null
-    this.sentByPlugin = payment.sentByPlugin || null
+    this.currentPlugin = payment.currentPlugin || params.currentPlugin || null
+    this.sentByPlugin = payment.sentByPlugin || params.sentByPlugin || null
 
     this.payment = payment
   }
