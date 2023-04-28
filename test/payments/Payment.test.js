@@ -162,7 +162,9 @@ test('Payment.serialize', async t => {
     pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {}
+    sentByPlugin: {},
+    createdAt: payment.createdAt,
+    executeAt: payment.executeAt
   })
 })
 

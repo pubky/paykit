@@ -83,9 +83,9 @@ class Payment {
     this.memo = paymentParams.memo || ''
 
     this.amount = new PaymentAmount(paymentParams)
-    this.internalState = new PaymentState(this)
+    this.internalState = new PaymentState(this, paymentParams)
 
-    this.createdAt = Date.now()
+    this.createdAt = paymentParams.createdAt || Date.now()
     this.executeAt = paymentParams.executeAt || Date.now()
   }
 
@@ -121,6 +121,8 @@ class Payment {
       targetURL: this.targetURL,
       memo: this.memo,
       sendingPriority: this.sendingPriority,
+      createdAt: this.createdAt,
+      executeAt: this.executeAt,
       // XXX: this is not a good idea as it relies on internal implementation
       ...this.amount.serialize(),
       ...this.internalState.serialize()
