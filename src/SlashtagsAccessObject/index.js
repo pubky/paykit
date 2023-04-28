@@ -18,7 +18,13 @@ class SlashtagsAccessObject {
   async read (key) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
-    return this.data[key]
+    return {
+      paymentEndpoints: {
+        lightning: '/lightning/slashpay.json',
+        p2sh: '/p2sh/slashpay.json',
+        p2tr: '/p2tr/slashpay.json'
+      }
+    }
   }
 
   async create (key, value) {

@@ -1,5 +1,4 @@
 const { test } = require('brittle')
-const proxyquire = require('proxyquire')
 const { DB } = require('../../src/DB')
 
 const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentState')
@@ -10,44 +9,18 @@ const { orderParams } = require('../fixtures/paymentParams')
 const { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 
 async function getPaymentOrderInstance () {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
   const db = new DB()
   await db.init()
 
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
+  const params = { ...orderParams }
 
   return new PaymentOrder(params, db)
 }
 
 test('PaymentOrder - new (default type)', async t => {
-  const db = new DB()
-  await db.init()
+  const paymentOrder = await getPaymentOrderInstance()
 
-  const paymentOrder = new PaymentOrder(orderParams, db)
-  t.is(paymentOrder.orderParams, orderParams)
-  t.is(paymentOrder.db, db)
+  t.alike(paymentOrder.orderParams, orderParams)
   t.is(paymentOrder.clientOrderId, orderParams.clientOrderId)
   t.is(paymentOrder.type, orderParams.type || ORDER_TYPE.ONE_TIME)
   t.alike(paymentOrder.payments, [])
@@ -55,25 +28,20 @@ test('PaymentOrder - new (default type)', async t => {
 })
 
 test('PaymentOrder - new (one time)', async t => {
-  const db = new DB()
-  await db.init()
+  const paymentOrder = await getPaymentOrderInstance()
 
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
-  t.is(paymentOrder.orderParams, params)
-  t.is(paymentOrder.db, db)
-  t.is(paymentOrder.clientOrderId, params.clientOrderId)
-  t.is(paymentOrder.type, params.type || ORDER_TYPE.ONE_TIME)
+  t.alike(paymentOrder.orderParams, orderParams)
+  t.is(paymentOrder.clientOrderId, orderParams.clientOrderId)
+  t.is(paymentOrder.type, orderParams.type || ORDER_TYPE.ONE_TIME)
   t.alike(paymentOrder.payments, [])
 
   t.is(paymentOrder.frequency, null)
 
   t.is(paymentOrder.state, ORDER_STATE.CREATED)
 
-  t.alike(paymentOrder.amount, new PaymentAmount(params))
-  t.is(paymentOrder.targetURL, params.targetURL)
-  t.is(paymentOrder.memo, params.memo || '')
+  t.alike(paymentOrder.amount, new PaymentAmount(orderParams))
+  t.is(paymentOrder.targetURL, orderParams.targetURL)
+  t.is(paymentOrder.memo, orderParams.memo || '')
 })
 
 test('PaymentOrder - new (recurring)', async t => {
@@ -128,24 +96,20 @@ test('PaymentOrder.init', async t => {
 })
 
 test('PaymentOrder.serialize', async t => {
-  const db = new DB()
-  await db.init()
+  const paymentOrder = await getPaymentOrderInstance()
 
-  const params = { ...orderParams, type: ORDER_TYPE.ONE_TIME }
-
-  const paymentOrder = new PaymentOrder(params, db)
   const serialized = paymentOrder.serialize()
   t.alike(serialized, {
     id: null,
-    clientOrderId: params.clientOrderId,
-    type: params.type,
+    clientOrderId: orderParams.clientOrderId,
+    type: ORDER_TYPE.ONE_TIME,
     frequency: null,
-    amount: params.amount,
+    amount: orderParams.amount,
     currency: 'BTC',
     denomination: 'BASE',
-    targetURL: params.targetURL,
+    targetURL: orderParams.targetURL,
     memo: '',
-    sendingPriority: params.sendingPriority,
+    sendingPriority: orderParams.sendingPriority,
     state: ORDER_STATE.CREATED
   })
 })

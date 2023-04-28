@@ -134,26 +134,6 @@ test('Payment.init - no matching plugins', async t => {
 })
 
 test('Payment.init - selected priority', async t => {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
   const db = new DB()
   await db.init()
 
@@ -259,26 +239,6 @@ test('Payment.process', async t => {
   await db.init()
   const update = sinon.replace(db, 'update', sinon.fake(db.update))
 
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
   const payment = new Payment({
     ...paymentParams,
     executeAt: new Date(Date.now() + 100000),
@@ -410,26 +370,6 @@ test('Payment.complete', async t => {
   await db.init()
   const update = sinon.replace(db, 'update', sinon.fake(db.update))
 
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
   const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning', 'p2wsh'] }, db)
   await payment.save()
   await payment.init()
@@ -500,27 +440,6 @@ test('Payment.cancel', async t => {
   const db = new DB()
   await db.init()
   const update = sinon.replace(db, 'update', sinon.fake(db.update))
-
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2wsh: '/p2wsh/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
 
   const payment = new Payment({ ...paymentParams }, db)
   await payment.save()

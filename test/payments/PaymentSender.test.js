@@ -1,5 +1,4 @@
 const sinon = require('sinon')
-const proxyquire = require('proxyquire')
 const { test } = require('brittle')
 
 const { DB } = require('../../src/DB')
@@ -11,31 +10,9 @@ const { orderParams } = require('../fixtures/paymentParams')
 
 const { PAYMENT_STATE } = require('../../src/payments/Payment')
 const { PaymentSender } = require('../../src/payments/PaymentSender')
+const { PaymentOrder } = require('../../src/payments/PaymentOrder')
 
 async function getPaymentOrderInstance () {
-  const { Payment } = proxyquire('../../src/payments/Payment', {
-    '../SlashtagsAccessObject': {
-      SlashtagsAccessObject: class SlashtagsAccessObject {
-        constructor () {
-          this.ready = false
-        }
-
-        async init () { this.ready = true }
-        async read () {
-          return {
-            paymentEndpoints: {
-              lightning: '/lightning/slashpay.json',
-              p2sh: '/p2sh/slashpay.json',
-              p2tr: '/p2tr/slashpay.json'
-            }
-          }
-        }
-      }
-    }
-  })
-
-  const { PaymentOrder } = proxyquire('../../src/payments/PaymentOrder', { './Payment': { Payment } })
-
   const db = new DB()
   await db.init()
 
