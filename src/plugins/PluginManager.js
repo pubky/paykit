@@ -1,49 +1,24 @@
-const { assert } = require('./utils')
+const utils = require('./utils')
 
-const ERRORS = {
-  CONFLICT: 'Conflicting plugin names',
-  FAILED_TO_LOAD: (path) => `Failed to load plugin at ${path}`,
-  NAME: {
-    MISSING: (msg) => `${msg} plugin name missing`,
-    NOT_STRING: (msg) => `${msg} plugin name is not a string`
-  },
-  RPC: {
-    NOT_ARRAY: (msg) => `${msg} RPC is not an array`,
-    NOT_STRING: (msg, rpc) => `${msg} RPC method ${rpc} is not a string`,
-    NOT_UNIQ: (msg) => `${msg} duplicated RPC methods`,
-    NOT_IMPLEMENTED: (msg, rpc) => `${msg} RPC method ${rpc} is not implemented`,
-    MISSING_LISTENER: (msg) => `${msg} RPC listener is not implemented`,
-    MISSING_PAY: (msg) => `${msg} must implement "pay" method`
-  },
-  EVENTS: {
-    NOT_ARRAY: (msg) => `${msg} events is not an array`,
-    NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`,
-    MISSING_LISTENER: (msg) => `${msg} event listener is not implemented`,
-    MISSING_WATCH: (msg) => `${msg} must subscribe to "serve" event`
-  },
-  PLUGIN: {
-    INIT: (msg) => `Failed to initialize plugin: ${msg}`,
-    GET_MANIFEST: (msg) => `Failed to get manifest: ${msg}`,
-    STOP: (msg) => `Failed to stop plugin: ${msg}`,
-    EVENT_DISPATCH: (name, msg) => `Failed to dispatch event: ${msg} to plugin ${name}`,
-    NOT_FOUND: (name) => `Plugin ${name} not found`
-  }
-}
+const { ERRORS } = utils
 
 class PluginManager {
   /**
    * Plugin manager class
    * @class PluginManager
+   * @constructor
+   * @param {Object} config - config object
    * @property {Object[Plugin]} plugins - loaded plugins
    */
-  constructor () {
+  constructor (config) {
     this.plugins = {}
+    this.config = config
   }
 
   /**
    * Load a plugin with runtime by path to the entry point
    * @param {string} pluginEntryPoint - path to plugins main
-   * @param {Storage} storage - storage instance with CRUD interface
+   * @param {[Storage]} storage - instance with CRUD interface for receiving payments
    * @returns {Promise<Plugin>} - plugin instance
    * @throws {Error} - if plugin is already loaded
    */
@@ -51,9 +26,15 @@ class PluginManager {
     const active = true
     let module
     try {
+      // TODO: allow loading by name only by accepting config
+      // on constructor which has default path to plugins
       module = require(pluginEntryPoint)
     } catch (e) {
-      throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
+      try {
+        module = require(this.config.plugins[pluginEntryPoint])
+      } catch (e) {
+        throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
+      }
     }
 
     let plugin
@@ -70,7 +51,7 @@ class PluginManager {
       throw new Error(ERRORS.PLUGIN.GET_MANIFEST(e.message))
     }
 
-    await this.validateManifest(manifestRes, plugin)
+    await utils.validateManifest(manifestRes, plugin)
     const manifest = JSON.parse(JSON.stringify(manifestRes))
 
     if (this.plugins[manifest.name]) throw new Error(ERRORS.CONFLICT)
@@ -156,84 +137,6 @@ class PluginManager {
       Object.entries(this.plugins)
         .map(([name, plugin]) => plugin.manifest.rpc.map((rpc) => [`${name}/${rpc}`, plugin.plugin[rpc]])).flat()
     )
-  }
-
-  /**
-   * Validates manifest
-   * @param {PluginManifest} manifest - manifest object
-   * @param {Plugin} plugin - plugin instance
-   * @returns {Promise<void>}
-   * @throws {Error} - if manifest is invalid
-   */
-  async validateManifest (manifest, plugin) {
-    const msg = 'Manifest [validation]:'
-
-    this.validateName(manifest, msg)
-    this.validateRPC(manifest, plugin, msg)
-    this.validateEvents(manifest, plugin, msg)
-  }
-
-  /**
-   * Validates name property of the manifest
-   * @param {PluginManifest} manifest - manifest object
-   * @param {string} msg - error message prefix
-   * @returns {void}
-   * @throws {Error} - if name is missing
-   */
-  validateName (manifest, msg) {
-    assert(manifest.name, ERRORS.NAME.MISSING(msg))
-    assert(typeof manifest.name === 'string', ERRORS.NAME.NOT_STRING(msg))
-  }
-
-  /**
-   * Validates rpc property of the manifest
-   * @param {PluginManifest} manifest - manifest object
-   * @param {Plugin} plugin - plugin instance
-   * @param {string} msg - error message prefix
-   *
-   * @returns {void}
-   * @throws {Error} - if rpc is not an array or contains non-string elements or is missing
-   */
-  validateRPC (manifest, plugin, msg) {
-    if (!manifest.rpc) {
-      return
-    }
-
-    assert(Array.isArray(manifest.rpc), ERRORS.RPC.NOT_ARRAY(msg))
-
-    manifest.rpc.forEach(rpc => {
-      assert(typeof rpc === 'string', ERRORS.RPC.NOT_STRING(msg, rpc))
-      assert(typeof plugin[rpc] === 'function', ERRORS.RPC.NOT_IMPLEMENTED(msg, rpc))
-    })
-
-    const unique = [...new Set(manifest.rpc.map(rpc => rpc.toLowerCase()))]
-    assert(manifest.rpc.length === unique.length, ERRORS.RPC.NOT_UNIQ(msg))
-
-    if (manifest.type === 'payment') {
-      assert(manifest.rpc.includes('pay'), ERRORS.RPC.MISSING_PAY(msg))
-    }
-  }
-
-  /**
-   * Validate events property of the manifest
-   * @param {PluginManifest} manifest - manifest object
-   * @param {Plugin} plugin - plugin instance
-   * @param {string} msg - error message prefix
-   * @returns {void}
-   * @throws {Error} - if events is not an array or contains non-string elements or is missing
-   */
-  validateEvents (manifest, plugin, msg) {
-    if (!manifest.events) {
-      return
-    }
-
-    assert(typeof plugin.onEvent === 'function', ERRORS.EVENTS.MISSING_LISTENER(msg))
-    assert(Array.isArray(manifest.events), ERRORS.EVENTS.NOT_ARRAY(msg))
-    manifest.events.forEach(event => {
-      assert(typeof event === 'string', ERRORS.EVENTS.NOT_STRING(msg, event))
-    })
-
-    assert(manifest.events.includes('watch'), ERRORS.EVENTS.MISSING_WATCH(msg))
   }
 
   /**
