@@ -118,7 +118,7 @@ class PaymentManager {
    * @param {String} data.paymentId - id of the related payment
    * @returns {Promise<void>}
    */
-  // TODO: this should go through PaymentSender for its update callbacks handling
+  // FIXME: this should go through PaymentSender for its update callbacks handling
   async entryPointForUser (data) {
     const pluginManager = new PluginManager(this.config)
     const { plugin } = await pluginManager.loadPlugin(data.pluginName)

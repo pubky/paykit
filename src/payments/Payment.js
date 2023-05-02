@@ -1,9 +1,9 @@
-// TODO: expose state interface via native methods
+// FIXME: expose state interface via native methods
 // - getCurrentPlugin
 // - failCurrentPlugin
 // - isFinalState
 // - isInProgress
-// TODO: add properties specific to incoming payment
+// FIXME: add properties specific to incoming payment
 
 const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
 const { PaymentAmount } = require('./PaymentAmount')
