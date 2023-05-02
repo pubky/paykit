@@ -1,3 +1,10 @@
+// TODO: expose state interface via native methods
+// - getCurrentPlugin
+// - failCurrentPlugin
+// - isFinalState
+// - isInProgress
+// TODO: add properties specific to incoming payment
+
 const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
 const { PaymentAmount } = require('./PaymentAmount')
 const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
