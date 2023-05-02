@@ -45,6 +45,7 @@ class PaymentSender {
     await plugin.pay(payment.serialize(), this.stateUpdateCallback)
   }
 
+  // TODO: make it static method so it will instantiate PaymentSender, load PaymentOrder and corresponding Payment
   /**
    * Update payment state upon request of plugin
    * @method stateUpdateCallback
