@@ -1,8 +1,9 @@
 const sinon = require('sinon')
 const { test } = require('brittle')
 
-const { DB } = require('../fixtures/db')
+const { DB } = require('../../src/DB')
 const db = new DB()
+;(async () => { await db.init() })()
 
 const { SlashtagsAccessObject } = require('../../src/SlashtagsAccessObject')
 
@@ -43,6 +44,46 @@ test('PaymentReceiver.init', async t => {
   t.ok(res)
   t.is(storageCreate.callCount, 1)
   t.is(pluginDispatch.callCount, 1)
+})
+
+test('PaymentReceiver.receivePaymentCallback', async t => {
+  const storage = new SlashtagsAccessObject('key', './dir')
+  await storage.init()
+
+  const pluginManager = new PluginManager()
+  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, storage)
+
+  const paymentReceiver = new PaymentReceiver(db, pluginManager, storage, () => {})
+
+  await paymentReceiver.receivePaymentCallback({
+    pluginState: 'newPayment',
+    pluginName: 'p2sh',
+
+    orderId: 'testOrderId',
+    clientOrderId: 'testClientOrderId',
+    amount: '1000',
+    targetURL: 'sourgURL'
+  })
+
+  const payment = await db.get('totally-random-id')
+  t.alike(payment, {
+    id: 'totally-random-id',
+    orderId: 'testOrderId',
+    clientOrderId: 'testClientOrderId',
+    internalState: 'initial',
+    targetURL: 'sourgURL',
+    memo: '',
+    amount: '1000',
+    currency: 'BTC',
+    denomination: 'BASE',
+    sendingPriority: ['p2sh'],
+    pendingPlugins: [],
+    triedPlugins: [],
+    currentPlugin: {},
+    sentByPlugin: {},
+    createdAt: payment.createdAt,
+    executeAt: payment.executeAt
+  })
 })
 
 test('PaymentReceiver.generateSlashpayContent', async t => {

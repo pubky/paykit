@@ -76,43 +76,6 @@ test('PaymentManager: receivePayments', async t => {
   t.is(url, 'randomDriveKey')
 })
 
-test('PaymentManager: entryPointForPlugin new payment', async t => {
-  const db = new DB()
-  const paymentManager = new PaymentManager(config, db)
-  await paymentManager.init()
-
-  await paymentManager.entryPointForPlugin({
-    pluginState: 'newPayment',
-    pluginName: 'p2sh',
-
-    orderId: 'testOrderId',
-    clientOrderId: 'testClientOrderId',
-    amount: '1000',
-    targetURL: 'sourgURL'
-  })
-
-  // FIXME: hardcoded id
-  const payment = await db.get('totally-random-id')
-  t.alike(payment, {
-    id: 'totally-random-id',
-    orderId: 'testOrderId',
-    clientOrderId: 'testClientOrderId',
-    internalState: 'initial',
-    targetURL: 'sourgURL',
-    memo: '',
-    amount: '1000',
-    currency: 'BTC',
-    denomination: 'BASE',
-    sendingPriority: ['p2sh'],
-    pendingPlugins: [],
-    triedPlugins: [],
-    currentPlugin: {},
-    sentByPlugin: {},
-    createdAt: payment.createdAt,
-    executeAt: payment.executeAt
-  })
-})
-
 test('PaymentManager: entryPointForPlugin waiting for client', async t => {
   const db = new DB()
   await db.init()

@@ -1,4 +1,5 @@
 const path = require('path')
+const { Payment } = require('./Payment')
 /**
  * PaymentReceiver is a class which is responsible for making plugins to receive payments
  * @class PaymentReceiver
@@ -27,14 +28,9 @@ class PaymentReceiver {
     const slashpayFile = this.generateSlashpayContent(paymentPluginNames)
     const url = await this.storage.create('./slashpay.json', slashpayFile)
 
-    // for now it is the same callback used for payment notifications
-    // and for plugin status
     await this.pluginManager.dispatchEvent('receivePayment', {
       // TODO: define payload to make plugins create their own slashpay files
-      notificationCallback: async (payload) => {
-        await this.db.savePayment(payload)
-        await this.notificationCallback(payload)
-      }
+      notificationCallback: this.receivePaymentCallback.bind(this)
     })
 
     // XXX what if some plugins failed to initialize?
@@ -47,6 +43,20 @@ class PaymentReceiver {
     // })
 
     return url
+  }
+
+  async receivePaymentCallback (payload) {
+    // new incoming payment
+    let payment
+    if (payload.pluginState === 'newPayment') {
+      payment = new Payment({
+        ...payload,
+        sendingPriority: [payload.pluginName]
+      }, this.db)
+      await payment.save()
+    }
+
+    await this.notificationCallback(payment || payload)
   }
 
   /**

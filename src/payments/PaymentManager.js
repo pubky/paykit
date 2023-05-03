@@ -66,6 +66,7 @@ class PaymentManager {
    * Receive payments
    * @returns {Promise<string>}
    */
+  // FIXME: enable handling of multiple drives. First guess is to to create one receiver per drive
   async receivePayments () {
     const storage = new SlashtagsAccessObject()
     await storage.init()
@@ -73,7 +74,7 @@ class PaymentManager {
     const pluginManager = new PluginManager(this.config)
 
     await Promise.all(Object.keys(this.config.plugins).map(async (name) => {
-      return await pluginManager.loadPlugin(name)
+      return await pluginManager.loadPlugin(name, storage)
     }))
 
     const paymentReceiver = new PaymentReceiver(this.db, pluginManager, storage, this.entryPointForPlugin)
@@ -96,17 +97,7 @@ class PaymentManager {
    */
   async entryPointForPlugin (payload) {
     if (payload instanceof Payment) {
-      // if (payload.pluginState === 'waitingForClient')
       return await this.userNotificationEndpoint(payload)
-    }
-
-    // new incoming payment
-    if (payload.pluginState === 'newPayment') {
-      const payment = new Payment({
-        ...payload,
-        sendingPriority: [payload.pluginName]
-      }, this.db)
-      await payment.save()
     }
 
     // TODO: some other cases / default case?
