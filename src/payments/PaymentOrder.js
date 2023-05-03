@@ -144,7 +144,7 @@ class PaymentOrder {
    * @returns {Payment}
    */
   getFirstOutstandingPayment () {
-    return this.payments.find((payment) => !payment.internalState.isFinal())
+    return this.payments.find((payment) => !payment.isFinal())
   }
 
   /**
@@ -152,7 +152,7 @@ class PaymentOrder {
    * @returns {Payment}
    */
   getPaymentInProgress () {
-    return this.payments.find((payment) => payment.internalState.isInProgress())
+    return this.payments.find((payment) => payment.isInProgress())
   }
 
   /**
@@ -187,7 +187,7 @@ class PaymentOrder {
 
     // TODO: db transaction
     await this.payments
-      .filter((payment) => !payment.internalState.isFinal())
+      .filter((payment) => !payment.isFinal())
       .forEach(async (payment) => {
         await payment.cancel()
       })

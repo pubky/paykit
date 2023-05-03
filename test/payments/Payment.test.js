@@ -461,3 +461,83 @@ test('Payment.cancel', async t => {
 
   t.teardown(() => sinon.restore())
 })
+
+test('Payment.getCurrentPlugin', async t => {
+  const db = new DB()
+  await db.init()
+  const payment = new Payment({ ...paymentParams }, db)
+  payment.internalState.currentPlugin = 'test'
+
+  const res = await payment.getCurrentPlugin()
+  t.is(res, 'test')
+
+  t.teardown(() => sinon.restore())
+})
+
+test('Payment.isInProgress', async t => {
+  const db = new DB()
+  await db.init()
+  const payment = new Payment({ ...paymentParams }, db)
+  await payment.init()
+
+  t.is(payment.isInProgress(), false)
+  await payment.process()
+  t.is(payment.isInProgress(), true)
+})
+
+test('Payment.failCurrentPlugin', async t => {
+  const db = new DB()
+  await db.init()
+  const payment = new Payment({
+    ...paymentParams,
+    id: 'test',
+    pendingPlugins: paymentParams.sendingPriority
+  }, db)
+  await payment.init()
+
+  const fail = sinon.replace(
+    payment.internalState,
+    'failCurrentPlugin',
+    sinon.fake(payment.internalState.failCurrentPlugin)
+  )
+
+  t.is(payment.isInProgress(), false)
+  await payment.process()
+  t.is(payment.isInProgress(), true)
+
+  await payment.failCurrentPlugin()
+
+  t.is(fail.callCount, 1)
+
+  t.teardown(() => sinon.restore())
+})
+
+test('Payment.isFinal', async t => {
+  const db = new DB()
+  await db.init()
+  const payment = new Payment({
+    ...paymentParams,
+    id: 'test',
+    pendingPlugins: paymentParams.sendingPriority
+  }, db)
+  await payment.init()
+
+  const isFinal = sinon.replace(
+    payment.internalState,
+    'isFinal',
+    sinon.fake(payment.internalState.isFinal)
+  )
+
+  t.is(payment.isFinal(), false)
+  t.is(isFinal.callCount, 1)
+
+  await payment.process()
+  t.is(payment.isFinal(), false)
+  t.is(isFinal.callCount, 2)
+
+  await payment.complete()
+  t.is(payment.isFinal(), true)
+  t.is(isFinal.callCount, 3)
+
+  t.teardown(() => sinon.restore())
+})

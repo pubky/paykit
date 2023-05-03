@@ -26,7 +26,7 @@ class PaymentSender {
    */
   async submit () {
     const payment = await this.paymentOrder.process()
-    const currentPlugin = payment.internalState.currentPlugin
+    const currentPlugin = payment.getCurrentPlugin()
 
     if (!currentPlugin) throw new Error(ERRORS.NO_PLUGINS_AVAILABLE)
 
@@ -87,7 +87,7 @@ class PaymentSender {
    * @returns {Promise<void>}
    */
   async handleFailure (payment) {
-    await payment.internalState.failCurrentPlugin()
+    await payment.failCurrentPlugin()
     try {
       await this.submit()
     } catch (e) {

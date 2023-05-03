@@ -1,8 +1,3 @@
-// FIXME: expose state interface via native methods
-// - getCurrentPlugin
-// - failCurrentPlugin
-// - isFinalState
-// - isInProgress
 // FIXME: add properties specific to incoming payment
 
 const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
@@ -221,6 +216,38 @@ class Payment {
   async cancel () {
     await this.internalState.cancel()
     return this
+  }
+
+  /**
+   * get current plugin from state
+   * @returns {Plugin|null}
+   */
+  getCurrentPlugin () {
+    return this.internalState.currentPlugin
+  }
+
+  /**
+   * fail current plugin
+   * @returns {Promise<void>}
+   */
+  async failCurrentPlugin () {
+    await this.internalState.failCurrentPlugin()
+  }
+
+  /**
+   * checks if payment is in progress
+   * @returns {boolean}
+   */
+  isInProgress () {
+    return this.internalState.isInProgress()
+  }
+
+  /**
+   * checks if payment is in final state
+   * @returns {boolean}
+   */
+  isFinal () {
+    return this.internalState.isFinal()
   }
 }
 
