@@ -20,7 +20,7 @@ function assert (condition, message) {
  * @returns {void}
  */
 function validatePresent (value, msgPrefix) {
-  assert(value !== undefined || value !== null, `${msgPrefix} is required`)
+  assert((value !== undefined && value !== null), `${msgPrefix} is required`)
 }
 
 /**
@@ -47,7 +47,7 @@ function validateType (value, type, msgPrefix) {
  * @returns {void}
  */
 function validateNotEmpty (value, msgPrefix) {
-  assert(value.lenght > 0, `${msgPrefix} must not be empty`)
+  assert(value.length > 0, `${msgPrefix} must not be empty`)
 }
 
 /**
