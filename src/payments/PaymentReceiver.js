@@ -45,6 +45,11 @@ class PaymentReceiver {
     return url
   }
 
+  /**
+   * Callback which is called by plugin when payment is received
+   * @param {Object} payload - payment object
+   * @returns {Promise<void>}
+   */
   async receivePaymentCallback (payload) {
     // new incoming payment
     let payment
