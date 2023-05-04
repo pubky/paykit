@@ -155,9 +155,10 @@ class Payment {
     if (this.id) {
       const payment = await this.db.get(this.id, { removed: '*' })
       if (payment) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
+    } else {
+      this.id = Payment.generateId()
     }
 
-    this.id = Payment.generateId()
     const paymentObject = this.serialize()
     Payment.validatePaymentObject(paymentObject)
     await this.db.save(paymentObject)

@@ -179,19 +179,6 @@ test('Payment.save - iff entry is new', async t => {
   await t.exception(async () => await payment.save(), ERRORS.ALREADY_EXISTS(payment.id))
 })
 
-test('Payment.save - overwites id if entry not found in DB', async t => {
-  const db = new DB()
-  await db.init()
-
-  const payment = new Payment({ ...paymentParams, sendingPriority: ['p2sh', 'lightning'] }, db)
-  payment.id = 'new-totally-random-id'
-  await payment.save()
-  const got = await db.get(payment.id)
-  t.alike(got, payment.serialize())
-  t.not(got.id, 'new-totally-random-id')
-  t.not(payment.id, 'new-totally-random-id')
-})
-
 test('Payment.delete', async t => {
   const db = new DB()
   await db.init()
