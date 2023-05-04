@@ -1,8 +1,8 @@
 const { assert } = require('../utils')
 
 /**
- * @enum CURRENCIES
- * @enum {String} - currency codes
+ * @constant CURRENCIES
+ * @type {Array} CURRENCIES
  * @property {String} BTC - bitcoin
  */
 const CURRENCIES = [
@@ -10,8 +10,8 @@ const CURRENCIES = [
 ]
 
 /**
- * @enum DENOMINATIONS
- * @enum {String}
+ * @constant DENOMINATIONS
+ * @type {Array} DENOMINATIONS
  * @property {String} BASE - satoshi
  * @property {String} MAIN - bitcoin
  */
@@ -55,7 +55,7 @@ class PaymentAmount {
   /**
    * @static validate
    * @param {Object} params - params to validate
-   * @throws {Error} if params are invalid
+   * @throws {ERROR} if params are invalid
    * @returns {void}
    */
   static validate (params) {
@@ -69,7 +69,7 @@ class PaymentAmount {
   /**
    * @static validateAmount
    * @param {String} amount - amount to validate
-   * @throws {Error} if amount is invalid
+   * @throws {ERROR} if amount is invalid
    * @returns {void}
    */
   static validateAmount (amount) {
@@ -86,7 +86,7 @@ class PaymentAmount {
   /**
    * @static validateCurrency
    * @param {String} currency - currency to validate
-   * @throws {Error} if currency is invalid
+   * @throws {ERROR} if currency is invalid
    * @returns {void}
    */
   static validateCurrency (currency) {
@@ -97,7 +97,7 @@ class PaymentAmount {
   /**
    * @static validateDenomination
    * @param {String} denomination - denomination to validate
-   * @throws {Error} if denomination is invalid
+   * @throws {ERROR} if denomination is invalid
    * @returns {void}
    */
   static validateDenomination (denomination) {
@@ -136,5 +136,7 @@ const ERRORS = {
 
 module.exports = {
   PaymentAmount,
-  ERRORS
+  ERRORS,
+  CURRENCIES,
+  DENOMINATIONS
 }
