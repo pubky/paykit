@@ -77,7 +77,6 @@ test('PaymentManager.receivePayments', async t => {
 
 test('PaymentManager.handleNewPayment', async t => {
   const db = new DB()
-  await db.init()
 
   const paymentManager = new PaymentManager(config, db)
   await paymentManager.init()
@@ -145,7 +144,6 @@ test('PaymentManager.entryPointForUser', async t => {
 
 test('PaymentManager.entryPointForPlugin waiting for client', async t => {
   const db = new DB()
-  await db.init()
 
   const paymentManager = new PaymentManager(config, db)
   await paymentManager.init()

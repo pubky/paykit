@@ -55,9 +55,8 @@ class PaymentManager {
    * @returns {Promise<void>} - payment id
    */
   async sendPayment (id) {
-    const paymentOrder = await PaymentOrder.find(id, this.db)
-    const pluginManager = new PluginManager(this.config)
-    const paymentSender = new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin)
+    const paymentSender = await this.getPaymentSender(id)
+
     await paymentSender.submit()
   }
 
@@ -134,11 +133,20 @@ class PaymentManager {
    * @returns {Promise<void>}
    */
   async entryPointForUser (data) {
-    const paymentOrder = await PaymentOrder.find(data.orderId, this.db)
-    const pluginManager = new PluginManager(this.config)
-    const paymentSender = new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin)
+    const paymentSender = await this.getPaymentSender(data.orderId)
 
     await paymentSender.updatePayment(data)
+  }
+
+  /**
+   * Instantiate PaymentSender for order
+   * @param {String} id - paymentOrder id
+   * @returns {Promise<PaymentSender>} - instance of PaymentSender class
+   */
+  async getPaymentSender (id) {
+    const paymentOrder = await PaymentOrder.find(id, this.db)
+    const pluginManager = new PluginManager(this.config)
+    return new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin)
   }
 
   /**
