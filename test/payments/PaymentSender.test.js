@@ -21,7 +21,7 @@ async function getPaymentOrderInstance () {
   return new PaymentOrder(params, db)
 }
 
-test('PaymentSender - constructor', async t => {
+test('PaymentSender.constructor', async t => {
   const p2shStub = require('../fixtures/p2sh/main.js')
   p2shStub.resetAll()
   const p2trStub = require('../fixtures/p2tr/main.js')
@@ -43,7 +43,7 @@ test('PaymentSender - constructor', async t => {
   })
 })
 
-test('PaymentSender - submit', async t => {
+test('PaymentSender.submit', async t => {
   const p2shStub = require('../fixtures/p2sh/main.js')
   p2shStub.resetAll()
   const p2trStub = require('../fixtures/p2tr/main.js')
@@ -68,7 +68,7 @@ test('PaymentSender - submit', async t => {
   })
 })
 
-test('PaymentSender - stateUpdateCallback (success)', async t => {
+test('PaymentSender.stateUpdateCallback (success)', async t => {
   const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
 
@@ -90,7 +90,7 @@ test('PaymentSender - stateUpdateCallback (success)', async t => {
   t.is(got.internalState, PAYMENT_STATE.COMPLETED)
 })
 
-test('PaymentSender - stateUpdateCallback (failure, success)', async t => {
+test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
   const paymentOrder = await getPaymentOrderInstance()
   await paymentOrder.init()
 
@@ -122,4 +122,41 @@ test('PaymentSender - stateUpdateCallback (failure, success)', async t => {
 
   t.is(got.id, payment.id)
   t.is(got.internalState, PAYMENT_STATE.COMPLETED)
+})
+
+test('PaymentSender.updatePayment', async t => {
+  const paymentOrder = await getPaymentOrderInstance()
+  await paymentOrder.init()
+
+  const pluginManager = new PluginManager(pluginConfig)
+
+  const paymentSender = new PaymentSender(paymentOrder, pluginManager, () => {})
+  await paymentSender.submit()
+
+  const payment = paymentSender.paymentOrder.getPaymentInProgress()
+  const { plugin } = pluginManager.plugins[payment.getCurrentPlugin().name]
+
+  await paymentSender.updatePayment({ foo: 'bar' })
+
+  t.is(plugin.updatePayment.callCount, 1)
+
+  t.teardown(() => sinon.restore())
+})
+
+test('PaymentSender.getCurrentPlugin', async t => {
+  const paymentOrder = await getPaymentOrderInstance()
+  await paymentOrder.init()
+
+  const pluginManager = new PluginManager(pluginConfig)
+
+  const paymentSender = new PaymentSender(paymentOrder, pluginManager, () => {})
+  await paymentSender.submit()
+
+  const payment = paymentSender.paymentOrder.getPaymentInProgress()
+
+  const plugin = await paymentSender.getCurrentPlugin(payment)
+
+  t.ok(plugin.active)
+  t.ok(plugin.plugin)
+  t.ok(plugin.manifest)
 })

@@ -26,26 +26,46 @@ class PaymentSender {
    */
   async submit () {
     const payment = await this.paymentOrder.process()
-    const currentPlugin = payment.getCurrentPlugin()
-
-    if (!currentPlugin) throw new Error(ERRORS.NO_PLUGINS_AVAILABLE)
-
-    let plugin
-    const loaded = this.pluginManager.plugins[currentPlugin.name]
-    if (loaded) {
-      // XXX: this should never happen
-      if (!loaded.isActive) throw new Error('Plugin is not active')
-
-      plugin = loaded.plugin
-    } else {
-      const loaded = await this.pluginManager.loadPlugin(currentPlugin.name)
-      plugin = loaded.plugin
-    }
+    const { plugin } = await this.getCurrentPlugin(payment)
 
     await plugin.pay(payment.serialize(), this.stateUpdateCallback)
   }
 
-  // FIXME: make it static method so it will instantiate PaymentSender, load PaymentOrder and corresponding Payment
+  /**
+   * Update payment - forwards data to plugin
+   * @method updatePayment
+   * @param {Object} data
+   * @returns {Promise<void>}
+   */
+  async updatePayment (data) {
+    const payment = await this.paymentOrder.getPaymentInProgress()
+    const { plugin } = await this.getCurrentPlugin(payment)
+
+    await plugin.updatePayment(data)
+  }
+
+  /**
+   * Get plugin currently handling payment
+   * @method getCurrentPlugin
+   * @param {Payment} payment
+   * @returns {Promise<Plugin>} plugin
+   */
+  async getCurrentPlugin (payment) {
+    const currentPlugin = payment.getCurrentPlugin()
+
+    if (!currentPlugin) throw new Error(ERRORS.NO_PLUGINS_AVAILABLE)
+
+    const loaded = this.pluginManager.plugins[currentPlugin.name]
+    if (loaded) {
+      // XXX: this should never happen
+      if (!loaded.active) throw new Error('Plugin is not active')
+
+      return loaded
+    } else {
+      return await this.pluginManager.loadPlugin(currentPlugin.name)
+    }
+  }
+
   /**
    * Update payment state upon request of plugin
    * @method stateUpdateCallback
