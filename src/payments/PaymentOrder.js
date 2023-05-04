@@ -260,6 +260,8 @@ class PaymentOrder {
    */
   static async find (id, db) {
     const orderParams = await db.get(id)
+    if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
+
     const paymentOrder = new PaymentOrder(orderParams, db)
     paymentOrder.payments = (await db.getPayments(id)).map(p => new Payment(p, db))
 
@@ -282,6 +284,7 @@ class PaymentOrder {
  * @property {string} ORDER_CANCELLED
  * @property {string} ORDER_COMPLETED
  * @property {string} CAN_NOT_PROCESS_ORDER
+ * @property {function} ORDER_NOT_FOUND
  */
 const ERRORS = {
   NOT_IMPLEMENTED: 'Not implemented',
@@ -296,7 +299,8 @@ const ERRORS = {
   OUTSTANDING_PAYMENTS: 'There are outstanding payments',
   ORDER_CANCELLED: 'Order is cancelled',
   ORDER_COMPLETED: 'Order is completed',
-  CAN_NOT_PROCESS_ORDER: 'Can not process order'
+  CAN_NOT_PROCESS_ORDER: 'Can not process order',
+  ORDER_NOT_FOUND: (id) => `Order with id ${id} not found`
 }
 
 /**
