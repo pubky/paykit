@@ -30,7 +30,7 @@ class PaymentReceiver {
 
     await this.pluginManager.dispatchEvent('receivePayment', {
       // TODO: define payload to make plugins create their own slashpay files
-      notificationCallback: this.receivePaymentCallback.bind(this)
+      notificationCallback: this.notificationCallback
     })
 
     // XXX what if some plugins failed to initialize?
@@ -50,18 +50,17 @@ class PaymentReceiver {
    * @param {Object} payload - payment object
    * @returns {Promise<void>}
    */
-  async receivePaymentCallback (payload) {
-    // new incoming payment
-    let payment
-    if (payload.pluginState === 'newPayment') {
-      payment = new Payment({
-        ...payload,
-        sendingPriority: [payload.pluginName]
-      }, this.db)
-      await payment.save()
-    }
+  async handleNewPayment (payload) {
+    // FIXME: add properties specific to incoming payment
+    // add id?
+    const payment = new Payment({
+      ...payload,
+      sendingPriority: [payload.pluginName],
+      foo: 'test incomming'
+    }, this.db)
+    await payment.save()
 
-    await this.notificationCallback(payment || payload)
+    await this.notificationCallback(payment)
   }
 
   /**

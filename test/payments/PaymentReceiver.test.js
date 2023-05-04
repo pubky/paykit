@@ -46,7 +46,7 @@ test('PaymentReceiver.init', async t => {
   t.is(pluginDispatch.callCount, 1)
 })
 
-test('PaymentReceiver.receivePaymentCallback', async t => {
+test('PaymentReceiver.handleNewPayment', async t => {
   const storage = new SlashtagsAccessObject('key', './dir')
   await storage.init()
 
@@ -55,10 +55,8 @@ test('PaymentReceiver.receivePaymentCallback', async t => {
 
   const paymentReceiver = new PaymentReceiver(db, pluginManager, storage, () => {})
 
-  await paymentReceiver.receivePaymentCallback({
-    pluginState: 'newPayment',
+  await paymentReceiver.handleNewPayment({
     pluginName: 'p2sh',
-
     orderId: 'testOrderId',
     clientOrderId: 'testClientOrderId',
     amount: '1000',
