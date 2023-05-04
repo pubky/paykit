@@ -10,12 +10,12 @@ class PaymentSender {
    * @param {PaymentOrder} paymentOrder
    * @param {DB} db
    * @param {PluginManager} pluginManager
-   * @param {Function} notificationCallback
+   * @param {Function} entryPointForPlugin
    */
-  constructor (paymentOrder, pluginManager, notificationCallback) {
+  constructor (paymentOrder, pluginManager, entryPointForPlugin) {
     this.paymentOrder = paymentOrder
     this.pluginManager = pluginManager
-    this.notificationCallback = notificationCallback
+    this.entryPointForPlugin = entryPointForPlugin
   }
 
   /**
@@ -28,7 +28,7 @@ class PaymentSender {
     const payment = await this.paymentOrder.process()
     const { plugin } = await this.getCurrentPlugin(payment)
 
-    await plugin.pay(payment.serialize(), this.stateUpdateCallback)
+    await plugin.pay(payment.serialize(), this.entryPointForPlugin)
   }
 
   /**
@@ -96,7 +96,8 @@ class PaymentSender {
     } else if (payment.pluginUpdate.pluginState === 'success') {
       await this.handleSuccess(payment)
     } else {
-      await this.notificationCallback(payment)
+      // XXX: intermediate state which requires action from user
+      await this.entryPointForPlugin(payment)
     }
   }
 
@@ -111,7 +112,7 @@ class PaymentSender {
     try {
       await this.submit()
     } catch (e) {
-      if (e.message === ERRORS.NO_PLUGINS_AVAILABLE) return await this.notificationCallback(e)
+      if (e.message === ERRORS.NO_PLUGINS_AVAILABLE) return await this.entryPointForPlugin(e)
 
       throw e
     }
@@ -125,12 +126,15 @@ class PaymentSender {
    */
   async handleSuccess (payment) {
     await payment.complete()
-
     // XXX: notification for micropayments will be too much
-    await this.notificationCallback(payment)
+    await this.entryPointForPlugin(payment)
 
     try {
       await this.paymentOrder.complete()
+      await this.entryPointForPlugin({
+        type: 'payment_order_complete',
+        data: this.paymentOrder
+      })
     } catch (e) {
       if (ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
         // RECURRING PAYMENT territory

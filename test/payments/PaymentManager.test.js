@@ -115,7 +115,7 @@ test('PaymentManager.handlePaymentUpdate', async t => {
   const paymentOrder = await paymentManager.createPaymentOrder(paymentParams)
   await paymentManager.sendPayment(paymentOrder.id)
 
-  const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
+  const stub = sinon.spy(paymentManager, 'userNotificationEndpoint')
 
   await paymentManager.handlePaymentUpdate({
     orderId: paymentOrder.id,
@@ -123,7 +123,7 @@ test('PaymentManager.handlePaymentUpdate', async t => {
     payload: { foo: 'bar' }
   })
 
-  t.is(stub.calledOnce, true)
+  t.is(stub.callCount, 2)
 
   t.teardown(() => sinon.restore())
 })
@@ -151,14 +151,14 @@ test('PaymentManager.entryPointForPlugin waiting for client', async t => {
   const handleNewPaymentStub = sinon.stub(paymentManager, 'handleNewPayment').resolves()
   const handlePaymentUpdateStub = sinon.stub(paymentManager, 'handlePaymentUpdate').resolves()
 
-  await paymentManager.entryPointForPlugin({ type: 'newPayment' })
+  await paymentManager.entryPointForPlugin({ type: 'payment_new' })
 
   t.is(handleNewPaymentStub.calledOnce, true)
   t.is(handlePaymentUpdateStub.calledOnce, false)
 
   handleNewPaymentStub.resetHistory()
 
-  await paymentManager.entryPointForPlugin({ type: 'paymentUpdate' })
+  await paymentManager.entryPointForPlugin({ type: 'payment_update' })
 
   t.is(handleNewPaymentStub.calledOnce, false)
   t.is(handlePaymentUpdateStub.calledOnce, true)

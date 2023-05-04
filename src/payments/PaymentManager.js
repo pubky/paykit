@@ -95,13 +95,14 @@ class PaymentManager {
    */
   // FIXME: payload type and content should be defined
   async entryPointForPlugin (payload) {
-    if (payload.type === 'newPayment') {
+    if (payload.type === 'payment_new') {
       await this.handleNewPayment(payload)
-    } else if (payload.type === 'paymentUpdate') {
+    } else if (payload.type === 'payment_update') {
       await this.handlePaymentUpdate(payload)
+    } else if (payload.type === 'payment_order_completed') {
+      await this.userNotificationEndpoint(payload)
     } else {
-      // FIXME TODO: some other cases / default case?
-      throw new Error('Unknown payload type')
+      await this.userNotificationEndpoint(payload)
     }
   }
 
@@ -112,18 +113,15 @@ class PaymentManager {
     await storage.init()
 
     // XXX none of these parameters except for DB and callback are used
-    const paymentReceiver = new PaymentReceiver(this.db, pluginManager, storage, this.userNotificationEndpoint)
+    const paymentReceiver = new PaymentReceiver(this.db, pluginManager, storage, this.userNotificationEndpoint.bind(this))
     await paymentReceiver.handleNewPayment(payload)
   }
 
   async handlePaymentUpdate (payload) {
-    const paymentOrder = await PaymentOrder.find(payload.orderId, this.db)
-    // TODO: if we want to do something before forwarding the payload to user this is the place
-    // const paymentSender = new PaymentSender(paymentOrder, pluginManager, () => {}))
-    await this.userNotificationEndpoint({
-      paymentOrder: paymentOrder.serialize(),
-      payload
-    })
+    const paymentSender = await this.getPaymentSender(payload.orderId)
+    await paymentSender.stateUpdateCallback(payload)
+
+    await this.userNotificationEndpoint(payload)
   }
 
   /**
@@ -146,7 +144,7 @@ class PaymentManager {
   async getPaymentSender (id) {
     const paymentOrder = await PaymentOrder.find(id, this.db)
     const pluginManager = new PluginManager(this.config)
-    return new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin)
+    return new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin.bind(this))
   }
 
   /**
@@ -154,8 +152,8 @@ class PaymentManager {
    * @param {Object} payment - payment object
    * @returns {Promise<void>}
    */
-  async userNotificationEndpoint (payment) {
-    console.log('askClient', payment)
+  async userNotificationEndpoint (payload) {
+    console.log('askClient', payload)
   }
 }
 

@@ -34,7 +34,7 @@ test('PaymentSender.constructor', async t => {
   const paymentSender = new PaymentSender(paymentOrder, pluginManager, () => {})
 
   t.alike(paymentSender.paymentOrder, paymentOrder)
-  t.alike(paymentSender.notificationCallback.toString(), '() => {}')
+  t.alike(paymentSender.entryPointForPlugin.toString(), '() => {}')
 
   t.teardown(() => {
     sinon.restore()
@@ -59,7 +59,7 @@ test('PaymentSender.submit', async t => {
 
   t.is(Object.keys(pluginManager.plugins).length, 1)
   t.is(pluginManager.plugins.p2sh.plugin.pay.callCount, 1)
-  t.alike(pluginManager.plugins.p2sh.plugin.pay.getCall(0).args, [paymentOrder.payments[0].serialize(), paymentSender.stateUpdateCallback])
+  t.alike(pluginManager.plugins.p2sh.plugin.pay.getCall(0).args, [paymentOrder.payments[0].serialize(), paymentSender.entryPointForPlugin])
 
   t.teardown(() => {
     sinon.restore()
