@@ -1,6 +1,5 @@
 const { PluginManager } = require('../plugins/PluginManager')
 
-const { Payment } = require('./Payment')
 const { PaymentOrder } = require('./PaymentOrder')
 const { PaymentSender } = require('./PaymentSender')
 const { PaymentReceiver } = require('./PaymentReceiver')
@@ -56,8 +55,8 @@ class PaymentManager {
    * @returns {Promise<void>} - payment id
    */
   async sendPayment (id) {
-    const pluginManager = new PluginManager(this.config)
     const paymentOrder = await PaymentOrder.find(id, this.db)
+    const pluginManager = new PluginManager(this.config)
     const paymentSender = new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin)
     await paymentSender.submit()
   }
@@ -95,12 +94,37 @@ class PaymentManager {
    * @property {String} payload.data - data to be sent to the payment manager
    * @returns {Promise<void>}
    */
+  // FIXME: payload type and content should be defined
   async entryPointForPlugin (payload) {
-    if (payload instanceof Payment) {
-      return await this.userNotificationEndpoint(payload)
+    if (payload.type === 'newPayment') {
+      await this.handleNewPayment(payload)
+    } else if (payload.type === 'paymentUpdate') {
+      await this.handlePaymentUpdate(payload)
+    } else {
+      // FIXME TODO: some other cases / default case?
+      throw new Error('Unknown payload type')
     }
+  }
 
-    // TODO: some other cases / default case?
+  async handleNewPayment (payload) {
+    const pluginManager = new PluginManager(this.config)
+
+    const storage = new SlashtagsAccessObject()
+    await storage.init()
+
+    // XXX none of these parameters except for DB and callback are used
+    const paymentReceiver = new PaymentReceiver(this.db, pluginManager, storage, this.userNotificationEndpoint)
+    await paymentReceiver.handleNewPayment(payload)
+  }
+
+  async handlePaymentUpdate (payload) {
+    const paymentOrder = await PaymentOrder.find(payload.orderId, this.db)
+    // TODO: if we want to do something before forwarding the payload to user this is the place
+    // const paymentSender = new PaymentSender(paymentOrder, pluginManager, () => {}))
+    await this.userNotificationEndpoint({
+      paymentOrder: paymentOrder.serialize(),
+      payload
+    })
   }
 
   /**
@@ -109,12 +133,12 @@ class PaymentManager {
    * @param {String} data.paymentId - id of the related payment
    * @returns {Promise<void>}
    */
-  // FIXME: this should go through PaymentSender for its update callbacks handling
   async entryPointForUser (data) {
+    const paymentOrder = await PaymentOrder.find(data.orderId, this.db)
     const pluginManager = new PluginManager(this.config)
-    const { plugin } = await pluginManager.loadPlugin(data.pluginName)
-    // TODO check if plugin active exists
-    await plugin.updatePayment(data)
+    const paymentSender = new PaymentSender(paymentOrder, pluginManager, this.entryPointForPlugin)
+
+    await paymentSender.updatePayment(data)
   }
 
   /**

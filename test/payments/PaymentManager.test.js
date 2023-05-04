@@ -1,5 +1,4 @@
 const sinon = require('sinon')
-const proxyquire = require('proxyquire')
 
 const { test } = require('brittle')
 
@@ -9,9 +8,9 @@ const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
 const { PaymentManager } = require('../../src/payments/PaymentManager')
-const { Payment } = require('../../src/payments/Payment')
+const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
-test('PaymentManager: constructor', async t => {
+test('PaymentManager.constructor', async t => {
   const db = new DB()
   const paymentManager = new PaymentManager(config, db)
 
@@ -20,7 +19,7 @@ test('PaymentManager: constructor', async t => {
   t.is(paymentManager.ready, false)
 })
 
-test('PaymentManager: init', async t => {
+test('PaymentManager.init', async t => {
   const db = new DB()
   const paymentManager = new PaymentManager(config, db)
   const init = sinon.stub(db, 'init').resolves()
@@ -33,7 +32,7 @@ test('PaymentManager: init', async t => {
   t.teardown(() => sinon.restore())
 })
 
-test('PaymentManager: createPaymentOrder', async t => {
+test('PaymentManager.createPaymentOrder', async t => {
   const db = new DB()
 
   const paymentManager = new PaymentManager(config, db)
@@ -45,7 +44,7 @@ test('PaymentManager: createPaymentOrder', async t => {
   t.alike(got, paymentOrder)
 })
 
-test('PaymentManager: sendPayment', async t => {
+test('PaymentManager.sendPayment', async t => {
   const p2shStub = require('../fixtures/p2sh/main.js')
 
   const db = new DB()
@@ -60,7 +59,7 @@ test('PaymentManager: sendPayment', async t => {
   t.ok(p2shStub.init.getCall(0).returnValue.pay.calledOnce)
 })
 
-test('PaymentManager: receivePayments', async t => {
+test('PaymentManager.receivePayments', async t => {
   const validConfig = { ...config }
   validConfig.plugins = {
     p2sh: config.plugins.p2sh,
@@ -76,51 +75,95 @@ test('PaymentManager: receivePayments', async t => {
   t.is(url, 'randomDriveKey')
 })
 
-test('PaymentManager: entryPointForPlugin waiting for client', async t => {
+test('PaymentManager.handleNewPayment', async t => {
   const db = new DB()
   await db.init()
 
   const paymentManager = new PaymentManager(config, db)
   await paymentManager.init()
 
+  const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
+  const receiverHandler = sinon.replace(
+    PaymentReceiver.prototype,
+    'handleNewPayment',
+    sinon.fake(PaymentReceiver.prototype.handleNewPayment)
+  )
+
+  await paymentManager.handleNewPayment({
+    ...paymentParams,
+    id: 'test.handleNewPayment',
+    pluginName: 'p2sh'
+  })
+
+  t.is(stub.calledOnce, true)
+  t.is(receiverHandler.calledOnce, true)
+
+  const got = await db.get('test.handleNewPayment')
+  t.is(got.id, 'test.handleNewPayment')
+  t.is(got.clientOrderId, paymentParams.clientOrderId)
+  t.is(got.amount, paymentParams.amount)
+  t.is(got.targetURL, paymentParams.targetURL)
+
+  t.teardown(() => sinon.restore())
+})
+
+test('PaymentManager.handlePaymentUpdate', async t => {
+  const db = new DB()
+
+  const paymentManager = new PaymentManager(config, db)
+  await paymentManager.init()
+
   const paymentOrder = await paymentManager.createPaymentOrder(paymentParams)
-  const payments = await db.getPayments(paymentOrder.id)
+  await paymentManager.sendPayment(paymentOrder.id)
 
   const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
 
-  await paymentManager.entryPointForPlugin(new Payment(payments[0], db, config))
+  await paymentManager.handlePaymentUpdate({
+    orderId: paymentOrder.id,
+    pluginName: 'p2sh',
+    payload: { foo: 'bar' }
+  })
 
   t.is(stub.calledOnce, true)
 
   t.teardown(() => sinon.restore())
 })
 
-test('PaymentManager: entryPointForUser', async t => {
-  const updatePaymentStub = sinon.stub().resolves()
-
-  const { PaymentManager } = proxyquire('../../src/payments/PaymentManager', {
-    '../plugins/PluginManager': {
-      PluginManager: class PluginManager {
-        constructor () { this.ready = true }
-        async loadPlugin () {
-          return {
-            plugin: {
-              async updatePayment (args) { return await updatePaymentStub(args) }
-            }
-          }
-        }
-      }
-    }
-  })
+test('PaymentManager.entryPointForUser', async t => {
   const db = new DB()
   const paymentManager = new PaymentManager(config, db)
   await paymentManager.init()
 
-  const data = { pluginName: 'p2sh', foo: 'bar' }
+  const paymentOrder = await paymentManager.createPaymentOrder(paymentParams)
+  await paymentManager.sendPayment(paymentOrder.id)
+
+  const data = { orderId: paymentOrder.id, pluginName: 'p2sh', foo: 'bar' }
   await paymentManager.entryPointForUser(data)
 
-  t.ok(updatePaymentStub.calledOnce)
-  t.alike(updatePaymentStub.getCall(0).args[0], data)
+  t.teardown(() => sinon.restore())
+})
+
+test('PaymentManager.entryPointForPlugin waiting for client', async t => {
+  const db = new DB()
+  await db.init()
+
+  const paymentManager = new PaymentManager(config, db)
+  await paymentManager.init()
+
+  const handleNewPaymentStub = sinon.stub(paymentManager, 'handleNewPayment').resolves()
+  const handlePaymentUpdateStub = sinon.stub(paymentManager, 'handlePaymentUpdate').resolves()
+
+  await paymentManager.entryPointForPlugin({ type: 'newPayment' })
+
+  t.is(handleNewPaymentStub.calledOnce, true)
+  t.is(handlePaymentUpdateStub.calledOnce, false)
+
+  handleNewPaymentStub.resetHistory()
+
+  await paymentManager.entryPointForPlugin({ type: 'paymentUpdate' })
+
+  t.is(handleNewPaymentStub.calledOnce, false)
+  t.is(handlePaymentUpdateStub.calledOnce, true)
 
   t.teardown(() => sinon.restore())
 })
