@@ -1,13 +1,28 @@
 const path = require('path')
 
 const pluginConfig = {
-  plugins: [
-    path.resolve(__dirname, 'pluginA', 'main.js'),
-    path.resolve(__dirname, 'pluginB', 'main.js'),
-    path.resolve(__dirname, 'nonexisting', 'main.js')
+  db: {},
+  plugins: {
+    p2sh: path.resolve(__dirname, 'p2sh', 'main.js'),
+    p2tr: path.resolve(__dirname, 'p2tr', 'main.js'),
+    nonexisting: path.resolve(__dirname, 'nonexisting', 'main.js')
+  }
+}
+
+const paymentConfig = {
+  sendingPriority: [
+    'p2sh',
+    'p2tr'
   ]
 }
 
+const config = {
+  ...pluginConfig,
+  ...paymentConfig
+}
+
 module.exports = {
-  pluginConfig
+  pluginConfig,
+  paymentConfig,
+  config
 }
