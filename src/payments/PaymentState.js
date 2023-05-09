@@ -5,7 +5,7 @@ const logger = require('slashtags-logger')('Slashpay', 'payment-state')
  * @class PaymentState
  * @property {string} internalState - internal state
  * @property {string[]} pendingPlugins - pending plugins
- * @property {string[]} triedPlugins - tried plugins
+ * @property {StatePlugin[]} triedPlugins - tried plugins
  * @property {StatePlugin} currentPlugin - current plugin
  * @property {StatePlugin} sentByPlugin - sent by plugin
  * @property {StatePlugin} payment - payment
@@ -15,7 +15,7 @@ class PaymentState {
    * @param {Payment} payment - payment
    * @param {string} [payment.internalState] - internal state
    * @param {string[]} [payment.pendingPlugins] - pending plugins
-   * @param {string[]} [payment.triedPlugins] - tried plugins
+   * @param {StatePlugin[]} [payment.triedPlugins] - tried plugins
    * @param {StatePlugin} [payment.currentPlugin] - current plugin
    * @param {StatePlugin} [payment.sentByPlugin] - sent by plugin
    * @param {Payment} [payment.payment] - payment
