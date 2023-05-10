@@ -52,7 +52,7 @@ export type PluginState = {
  * @property {StatePlugin[]} triedPlugins - tried plugins
  * @property {StatePlugin} currentPlugin - current plugin
  * @property {StatePlugin} sentByPlugin - sent by plugin
- * @property {StatePlugin} payment - payment
+ * @property {Payment} payment - payment
  */
 export class PaymentState {
     /**
@@ -66,15 +66,20 @@ export class PaymentState {
     static validate(payment: Payment): void;
     /**
      * @param {Payment} payment - payment
-     * @param {string} [payment.internalState] - internal state
-     * @param {string[]} [payment.pendingPlugins] - pending plugins
-     * @param {StatePlugin[]} [payment.triedPlugins] - tried plugins
-     * @param {StatePlugin} [payment.currentPlugin] - current plugin
-     * @param {StatePlugin} [payment.sentByPlugin] - sent by plugin
-     * @param {Payment} [payment.payment] - payment
+     * @property {string} [payment.internalState] - internal state
+     * @property {string[]} [payment.pendingPlugins] - pending plugins
+     * @property {StatePlugin[]} [payment.triedPlugins] - tried plugins
+     * @property {StatePlugin} [payment.currentPlugin] - current plugin
+     * @property {StatePlugin} [payment.sentByPlugin] - sent by plugin
+     * @param {Object} [params] - parameters to overwrite payment
+     * @property {string} [params.internalState] - internal state
+     * @property {string[]} [params.pendingPlugins] - pending plugins
+     * @property {StatePlugin[]} [params.triedPlugins] - tried plugins
+     * @property {StatePlugin} [params.currentPlugin] - current plugin
+     * @property {StatePlugin} [params.sentByPlugin] - sent by plugin
      * @throws {Error} - if payment is not provided
      */
-    constructor(payment: Payment, params?: {});
+    constructor(payment: Payment, params?: any);
     internalState: any;
     pendingPlugins: any;
     triedPlugins: any;
@@ -83,12 +88,14 @@ export class PaymentState {
     payment: Payment;
     /**
      * Instance logger for payment state at debug level
+     * @param {string} msg - message to log
      */
-    debug(msg: any): void;
+    debug(msg: string): void;
     /**
      * Instance logger for payment state at info level
+     * @param {string} msg - message to log
      */
-    info(msg: any): void;
+    info(msg: string): void;
     /**
      * Assigns pending plugins
      * @param {string[]} pendingPlugins - pending plugins
@@ -101,7 +108,7 @@ export class PaymentState {
      * @returns {Object} - serialized payment state
      * @returns {string} [returns.internalState] - internal state
      * @returns {string[]} [returns.pendingPlugins] - pending plugins
-     * @returns {string[]} [returns.triedPlugins] - tried plugins
+     * @returns {StatePlugin[]} [returns.triedPlugins] - tried plugins
      * @returns {StatePlugin} [returns.currentPlugin] - current plugin
      * @returns {StatePlugin} [returns.sentByPlugin] - sent by plugin
      */
