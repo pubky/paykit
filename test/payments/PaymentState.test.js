@@ -9,9 +9,9 @@ const uninitializedPayment = {
 }
 
 test('PaymentState.validate', t => {
-  t.exception(() => PaymentState.validate(), /Payment is required/)
-  t.exception(() => PaymentState.validate({}), /Payment db is required/)
-  t.exception(() => PaymentState.validate({ db: {} }), /Payment db is not ready/)
+  t.exception(() => PaymentState.validate(), ERRORS.PAYMENT_REQUIRED)
+  t.exception(() => PaymentState.validate({}), ERRORS.DB_REQUIRED)
+  t.exception(() => PaymentState.validate({ db: {} }), ERRORS.DB_NOT_READY)
 
   t.execution(() => PaymentState.validate(uninitializedPayment))
 })

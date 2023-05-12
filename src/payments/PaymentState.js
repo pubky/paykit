@@ -86,9 +86,9 @@ class PaymentState {
   static validate (payment) {
     logger.debug(`Validating payment ${payment}`)
 
-    if (!payment) throw new Error('Payment is required')
-    if (!payment.db) throw new Error('Payment db is required')
-    if (!payment.db.ready) throw new Error('Payment db is not ready')
+    if (!payment) throw new Error(ERRORS.PAYMENT_REQUIRED)
+    if (!payment.db) throw new Error(ERRORS.DB_REQUIRED)
+    if (!payment.db.ready) throw new Error(ERRORS.DB_NOT_READY)
 
     logger.debug('Validated payment')
   }
@@ -312,11 +312,18 @@ const PLUGIN_STATE = {
  * @typedef {Object} ERRORS
  * @property {function} INVALID_STATE - returns error message with invalid state
  * @property {string} PENDING_PLUGINS_NOT_ARRAY - error message for pending plugins not array
+ * @property {function} PLUGIN_IN_PROGRESS - returns error message with plugin name
+ * @property {string} PAYMENT_REQUIRED - error message for payment required
+ * @property {string} DB_REQUIRED - error message for db required
+ * @property {string} DB_NOT_READY - error message for db not ready
  */
 const ERRORS = {
   INVALID_STATE: (s) => `Invalid state: ${s}`,
   PENDING_PLUGINS_NOT_ARRAY: 'Pending plugins must be an array',
-  PLUGIN_IN_PROGRESS: (name) => `Cannot try next plugin while processing ${name}`
+  PLUGIN_IN_PROGRESS: (name) => `Cannot try next plugin while processing ${name}`,
+  PAYMENT_REQUIRED: 'Payment required',
+  DB_REQUIRED: 'DB required',
+  DB_NOT_READY: 'DB not ready'
 }
 
 /**
