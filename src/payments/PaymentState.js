@@ -215,7 +215,7 @@ class PaymentState {
     if (isEmptyObject(this.currentPlugin)) throw new Error('No current plugin')
 
     this.markCurrentPluginAsTried(PLUGIN_STATE.FAILED)
-    this.logDebug('Marked current plugin as tried with failed state')
+    this.logDebug(`Marked current plugin ${this.currentPlugin?.name} as tried with failed state`)
     await this.payment.update()
   }
 
@@ -247,7 +247,7 @@ class PaymentState {
 
     this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now(), state: PLUGIN_STATE.SUBMITTED }
     await this.payment.update()
-    this.logDebug('Updated payment with next plugin')
+    this.logDebug(`Updated payment with next plugin ${this.currentPlugin.name}`)
   }
 
   /**
@@ -256,11 +256,11 @@ class PaymentState {
    * @returns {void}
    */
   async complete () {
-    this.logInfo('Completing payment')
+    this.logInfo(`Completing payment with plugin ${this.currentPlugin?.name}`)
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     this.sentByPlugin = this.markCurrentPluginAsTried(PLUGIN_STATE.SUCCESS)
-    this.logDebug('Marked current plugin as tried with success state')
+    this.logDebug(`Marked current plugin ${this.currentPlugin?.name} as tried with success state`)
     this.internalState = PAYMENT_STATE.COMPLETED
     await this.payment.update()
     this.logDebug('Completed payment')
@@ -271,7 +271,7 @@ class PaymentState {
    * @returns {StatePlugin} - completed current plugin with endAt timestamp
    */
   markCurrentPluginAsTried (state) {
-    this.logInfo('Marking current plugin as tried')
+    this.logInfo(`Marking current plugin ${this.currentPlugin.name} as tried`)
     const completedPlugin = { ...this.currentPlugin, endAt: Date.now(), state }
     this.triedPlugins.push(completedPlugin)
     this.currentPlugin = null
