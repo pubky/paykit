@@ -29,6 +29,22 @@ export type ERRORS = {
      * - error message for pending plugins not array
      */
     PENDING_PLUGINS_NOT_ARRAY: string;
+    /**
+     * - returns error message with plugin name
+     */
+    PLUGIN_IN_PROGRESS: Function;
+    /**
+     * - error message for payment required
+     */
+    PAYMENT_REQUIRED: string;
+    /**
+     * - error message for db required
+     */
+    DB_REQUIRED: string;
+    /**
+     * - error message for db not ready
+     */
+    DB_NOT_READY: string;
 };
 export type PluginState = {
     /**
@@ -86,16 +102,10 @@ export class PaymentState {
     currentPlugin: any;
     sentByPlugin: any;
     payment: Payment;
-    /**
-     * Instance logger for payment state at debug level
-     * @param {string} msg - message to log
-     */
-    debug(msg: string): void;
-    /**
-     * Instance logger for payment state at info level
-     * @param {string} msg - message to log
-     */
-    info(msg: string): void;
+    logger: {
+        debug: (msg: any) => void;
+        info: (msg: any) => void;
+    };
     /**
      * Assigns pending plugins
      * @param {string[]} pendingPlugins - pending plugins
@@ -182,9 +192,10 @@ export class PaymentState {
     /**
      * Try next plugin - sets current plugin to next pending plugin and updates payment in db
      * @throws {Error} - if current state is not in progress
-     * @returns {void}
+     * @returns {boolean} - true if next plugin is tried
+     * @returns {boolean} - false if there are no pending plugins
      */
-    tryNext(): void;
+    tryNext(): boolean;
     /**
      * Complete payment - sets internal state to completed and updates payment in db
      * @throws {Error} - if current state is not in progress
@@ -214,4 +225,7 @@ export namespace ERRORS {
     function INVALID_STATE(s: any): string;
     const PENDING_PLUGINS_NOT_ARRAY: string;
     function PLUGIN_IN_PROGRESS(name: any): string;
+    const PAYMENT_REQUIRED: string;
+    const DB_REQUIRED: string;
+    const DB_NOT_READY: string;
 }
