@@ -27,8 +27,9 @@ class PaymentState {
    * @throws {Error} - if payment is not provided
    */
   constructor (payment, params = {}) {
-    logger.debug(`Initializing payment state with ${payment}, ${JSON.stringify(params)}`)
+    logger.debug('Initializing payment')
     PaymentState.validate(payment)
+    logger.debug(`Using payment state with ${payment}, ${JSON.stringify(params)}`)
 
     this.internalState = payment.internalState || params.internalState || PAYMENT_STATE.INITIAL
     this.pendingPlugins = payment.pendingPlugins || params.pendingPlugins || []
@@ -52,13 +53,13 @@ class PaymentState {
    * Instance logger for payment state at debug level
    * @param {string} msg - message to log
    */
-  debug (msg) { logger.debug.extend(JSON.stringify(this.serialize()))({ msg }) }
+  logDebug (msg) { logger.debug.extend(JSON.stringify(this.serialize()))({ msg }) }
 
   /**
    * Instance logger for payment state at info level
    * @param {string} msg - message to log
    */
-  info (msg) { logger.info.extend(JSON.stringify(this.serialize()))({ msg }) }
+  logInfo (msg) { logger.info.extend(JSON.stringify(this.serialize()))({ msg }) }
 
   /**
    * Assigns pending plugins
@@ -67,12 +68,12 @@ class PaymentState {
    * @returns {void}
    */
   assignPendingPlugins (pendingPlugins) {
-    this.debug(`Assigning pending plugins ${pendingPlugins}`)
+    this.logDebug(`Assigning pending plugins ${pendingPlugins}`)
 
     if (!Array.isArray(pendingPlugins)) throw new Error(ERRORS.PENDING_PLUGINS_NOT_ARRAY)
     this.pendingPlugins = [...pendingPlugins]
 
-    this.debug('Assigned pending plugins')
+    this.logDebug('Assigned pending plugins')
   }
 
   /**
@@ -165,7 +166,7 @@ class PaymentState {
    * @throws {Error} - if current state is not initial
    */
   async cancel () {
-    this.info('Cancelling payment')
+    this.logInfo('Cancelling payment')
     if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     if (!isEmptyObject(this.currentPlugin)) {
       // Belt and suspenders
@@ -175,7 +176,7 @@ class PaymentState {
 
     this.internalState = PAYMENT_STATE.CANCELLED
     await this.payment.update()
-    this.debug('Cancelled payment')
+    this.logDebug('Cancelled payment')
   }
 
   /**
@@ -187,7 +188,7 @@ class PaymentState {
    * @returns {boolean} - false if payment is failed
    */
   async process () {
-    this.info('Processing payment')
+    this.logInfo('Processing payment')
     if (this.isInitial()) {
       this.internalState = PAYMENT_STATE.IN_PROGRESS
       await this.payment.update()
@@ -208,13 +209,13 @@ class PaymentState {
    * @returns {void}
    */
   async failCurrentPlugin () {
-    this.info('Failing current plugin')
+    this.logInfo('Failing current plugin')
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     // XXX: this should not be possible
     if (isEmptyObject(this.currentPlugin)) throw new Error('No current plugin')
 
     this.markCurrentPluginAsTried(PLUGIN_STATE.FAILED)
-    this.debug('Marked current plugin as tried with failed state')
+    this.logDebug('Marked current plugin as tried with failed state')
     await this.payment.update()
   }
 
@@ -224,13 +225,13 @@ class PaymentState {
    * @returns {void}
    */
   async fail () {
-    this.info('Failing payment')
+    this.logInfo('Failing payment')
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     if (!isEmptyObject(this.currentPlugin)) await this.failCurrentPlugin()
 
     this.internalState = PAYMENT_STATE.FAILED
-    this.debug('Failed payment')
+    this.logDebug('Failed payment')
     await this.payment.update()
   }
 
@@ -240,13 +241,13 @@ class PaymentState {
    * @returns {void}
    */
   async tryNext () {
-    this.info('Trying next plugin')
+    this.logInfo('Trying next plugin')
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     if (!isEmptyObject(this.currentPlugin)) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
 
     this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now(), state: PLUGIN_STATE.SUBMITTED }
     await this.payment.update()
-    this.debug('Updated payment with next plugin')
+    this.logDebug('Updated payment with next plugin')
   }
 
   /**
@@ -255,14 +256,14 @@ class PaymentState {
    * @returns {void}
    */
   async complete () {
-    this.info('Completing payment')
+    this.logInfo('Completing payment')
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
     this.sentByPlugin = this.markCurrentPluginAsTried(PLUGIN_STATE.SUCCESS)
-    this.debug('Marked current plugin as tried with success state')
+    this.logDebug('Marked current plugin as tried with success state')
     this.internalState = PAYMENT_STATE.COMPLETED
     await this.payment.update()
-    this.debug('Completed payment')
+    this.logDebug('Completed payment')
   }
 
   /**
@@ -270,12 +271,12 @@ class PaymentState {
    * @returns {StatePlugin} - completed current plugin with endAt timestamp
    */
   markCurrentPluginAsTried (state) {
-    this.info('Marking current plugin as tried')
+    this.logInfo('Marking current plugin as tried')
     const completedPlugin = { ...this.currentPlugin, endAt: Date.now(), state }
     this.triedPlugins.push(completedPlugin)
     this.currentPlugin = null
 
-    this.debug('Marked current plugin as tried')
+    this.logDebug('Marked current plugin as tried')
     return completedPlugin
   }
 }
