@@ -231,16 +231,21 @@ class PaymentState {
   /**
    * Try next plugin - sets current plugin to next pending plugin and updates payment in db
    * @throws {Error} - if current state is not in progress
-   * @returns {void}
+   * @returns {boolean} - true if next plugin is tried
+   * @returns {boolean} - false if there are no pending plugins
    */
   async tryNext () {
     this.logger.info('Trying next plugin')
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     if (!isEmptyObject(this.currentPlugin)) throw new Error(ERRORS.PLUGIN_IN_PROGRESS(this.currentPlugin.name))
 
+    if (this.pendingPlugins.length === 0) return false
+
     this.currentPlugin = { name: this.pendingPlugins.shift(), startAt: Date.now(), state: PLUGIN_STATE.SUBMITTED }
     await this.payment.update()
     this.logger.debug(`Updated payment with next plugin ${this.currentPlugin.name}`)
+
+    return true
   }
 
   /**
