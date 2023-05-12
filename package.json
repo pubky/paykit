@@ -7,7 +7,8 @@
   "scripts": {
     "lint": "standard --fix",
     "test": "brittle test/**/*.test.js",
-    "types": "node_modules/typescript/bin/tsc src/**/*.js --declaration --allowJs --emitDeclarationOnly --outDir types"
+    "types": "node_modules/typescript/bin/tsc src/**/*.js --declaration --allowJs --emitDeclarationOnly --outDir types",
+    "prepare": "./bin/confirm_only_allowed_git_deps.sh"
   },
   "repository": {
     "type": "git",
