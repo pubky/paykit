@@ -27,7 +27,7 @@ class PaymentState {
    * @throws {Error} - if payment is not provided
    */
   constructor (payment, params = {}) {
-    logger.debug('Initializing payment')
+    logger.info('Initializing payment')
     PaymentState.validate(payment)
     logger.debug(`Using payment state with ${payment}, ${JSON.stringify(params)}`)
 
