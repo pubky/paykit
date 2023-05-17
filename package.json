@@ -6,7 +6,7 @@
   "types": "types/",
   "scripts": {
     "lint": "standard --fix",
-    "test": "brittle test/**/*.test.js",
+    "test": "brittle test/**/*.test.js --coverage --bail",
     "types": "node_modules/typescript/bin/tsc src/**/*.js --declaration --allowJs --emitDeclarationOnly --outDir types",
     "prepare": "./bin/confirm_only_allowed_git_deps.sh"
   },
