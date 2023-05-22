@@ -33,10 +33,22 @@ class Payment {
    * @throws {Error} - if direction is invalid
    * @returns {void}
    */
-  static validateDirection (direction) {
+  static validateDirection (paymentParams) {
+    const { direction } = paymentParams
     if (!direction) return
 
     if (!Object.values(PAYMENT_DIRECTION).includes(direction)) throw new Error(ERRORS.INVALID_DIRECTION)
+    if (direction === PAYMENT_DIRECTION.OUT) return
+
+    const { completedByPlugin } = paymentParams
+
+    if (!completedByPlugin) throw new Error(ERRORS.COMPLETED_BY_PLUGIN_REQUIRED)
+    if (!completedByPlugin.name) throw new Error(ERRORS.COMPLETED_BY_PLUGIN_NAME_REQUIRED)
+    if (!completedByPlugin.state) throw new Error(ERRORS.COMPLETED_BY_PLUGIN_STATE_REQUIRED)
+    if (!Object.values(PLUGIN_STATE).includes(completedByPlugin.state)) {
+      throw new Error(ERRORS.INVALID_PLUGIN_STATE(completedByPlugin.state))
+    }
+    if (!completedByPlugin.startAt) throw new Error(ERRORS.COMPLETED_BY_PLUGIN_START_AT_REQUIRED)
   }
 
   /**
@@ -50,7 +62,7 @@ class Payment {
     if (!paymentParams.orderId) throw new Error(ERRORS.ORDER_ID_REQUIRED)
     if (!paymentParams.clientOrderId) throw new Error(ERRORS.CLIENT_ID_REQUIRED)
     if (!paymentParams.counterpartyURL) throw new Error(ERRORS.COUTNERPARTY_REQUIRED)
-    Payment.validateDirection(paymentParams.direction)
+    Payment.validateDirection(paymentParams)
   }
 
   /**
@@ -111,7 +123,11 @@ class Payment {
     this.memo = paymentParams.memo || ''
 
     this.amount = new PaymentAmount(paymentParams)
-    this.internalState = new PaymentState(this, paymentParams)
+
+    const statePaymentParams = { ...paymentParams }
+    if (this.direction === PAYMENT_DIRECTION.IN) statePaymentParams.internalState = PAYMENT_STATE.COMPLETED
+
+    this.internalState = new PaymentState(this, statePaymentParams)
 
     this.createdAt = paymentParams.createdAt || Date.now()
     this.executeAt = paymentParams.executeAt || Date.now()
@@ -313,6 +329,14 @@ class Payment {
  * @property {string} NO_PLUGINS - no plugins found
  * @property {string} CLIENT_ID_REQUIRED - clientOrderId is required
  * @property {string} COUNTERPARTY_REQUIRED - counterpartyURL is required
+ * @property {string} NOT_ALLOWED - not allowed
+ * @property {string} NO_PAYMENT_FILE - no payment file found
+ * @property {string} INVALID_DIRECTION - invalid payment direction
+ * @property {string} COMPLETED_BY_PLUGIN_REQUIRED - completedByPlugin is required
+ * @property {string} COMPLETED_BY_PLUGIN_NAME_REQUIRED - completedByPlugin.name is required
+ * @property {string} COMPLETED_BY_PLUGIN_STATE_REQUIRED - completedByPlugin.state is required
+ * @property {string} INVALID_PLUGIN_STATE - invalid plugin state
+ * @property {string} COMPLETED_BY_PLUGIN_START_AT_REQUIRED - completedByPlugin.startAt is required
  */
 const ERRORS = {
   PARAMS_REQUIRED: 'params are required',
@@ -325,7 +349,12 @@ const ERRORS = {
   COUNTERPARTY_REQUIRED: 'counterpartyURL is required',
   NOT_ALLOWED: 'Not allowed',
   NO_PAYMENT_FILE: 'No payment file found',
-  INVALID_DIRECTION: 'Invalid payment direction'
+  INVALID_DIRECTION: 'Invalid payment direction',
+  COMPLETED_BY_PLUGIN_REQUIRED: 'completedByPlugin is required',
+  COMPLETED_BY_PLUGIN_NAME_REQUIRED: 'completedByPlugin.name is required',
+  COMPLETED_BY_PLUGIN_STATE_REQUIRED: 'completedByPlugin.state is required',
+  INVALID_PLUGIN_STATE: (state) => `Invalid plugin state ${state}`,
+  COMPLETED_BY_PLUGIN_START_AT_REQUIRED: 'completedByPlugin.startAt is required'
 }
 
 /**
@@ -342,5 +371,6 @@ module.exports = {
   Payment,
   PAYMENT_STATE,
   PLUGIN_STATE,
-  ERRORS
+  ERRORS,
+  PAYMENT_DIRECTION
 }

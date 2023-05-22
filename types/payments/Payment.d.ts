@@ -11,6 +11,38 @@ export type Error = {
      * - counterpartyURL is required
      */
     COUNTERPARTY_REQUIRED: string;
+    /**
+     * - not allowed
+     */
+    NOT_ALLOWED: string;
+    /**
+     * - no payment file found
+     */
+    NO_PAYMENT_FILE: string;
+    /**
+     * - invalid payment direction
+     */
+    INVALID_DIRECTION: string;
+    /**
+     * - completedByPlugin is required
+     */
+    COMPLETED_BY_PLUGIN_REQUIRED: string;
+    /**
+     * - completedByPlugin.name is required
+     */
+    COMPLETED_BY_PLUGIN_NAME_REQUIRED: string;
+    /**
+     * - completedByPlugin.state is required
+     */
+    COMPLETED_BY_PLUGIN_STATE_REQUIRED: string;
+    /**
+     * - invalid plugin state
+     */
+    INVALID_PLUGIN_STATE: string;
+    /**
+     * - completedByPlugin.startAt is required
+     */
+    COMPLETED_BY_PLUGIN_START_AT_REQUIRED: string;
 };
 export type PaymentDirection = {
     /**
@@ -47,7 +79,7 @@ export class Payment {
      * @throws {Error} - if direction is invalid
      * @returns {void}
      */
-    static validateDirection(direction: PaymentDirection): void;
+    static validateDirection(paymentParams: any): void;
     /**
      * Validate payment parameters
      * @param {PaymentParams} paymentParams - payment parameters
@@ -244,6 +276,15 @@ export namespace ERRORS {
     const NOT_ALLOWED: string;
     const NO_PAYMENT_FILE: string;
     const INVALID_DIRECTION: string;
+    const COMPLETED_BY_PLUGIN_REQUIRED: string;
+    const COMPLETED_BY_PLUGIN_NAME_REQUIRED: string;
+    const COMPLETED_BY_PLUGIN_STATE_REQUIRED: string;
+    function INVALID_PLUGIN_STATE(state: any): string;
+    const COMPLETED_BY_PLUGIN_START_AT_REQUIRED: string;
+}
+export namespace PAYMENT_DIRECTION {
+    const IN: string;
+    const OUT: string;
 }
 import { PaymentAmount } from "./PaymentAmount";
 import { PaymentState } from "./PaymentState";

@@ -60,6 +60,31 @@ test('Payment.validatePaymentObject', t => {
   t.execution(() => Payment.validatePaymentObject(paymentObject))
 })
 
+test('Payment.validateDirection', t => {
+  const paymentObject = {
+    ...paymentParams
+  }
+  t.execution(() => Payment.validateDirection(paymentObject))
+
+  paymentObject.direction = 'IN'
+  t.exception(() => Payment.validateDirection(paymentObject), ERRORS.COMPLETED_BY_PLUGIN_REQUIRED)
+
+  paymentObject.completedByPlugin = {}
+  t.exception(() => Payment.validateDirection(paymentObject), ERRORS.COMPLETED_BY_PLUGIN_NAME_REQUIRED)
+
+  paymentObject.completedByPlugin.name = 'test'
+  t.exception(() => Payment.validateDirection(paymentObject), ERRORS.COMPLETED_BY_PLUGIN_STATE_REQUIRED)
+
+  paymentObject.completedByPlugin.state = 'foo'
+  t.exception(() => Payment.validateDirection(paymentObject), STATE_ERRORS.INVALID_STATE('foo'))
+
+  paymentObject.completedByPlugin.state = PLUGIN_STATE.SUCCESS
+  t.exception(() => Payment.validateDirection(paymentObject), ERRORS.COMPLETED_BY_PLUGIN_START_AT_REQUIRED)
+
+  paymentObject.completedByPlugin.startAt = Date.now()
+  t.execution(() => Payment.validateDirection(paymentObject))
+})
+
 test('Payment - new', async t => {
   const db = new DB()
   await db.init()
@@ -85,6 +110,48 @@ test('Payment - new', async t => {
   t.is(payment.orderId, paymentParams.orderId)
   t.ok(payment.createdAt <= Date.now())
   t.ok(payment.executeAt <= Date.now())
+})
+
+test('Payment - new (incomming)', async t => {
+  const db = new DB()
+  await db.init()
+
+  const payment = new Payment({
+    ...paymentParams,
+    sendingPriority: ['p2sh', 'lightning'],
+    direction: 'IN',
+    completedByPlugin: {
+      name: 'test',
+      state: PLUGIN_STATE.SUCCESS,
+      startAt: Date.now(),
+      endAt: Date.now()
+    }
+  }, db)
+
+  t.is(payment.id, null)
+  t.is(payment.counterpartyURL, 'slashpay://driveKey/slashpay.json')
+  t.is(payment.clientOrderId, 'clientOrderId')
+  t.alike(payment.amount, new PaymentAmount({
+    amount: '100',
+    currency: 'BTC',
+    denomination: 'BASE'
+  }))
+  t.is(payment.memo, '')
+  t.is(payment.orderId, paymentParams.orderId)
+  t.ok(payment.createdAt <= Date.now())
+  t.ok(payment.executeAt <= Date.now())
+
+  const internalState = payment.internalState.serialize()
+
+  t.is(internalState.internalState, PAYMENT_STATE.COMPLETED)
+  t.alike(internalState.pendingPlugins, [])
+  t.alike(internalState.triedPlugins, [])
+  t.alike(internalState.currentPlugin, {})
+
+  t.is(internalState.completedByPlugin.state, PLUGIN_STATE.SUCCESS)
+  t.is(internalState.completedByPlugin.name, 'test')
+  t.ok(internalState.completedByPlugin.startAt <= Date.now())
+  t.ok(internalState.completedByPlugin.endAt <= Date.now())
 })
 
 test('Payment.init - payment file not found', async t => {
