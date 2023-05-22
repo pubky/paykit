@@ -7,7 +7,7 @@ const logger = require('slashtags-logger')('Slashpay', 'payment-state')
  * @property {string[]} pendingPlugins - pending plugins
  * @property {StatePlugin[]} triedPlugins - tried plugins
  * @property {StatePlugin} currentPlugin - current plugin
- * @property {StatePlugin} sentByPlugin - sent by plugin
+ * @property {StatePlugin} completedByPlugin - sent by plugin
  * @property {Payment} payment - payment
  */
 class PaymentState {
@@ -17,13 +17,13 @@ class PaymentState {
    * @property {string[]} [payment.pendingPlugins] - pending plugins
    * @property {StatePlugin[]} [payment.triedPlugins] - tried plugins
    * @property {StatePlugin} [payment.currentPlugin] - current plugin
-   * @property {StatePlugin} [payment.sentByPlugin] - sent by plugin
+   * @property {StatePlugin} [payment.completedByPlugin] - sent by plugin
    * @param {Object} [params] - parameters to overwrite payment
    * @property {string} [params.internalState] - internal state
    * @property {string[]} [params.pendingPlugins] - pending plugins
    * @property {StatePlugin[]} [params.triedPlugins] - tried plugins
    * @property {StatePlugin} [params.currentPlugin] - current plugin
-   * @property {StatePlugin} [params.sentByPlugin] - sent by plugin
+   * @property {StatePlugin} [params.completedByPlugin] - sent by plugin
    * @throws {Error} - if payment is not provided
    */
   constructor (payment, params = {}) {
@@ -31,11 +31,12 @@ class PaymentState {
     logger.debug(`Using payment state with ${JSON.stringify(params)}`)
 
     this.internalState = payment.internalState || params.internalState || PAYMENT_STATE.INITIAL
+
     this.pendingPlugins = payment.pendingPlugins || params.pendingPlugins || []
     this.triedPlugins = payment.triedPlugins || params.triedPlugins || []
 
     this.currentPlugin = payment.currentPlugin || params.currentPlugin || null
-    this.sentByPlugin = payment.sentByPlugin || params.sentByPlugin || null
+    this.completedByPlugin = payment.completedByPlugin || params.completedByPlugin || null
 
     this.payment = payment
     logger.debug('Initialized payment state')
@@ -93,7 +94,7 @@ class PaymentState {
    * @returns {string[]} [returns.pendingPlugins] - pending plugins
    * @returns {StatePlugin[]} [returns.triedPlugins] - tried plugins
    * @returns {StatePlugin} [returns.currentPlugin] - current plugin
-   * @returns {StatePlugin} [returns.sentByPlugin] - sent by plugin
+   * @returns {StatePlugin} [returns.completedByPlugin] - sent by plugin
    */
   serialize () {
     return {
@@ -101,7 +102,7 @@ class PaymentState {
       pendingPlugins: [...this.pendingPlugins],
       triedPlugins: [...this.triedPlugins],
       currentPlugin: { ...this.currentPlugin },
-      sentByPlugin: { ...this.sentByPlugin }
+      completedByPlugin: { ...this.completedByPlugin }
     }
   }
 
@@ -256,7 +257,7 @@ class PaymentState {
     this.logger.info(`Completing payment with plugin ${this.currentPlugin?.name}`)
     if (!this.isInProgress()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
 
-    this.sentByPlugin = this.markCurrentPluginAsTried(PLUGIN_STATE.SUCCESS)
+    this.completedByPlugin = this.markCurrentPluginAsTried(PLUGIN_STATE.SUCCESS)
     this.logger.debug(`Marked current plugin ${this.currentPlugin?.name} as tried with success state`)
     this.internalState = PAYMENT_STATE.COMPLETED
     await this.payment.update()

@@ -72,7 +72,7 @@ test('Payment - new', async t => {
     pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {}
+    completedByPlugin: {}
   })
   t.is(payment.counterpartyURL, 'slashpay://driveKey/slashpay.json')
   t.is(payment.clientOrderId, 'clientOrderId')
@@ -162,7 +162,7 @@ test('Payment.serialize', async t => {
     pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {},
+    completedByPlugin: {},
     direction: 'OUT',
     createdAt: payment.createdAt,
     executeAt: payment.executeAt
@@ -246,7 +246,7 @@ test('Payment.process', async t => {
   t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
   t.alike(serialized.triedPlugins, [])
   t.alike(serialized.currentPlugin, {})
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 0)
   t.is(update.callCount, 0)
 
@@ -267,7 +267,7 @@ test('Payment.process', async t => {
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
 
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
 
   t.is(process.callCount, 2)
   t.is(update.callCount, 2)
@@ -281,7 +281,7 @@ test('Payment.process', async t => {
   t.is(serialized.currentPlugin.name, 'p2sh')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 3)
   t.is(update.callCount, 2)
 
@@ -304,7 +304,7 @@ test('Payment.process', async t => {
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
 
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 4)
   t.is(update.callCount, 4)
 
@@ -322,7 +322,7 @@ test('Payment.process', async t => {
   t.is(serialized.currentPlugin.name, 'lightning')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 5)
   t.is(update.callCount, 4)
 
@@ -348,7 +348,7 @@ test('Payment.process', async t => {
 
   t.alike(serialized.currentPlugin, {})
 
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 6)
   t.is(update.callCount, 6)
 
@@ -372,7 +372,7 @@ test('Payment.complete', async t => {
   t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
   t.alike(serialized.triedPlugins, [])
   t.alike(serialized.currentPlugin, {})
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 0)
   t.is(complete.callCount, 0)
   t.is(update.callCount, 0)
@@ -383,7 +383,7 @@ test('Payment.complete', async t => {
   t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
   t.alike(serialized.triedPlugins, [])
   t.alike(serialized.currentPlugin, {})
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 0)
   t.is(complete.callCount, 1)
   t.is(update.callCount, 0)
@@ -396,7 +396,7 @@ test('Payment.complete', async t => {
   t.alike(serialized.triedPlugins, [])
   t.is(serialized.currentPlugin.name, 'p2sh')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
-  t.alike(serialized.sentByPlugin, {})
+  t.alike(serialized.completedByPlugin, {})
   t.is(process.callCount, 1)
   t.is(complete.callCount, 1)
   t.is(update.callCount, 2)
@@ -411,9 +411,9 @@ test('Payment.complete', async t => {
   t.ok(serialized.triedPlugins[0].endAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
   t.alike(serialized.currentPlugin, {})
-  t.is(serialized.sentByPlugin.name, 'p2sh')
-  t.ok(serialized.sentByPlugin.startAt <= Date.now())
-  t.ok(serialized.sentByPlugin.endAt <= Date.now())
+  t.is(serialized.completedByPlugin.name, 'p2sh')
+  t.ok(serialized.completedByPlugin.startAt <= Date.now())
+  t.ok(serialized.completedByPlugin.endAt <= Date.now())
   t.is(process.callCount, 1)
   t.is(complete.callCount, 2)
   t.is(update.callCount, 3)

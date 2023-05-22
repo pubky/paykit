@@ -67,7 +67,7 @@ export type PluginState = {
  * @property {string[]} pendingPlugins - pending plugins
  * @property {StatePlugin[]} triedPlugins - tried plugins
  * @property {StatePlugin} currentPlugin - current plugin
- * @property {StatePlugin} sentByPlugin - sent by plugin
+ * @property {StatePlugin} completedByPlugin - sent by plugin
  * @property {Payment} payment - payment
  */
 export class PaymentState {
@@ -86,13 +86,13 @@ export class PaymentState {
      * @property {string[]} [payment.pendingPlugins] - pending plugins
      * @property {StatePlugin[]} [payment.triedPlugins] - tried plugins
      * @property {StatePlugin} [payment.currentPlugin] - current plugin
-     * @property {StatePlugin} [payment.sentByPlugin] - sent by plugin
+     * @property {StatePlugin} [payment.completedByPlugin] - sent by plugin
      * @param {Object} [params] - parameters to overwrite payment
      * @property {string} [params.internalState] - internal state
      * @property {string[]} [params.pendingPlugins] - pending plugins
      * @property {StatePlugin[]} [params.triedPlugins] - tried plugins
      * @property {StatePlugin} [params.currentPlugin] - current plugin
-     * @property {StatePlugin} [params.sentByPlugin] - sent by plugin
+     * @property {StatePlugin} [params.completedByPlugin] - sent by plugin
      * @throws {Error} - if payment is not provided
      */
     constructor(payment: Payment, params?: any);
@@ -100,7 +100,7 @@ export class PaymentState {
     pendingPlugins: any;
     triedPlugins: any;
     currentPlugin: any;
-    sentByPlugin: any;
+    completedByPlugin: any;
     payment: Payment;
     logger: {
         debug: (msg: any) => void;
@@ -120,7 +120,7 @@ export class PaymentState {
      * @returns {string[]} [returns.pendingPlugins] - pending plugins
      * @returns {StatePlugin[]} [returns.triedPlugins] - tried plugins
      * @returns {StatePlugin} [returns.currentPlugin] - current plugin
-     * @returns {StatePlugin} [returns.sentByPlugin] - sent by plugin
+     * @returns {StatePlugin} [returns.completedByPlugin] - sent by plugin
      */
     serialize(): any;
     /**
