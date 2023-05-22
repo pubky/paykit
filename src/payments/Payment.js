@@ -9,7 +9,7 @@ const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
  * @property {string} id - payment id
  * @property {string} orderId - order id
  * @property {string} clientOrderId - client payment id
- * @property {string} targetURL - destination of the payment
+ * @property {string} counterpartyURL - destination of the payment
  * @property {string} memo - memo of the payment
  * @property {string[]} sendingPriority - list of plugins to use to send the payment
  * @property {Amount} amount - amount of the payment
@@ -49,7 +49,7 @@ class Payment {
     if (!paymentParams) throw new Error(ERRORS.PARAMS_REQUIRED)
     if (!paymentParams.orderId) throw new Error(ERRORS.ORDER_ID_REQUIRED)
     if (!paymentParams.clientOrderId) throw new Error(ERRORS.CLIENT_ID_REQUIRED)
-    if (!paymentParams.targetURL) throw new Error(ERRORS.TARGET_REQUIRED)
+    if (!paymentParams.counterpartyURL) throw new Error(ERRORS.COUTNERPARTY_REQUIRED)
     Payment.validateDirection(paymentParams.direction)
   }
 
@@ -83,7 +83,7 @@ class Payment {
    * @param {PaymentParams} paymentParams
    * @property {string} [paymentParmas.id] - payment id
    * @property {PaymentState} [paymentParams.internalState] - internal state of the payment
-   * @property {string} targetURL - destination of the payment
+   * @property {string} counterpartyURL - destination of the payment
    * @property {string} clientOrderId - client payment id
    * @property {Amount} amount - amount of the payment
    * @property {string[]} sendingPriority - list of plugins to use to send the payment
@@ -107,7 +107,7 @@ class Payment {
 
     this.direction = paymentParams.direction || PAYMENT_DIRECTION.OUT
 
-    this.targetURL = paymentParams.targetURL
+    this.counterpartyURL = paymentParams.counterpartyURL
     this.memo = paymentParams.memo || ''
 
     this.amount = new PaymentAmount(paymentParams)
@@ -130,7 +130,7 @@ class Payment {
   }
 
   /**
-   * Connects to remote targetURL and creates local payment priority
+   * Connects to remote counterpartyURL and creates local payment priority
    * @returns {Promise<void>}
    * @throws {Error} - if no mutual plugins are available
    */
@@ -140,7 +140,7 @@ class Payment {
     this.logger.debug('Retrieving payment file')
     const remoteStorage = new SlashtagsAccessObject()
     // XXX: url may contain path to payment file
-    await remoteStorage.init(this.targetURL)
+    await remoteStorage.init(this.counterpartyURL)
     const paymentFile = await remoteStorage.read('/slashpay.json')
     if (!paymentFile) throw new Error(ERRORS.NO_PAYMENT_FILE)
     this.logger.debug('Retrieved payment file')
@@ -163,7 +163,7 @@ class Payment {
       id: this.id,
       orderId: this.orderId,
       clientOrderId: this.clientOrderId,
-      targetURL: this.targetURL,
+      counterpartyURL: this.counterpartyURL,
       memo: this.memo,
       sendingPriority: this.sendingPriority,
       createdAt: this.createdAt,
@@ -181,7 +181,7 @@ class Payment {
    * @property {string|null} id - payment id
    * @property {string} clientOrderId - client payment id
    * @property {PAYMENT_STATE} internalState - internal state of the payment
-   * @property {string} targetURL - destination of the payment
+   * @property {string} counterpartyURL - destination of the payment
    * // serialized amount
    * @property {string} amount - amount of the payment
    * @property {string} currency - currency of the payment
@@ -312,7 +312,7 @@ class Payment {
  * @typedef {Object} Error
  * @property {string} NO_PLUGINS - no plugins found
  * @property {string} CLIENT_ID_REQUIRED - clientOrderId is required
- * @property {string} TARGET_REQUIRED - targetURL is required
+ * @property {string} COUNTERPARTY_REQUIRED - counterpartyURL is required
  */
 const ERRORS = {
   PARAMS_REQUIRED: 'params are required',
@@ -322,7 +322,7 @@ const ERRORS = {
   DB_NOT_READY: 'Database is not ready',
   NO_MATCHING_PLUGINS: 'No plugins found',
   CLIENT_ID_REQUIRED: 'clientOrderId is required',
-  TARGET_REQUIRED: 'targetURL is required',
+  COUNTERPARTY_REQUIRED: 'counterpartyURL is required',
   NOT_ALLOWED: 'Not allowed',
   NO_PAYMENT_FILE: 'No payment file found',
   INVALID_DIRECTION: 'Invalid payment direction'

@@ -28,13 +28,13 @@ test('Payment.validatePaymentParams', t => {
   t.exception(() => Payment.validatePaymentParams(params), ERRORS.AMOUNT_REQUIRED)
 
   params.amount = '100'
-  t.exception(() => Payment.validatePaymentParams(params), ERRORS.TARGET_REQUIRED)
+  t.exception(() => Payment.validatePaymentParams(params), ERRORS.COUNTERPARTY_REQUIRED)
 
   params.id = 'id'
   t.exception(() => Payment.validatePaymentParams(params), ERRORS.ALREADY_EXISTS('id'))
 
   delete params.id
-  params.targetURL = 'targetURL'
+  params.counterpartyURL = 'counterpartyURL'
   t.execution(() => Payment.validatePaymentParams(params))
 })
 
@@ -74,7 +74,7 @@ test('Payment - new', async t => {
     currentPlugin: {},
     sentByPlugin: {}
   })
-  t.is(payment.targetURL, 'slashpay://driveKey/slashpay.json')
+  t.is(payment.counterpartyURL, 'slashpay://driveKey/slashpay.json')
   t.is(payment.clientOrderId, 'clientOrderId')
   t.alike(payment.amount, new PaymentAmount({
     amount: '100',
@@ -153,7 +153,7 @@ test('Payment.serialize', async t => {
     orderId: 'internalOrderId',
     clientOrderId: 'clientOrderId',
     internalState: PAYMENT_STATE.INITIAL,
-    targetURL: 'slashpay://driveKey/slashpay.json',
+    counterpartyURL: 'slashpay://driveKey/slashpay.json',
     memo: '',
     amount: '100',
     currency: 'BTC',

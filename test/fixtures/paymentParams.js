@@ -1,7 +1,7 @@
 const orderParams = {
   clientOrderId: 'clientOrderId',
   amount: '100',
-  targetURL: 'slashpay://driveKey/slashpay.json',
+  counterpartyURL: 'slashpay://driveKey/slashpay.json',
   sendingPriority: ['p2sh', 'p2tr']
 }
 

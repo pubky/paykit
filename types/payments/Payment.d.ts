@@ -8,9 +8,9 @@ export type Error = {
      */
     CLIENT_ID_REQUIRED: string;
     /**
-     * - targetURL is required
+     * - counterpartyURL is required
      */
-    TARGET_REQUIRED: string;
+    COUNTERPARTY_REQUIRED: string;
 };
 export type PaymentDirection = {
     /**
@@ -28,7 +28,7 @@ export type PaymentDirection = {
  * @property {string} id - payment id
  * @property {string} orderId - order id
  * @property {string} clientOrderId - client payment id
- * @property {string} targetURL - destination of the payment
+ * @property {string} counterpartyURL - destination of the payment
  * @property {string} memo - memo of the payment
  * @property {string[]} sendingPriority - list of plugins to use to send the payment
  * @property {Amount} amount - amount of the payment
@@ -74,7 +74,7 @@ export class Payment {
      * @param {PaymentParams} paymentParams
      * @property {string} [paymentParmas.id] - payment id
      * @property {PaymentState} [paymentParams.internalState] - internal state of the payment
-     * @property {string} targetURL - destination of the payment
+     * @property {string} counterpartyURL - destination of the payment
      * @property {string} clientOrderId - client payment id
      * @property {Amount} amount - amount of the payment
      * @property {string[]} sendingPriority - list of plugins to use to send the payment
@@ -88,7 +88,7 @@ export class Payment {
     orderId: any;
     clientOrderId: any;
     direction: any;
-    targetURL: any;
+    counterpartyURL: any;
     memo: any;
     amount: PaymentAmount;
     internalState: PaymentState;
@@ -99,7 +99,7 @@ export class Payment {
         info: (msg: any) => void;
     };
     /**
-     * Connects to remote targetURL and creates local payment priority
+     * Connects to remote counterpartyURL and creates local payment priority
      * @returns {Promise<void>}
      * @throws {Error} - if no mutual plugins are available
      */
@@ -131,7 +131,7 @@ export class Payment {
          * - destination of the payment
          * // serialized amount
          */
-        targetURL: string;
+        counterpartyURL: string;
         /**
          * - amount of the payment
          */
@@ -164,7 +164,7 @@ export class Payment {
      * @property {string|null} id - payment id
      * @property {string} clientOrderId - client payment id
      * @property {PAYMENT_STATE} internalState - internal state of the payment
-     * @property {string} targetURL - destination of the payment
+     * @property {string} counterpartyURL - destination of the payment
      * // serialized amount
      * @property {string} amount - amount of the payment
      * @property {string} currency - currency of the payment
@@ -240,7 +240,7 @@ export namespace ERRORS {
     const DB_NOT_READY: string;
     const NO_MATCHING_PLUGINS: string;
     const CLIENT_ID_REQUIRED: string;
-    const TARGET_REQUIRED: string;
+    const COUNTERPARTY_REQUIRED: string;
     const NOT_ALLOWED: string;
     const NO_PAYMENT_FILE: string;
     const INVALID_DIRECTION: string;
