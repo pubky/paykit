@@ -216,12 +216,12 @@ class Payment {
    */
   async save () {
     this.logger.info('Saving payment')
-    if (this.id) {
-      const payment = await this.db.get(this.id, { removed: '*' })
-      if (payment) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
-    } else {
+    if (!this.id) {
       this.id = Payment.generateId()
     }
+
+    const payment = await this.db.get(this.id, { removed: '*' })
+    if (payment) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
 
     const paymentObject = this.serialize()
     Payment.validatePaymentObject(paymentObject)
