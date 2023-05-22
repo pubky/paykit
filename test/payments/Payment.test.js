@@ -48,15 +48,21 @@ test('Payment.validateDB', async t => {
 })
 
 test('Payment.validatePaymentObject', t => {
-  // TODO: add more tests
   const paymentObject = {
-    id: 'id',
-    internalState: PAYMENT_STATE.INITIAL,
     currency: 'BTC',
     denomination: 'BASE',
     sendingPriority: ['p2sh', 'lightning'],
     ...paymentParams
   }
+
+  t.exception(() => Payment.validatePaymentObject(), ERRORS.PAYMENT_OBJECT_REQUIRED)
+
+  t.exception(() => Payment.validatePaymentObject(paymentObject), ERRORS.ID_REQUIRED)
+
+  paymentObject.id = 'id'
+  t.exception(() => Payment.validatePaymentObject(paymentObject), ERRORS.INTERNAL_STATE_REQUIRED)
+
+  paymentObject.internalState = PAYMENT_STATE.INITIAL
   t.execution(() => Payment.validatePaymentObject(paymentObject))
 })
 

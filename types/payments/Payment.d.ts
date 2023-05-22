@@ -265,7 +265,9 @@ export class Payment {
 import { PAYMENT_STATE } from "./PaymentState";
 import { PLUGIN_STATE } from "./PaymentState";
 export namespace ERRORS {
+    const ID_REQUIRED: string;
     const PARAMS_REQUIRED: string;
+    const PAYMENT_OBJECT_REQUIRED: string;
     const ORDER_ID_REQUIRED: string;
     function ALREADY_EXISTS(id: any): string;
     const NO_DB: string;

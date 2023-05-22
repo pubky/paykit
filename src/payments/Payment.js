@@ -83,6 +83,7 @@ class Payment {
    * @returns {void}
    */
   static validatePaymentObject (pO) {
+    if (!pO) throw new Error(ERRORS.PAYMENT_OBJECT_REQUIRED)
     if (!pO.id) throw new Error(ERRORS.ID_REQUIRED)
     if (!pO.internalState) throw new Error(ERRORS.INTERNAL_STATE_REQUIRED)
 
@@ -339,7 +340,9 @@ class Payment {
  * @property {string} COMPLETED_BY_PLUGIN_START_AT_REQUIRED - completedByPlugin.startAt is required
  */
 const ERRORS = {
+  ID_REQUIRED: 'id is required',
   PARAMS_REQUIRED: 'params are required',
+  PAYMENT_OBJECT_REQUIRED: 'payment object is required',
   ORDER_ID_REQUIRED: 'orderId is required',
   ALREADY_EXISTS: (id) => `Payment id: ${id} already exists`,
   NO_DB: 'No database provided',
