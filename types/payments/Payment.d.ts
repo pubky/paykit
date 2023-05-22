@@ -12,6 +12,16 @@ export type Error = {
      */
     TARGET_REQUIRED: string;
 };
+export type PaymentDirection = {
+    /**
+     * - incoming payment
+     */
+    IN: string;
+    /**
+     * - outgoing payment
+     */
+    OUT: string;
+};
 /**
  * Payment class
  * @class Payment
@@ -23,6 +33,7 @@ export type Error = {
  * @property {string[]} sendingPriority - list of plugins to use to send the payment
  * @property {Amount} amount - amount of the payment
  * @property {PaymentState} internalState - internal state of the payment
+ * @property {PaymentDirection} direction - direction of the payment
  */
 export class Payment {
     /**
@@ -30,6 +41,13 @@ export class Payment {
      * @returns {string}
      */
     static generateId(): string;
+    /**
+     * Validate payment direction
+     * @param {PaymentDirection} direction - payment direction
+     * @throws {Error} - if direction is invalid
+     * @returns {void}
+     */
+    static validateDirection(direction: PaymentDirection): void;
     /**
      * Validate payment parameters
      * @param {PaymentParams} paymentParams - payment parameters
@@ -69,6 +87,7 @@ export class Payment {
     id: any;
     orderId: any;
     clientOrderId: any;
+    direction: any;
     targetURL: any;
     memo: any;
     amount: PaymentAmount;
@@ -224,6 +243,7 @@ export namespace ERRORS {
     const TARGET_REQUIRED: string;
     const NOT_ALLOWED: string;
     const NO_PAYMENT_FILE: string;
+    const INVALID_DIRECTION: string;
 }
 import { PaymentAmount } from "./PaymentAmount";
 import { PaymentState } from "./PaymentState";

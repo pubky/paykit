@@ -1,5 +1,3 @@
-// FIXME: add properties specific to incoming payment
-
 const logger = require('slashtags-logger')('Slashpay', 'payment')
 
 const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
@@ -16,6 +14,7 @@ const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
  * @property {string[]} sendingPriority - list of plugins to use to send the payment
  * @property {Amount} amount - amount of the payment
  * @property {PaymentState} internalState - internal state of the payment
+ * @property {PaymentDirection} direction - direction of the payment
  */
 class Payment {
   /**
@@ -29,6 +28,18 @@ class Payment {
   }
 
   /**
+   * Validate payment direction
+   * @param {PaymentDirection} direction - payment direction
+   * @throws {Error} - if direction is invalid
+   * @returns {void}
+   */
+  static validateDirection (direction) {
+    if (!direction) return
+
+    if (!Object.values(PAYMENT_DIRECTION).includes(direction)) throw new Error(ERRORS.INVALID_DIRECTION)
+  }
+
+  /**
    * Validate payment parameters
    * @param {PaymentParams} paymentParams - payment parameters
    * @throws {Error} - if paymentParams is invalid
@@ -39,6 +50,7 @@ class Payment {
     if (!paymentParams.orderId) throw new Error(ERRORS.ORDER_ID_REQUIRED)
     if (!paymentParams.clientOrderId) throw new Error(ERRORS.CLIENT_ID_REQUIRED)
     if (!paymentParams.targetURL) throw new Error(ERRORS.TARGET_REQUIRED)
+    Payment.validateDirection(paymentParams.direction)
   }
 
   /**
@@ -92,6 +104,8 @@ class Payment {
     this.id = paymentParams.id || null
     this.orderId = paymentParams.orderId
     this.clientOrderId = paymentParams.clientOrderId
+
+    this.direction = paymentParams.direction || PAYMENT_DIRECTION.OUT
 
     this.targetURL = paymentParams.targetURL
     this.memo = paymentParams.memo || ''
@@ -154,6 +168,7 @@ class Payment {
       sendingPriority: this.sendingPriority,
       createdAt: this.createdAt,
       executeAt: this.executeAt,
+      direction: this.direction,
       // NOTE: ORM will be nice here
       ...this.amount?.serialize(),
       ...this.internalState?.serialize()
@@ -309,7 +324,18 @@ const ERRORS = {
   CLIENT_ID_REQUIRED: 'clientOrderId is required',
   TARGET_REQUIRED: 'targetURL is required',
   NOT_ALLOWED: 'Not allowed',
-  NO_PAYMENT_FILE: 'No payment file found'
+  NO_PAYMENT_FILE: 'No payment file found',
+  INVALID_DIRECTION: 'Invalid payment direction'
+}
+
+/**
+ * @typedef {Object} PaymentDirection
+ * @property {string} IN - incoming payment
+ * @property {string} OUT - outgoing payment
+ */
+const PAYMENT_DIRECTION = {
+  IN: 'IN',
+  OUT: 'OUT'
 }
 
 module.exports = {

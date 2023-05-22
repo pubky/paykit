@@ -163,6 +163,7 @@ test('Payment.serialize', async t => {
     triedPlugins: [],
     currentPlugin: {},
     sentByPlugin: {},
+    direction: 'OUT',
     createdAt: payment.createdAt,
     executeAt: payment.executeAt
   })
