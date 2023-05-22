@@ -38,6 +38,7 @@ class Payment {
     if (!direction) return
 
     if (!Object.values(PAYMENT_DIRECTION).includes(direction)) throw new Error(ERRORS.INVALID_DIRECTION)
+
     if (direction === PAYMENT_DIRECTION.OUT) return
 
     const { completedByPlugin } = paymentParams
@@ -269,6 +270,7 @@ class Payment {
     } catch (e) {
       this.logger.debug(`Could not start payment processing, ${e.message}`)
     }
+
     return this
   }
 
@@ -279,6 +281,7 @@ class Payment {
    */
   async complete () {
     await this.internalState.complete()
+
     return this
   }
 
@@ -289,6 +292,7 @@ class Payment {
    */
   async cancel () {
     await this.internalState.cancel()
+
     return this
   }
 
@@ -302,10 +306,12 @@ class Payment {
 
   /**
    * fail current plugin
-   * @returns {Promise<void>}
+   * @returns {Promise<Payment>}
    */
   async failCurrentPlugin () {
     await this.internalState.failCurrentPlugin()
+
+    return this
   }
 
   /**

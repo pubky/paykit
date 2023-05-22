@@ -248,9 +248,9 @@ export class Payment {
     getCurrentPlugin(): Plugin | null;
     /**
      * fail current plugin
-     * @returns {Promise<void>}
+     * @returns {Promise<Payment>}
      */
-    failCurrentPlugin(): Promise<void>;
+    failCurrentPlugin(): Promise<Payment>;
     /**
      * checks if payment is in progress
      * @returns {boolean}
