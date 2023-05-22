@@ -27,9 +27,8 @@ class PaymentState {
    * @throws {Error} - if payment is not provided
    */
   constructor (payment, params = {}) {
-    logger.info('Initializing payment')
     PaymentState.validate(payment)
-    logger.debug(`Using payment state with ${payment}, ${JSON.stringify(params)}`)
+    logger.debug(`Using payment state with ${JSON.stringify(params)}`)
 
     this.internalState = payment.internalState || params.internalState || PAYMENT_STATE.INITIAL
     this.pendingPlugins = payment.pendingPlugins || params.pendingPlugins || []
@@ -78,7 +77,7 @@ class PaymentState {
    * @returns {void}
    */
   static validate (payment) {
-    logger.debug(`Validating payment ${payment}`)
+    logger.debug('Validating payment')
 
     if (!payment) throw new Error(ERRORS.PAYMENT_REQUIRED)
     if (!payment.db) throw new Error(ERRORS.DB_REQUIRED)
