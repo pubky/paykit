@@ -16,6 +16,26 @@ class PluginManager {
   }
 
   /**
+   * Inject plugin into the manager
+   * @param {any} module - plugin module object
+   * @param {storage} storage - instance with CRUD interface for receiving payments
+   * @returns {Promise<Plugin>} - plugin instance
+   * @throws {Error} - if plugin is already loaded
+   * @throws {Error} - if plugin is not valid
+   * @throws {Error} - if plugin failed to initialize
+   * @throws {Error} - if plugin failed to get manifest
+   */
+  async injectPlugin (module, storage) {
+    const plugin = await this.initPlugin(module, storage)
+    const manifest = await this.getManifest(module, plugin)
+
+    const p = { manifest, plugin, active: true }
+    this.plugins[manifest.name] = p
+
+    return p
+  }
+
+  /**
    * Load a plugin with runtime by path to the entry point
    * @param {string} pluginEntryPoint - path to plugins main
    * @param {[Storage]} storage - instance with CRUD interface for receiving payments
@@ -23,43 +43,9 @@ class PluginManager {
    * @throws {Error} - if plugin is already loaded
    */
   async loadPlugin (pluginEntryPoint, storage) {
-    const active = true
-    let module
-    try {
-      // TODO: allow loading by name only by accepting config
-      // on constructor which has default path to plugins
-      module = require(pluginEntryPoint)
-    } catch (e) {
-      try {
-        module = require(this.config.plugins[pluginEntryPoint])
-      } catch (e) {
-        throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
-      }
-    }
+    const module = this.loadByPathOrName(pluginEntryPoint)
 
-    let plugin
-    try {
-      plugin = await module.init(storage)
-    } catch (e) {
-      throw new Error(ERRORS.PLUGIN.INIT(e.message))
-    }
-
-    let manifestRes
-    try {
-      manifestRes = await module.getmanifest()
-    } catch (e) {
-      throw new Error(ERRORS.PLUGIN.GET_MANIFEST(e.message))
-    }
-
-    await utils.validateManifest(manifestRes, plugin)
-    const manifest = JSON.parse(JSON.stringify(manifestRes))
-
-    if (this.plugins[manifest.name]) throw new Error(ERRORS.CONFLICT)
-
-    const p = { manifest, plugin, active }
-    this.plugins[manifest.name] = p
-
-    return p
+    return await this.injectPlugin(module, storage)
   }
 
   /**
@@ -150,6 +136,58 @@ class PluginManager {
     }
 
     throw error
+  }
+
+  /**
+   * Initialize plugin
+   * @param {any} plugin module object
+   * @param {storeage} storage - instance with CRUD interface for receiving payments
+   * @returns {Promise<Plugin>} - plugin instance
+   */
+  async initPlugin (module, storage) {
+    try {
+      return await module.init(storage)
+    } catch (e) {
+      throw new Error(ERRORS.PLUGIN.INIT(e.message))
+    }
+  }
+
+  /**
+   * Get plugins manifest
+   * @returns {Promise<Object>} - manifest
+   */
+  async getManifest (module, plugin) {
+    let manifestRes
+    try {
+      manifestRes = await module.getmanifest()
+    } catch (e) {
+      throw new Error(ERRORS.PLUGIN.GET_MANIFEST(e.message))
+    }
+
+    await utils.validateManifest(manifestRes, plugin)
+    const manifest = JSON.parse(JSON.stringify(manifestRes))
+
+    if (this.plugins[manifest.name]) throw new Error(ERRORS.CONFLICT)
+
+    return manifest
+  }
+
+  /**
+   * Load plugin by path to the entry point or name if path is in config
+   * @param {string} pluginEntryPoint - path to plugins main or plugin name if it is already in config
+   * @returns {any} - plugin module
+   * @throws {Error} - if plugin failed to load
+   */
+  loadByPathOrName (pluginEntryPoint) {
+    try {
+      return require(pluginEntryPoint)
+    } catch (e) {
+      try {
+        return require(this.config.plugins[pluginEntryPoint])
+      } catch (e) {
+        throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
+      }
+    }
   }
 }
 
