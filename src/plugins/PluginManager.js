@@ -1,3 +1,4 @@
+const logger = require('slashtags-logger')('Slashpay', 'plugin-manager')
 const utils = require('./utils')
 
 const { ERRORS } = utils
@@ -11,6 +12,7 @@ class PluginManager {
    * @property {Object[Plugin]} plugins - loaded plugins
    */
   constructor (config) {
+    logger.info('Initializing plugin manager')
     this.plugins = {}
     this.config = config
   }
@@ -26,6 +28,7 @@ class PluginManager {
    * @throws {Error} - if plugin failed to get manifest
    */
   async injectPlugin (module, storage) {
+    logger.debug('Injecting plugin')
     const plugin = await this.initPlugin(module, storage)
     const manifest = await this.getManifest(module, plugin)
 
@@ -43,6 +46,7 @@ class PluginManager {
    * @throws {Error} - if plugin is already loaded
    */
   async loadPlugin (pluginEntryPoint, storage) {
+    logger.info('Loading plugin')
     const module = this.loadByPathOrName(pluginEntryPoint)
 
     return await this.injectPlugin(module, storage)
@@ -53,6 +57,8 @@ class PluginManager {
    * @param {string} name - name of the plugin
    */
   async stopPlugin (name) {
+    logger.info.extend(name)('Stopping plugin')
+
     if (!this.plugins[name]) throw new Error(ERRORS.PLUGIN.NOT_FOUND(name))
 
     if (typeof this.plugins[name].plugin.stop === 'function') {
@@ -72,6 +78,7 @@ class PluginManager {
    *
    */
   removePlugin (name) {
+    logger.info.extend(name)('Removing plugin')
     if (!this.plugins[name]) throw new Error(ERRORS.PLUGIN_NOT_FOUND(name))
 
     if (this.plugins[name].active) return false
@@ -100,11 +107,13 @@ class PluginManager {
    * @returns {Promise<void>}
    */
   async dispatchEvent (event, data) {
+    logger.info.extend(event)('Dispatching event')
     await Promise.all(
       Object.entries(this.plugins)
         .filter(([_name, plugin]) => (plugin.manifest.events.includes(event) && plugin.active))
         .map(async ([name, plugin]) => {
           try {
+            logger.debug.extend(event).extend(name)('Dispatching event')
             await plugin.plugin.onEvent(event, data)
           } catch (e) {
             ERRORS.PLUGIN.EVENT_DISPATCH(name, e.message)
@@ -132,6 +141,7 @@ class PluginManager {
    */
   async gracefulThrow (error) {
     for (const name in this.plugins) {
+      logger.debug.extend(name)('Stopping plugin')
       await this.stopPlugin(name)
     }
 
@@ -146,6 +156,7 @@ class PluginManager {
    */
   async initPlugin (module, storage) {
     try {
+      logger.info('Initializing plugin')
       return await module.init(storage)
     } catch (e) {
       throw new Error(ERRORS.PLUGIN.INIT(e.message))
@@ -159,6 +170,7 @@ class PluginManager {
   async getManifest (module, plugin) {
     let manifestRes
     try {
+      logger.info('Retreiving manifest')
       manifestRes = await module.getmanifest()
     } catch (e) {
       throw new Error(ERRORS.PLUGIN.GET_MANIFEST(e.message))
@@ -179,6 +191,7 @@ class PluginManager {
    * @throws {Error} - if plugin failed to load
    */
   loadByPathOrName (pluginEntryPoint) {
+    logger.info(`Loading plugin ${pluginEntryPoint}`)
     try {
       return require(pluginEntryPoint)
     } catch (e) {
