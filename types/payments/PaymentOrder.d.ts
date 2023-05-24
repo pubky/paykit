@@ -20,6 +20,9 @@ export type ERRROS = Obejct;
  * @property {string} sendingPriority - Sending priority
  * @property {object} orderParams - Order params
  * @property {object} db - Database
+ * @property {Date} createdAt - Order creation timestamp
+ * @property {Date} firstPaymentAt - Order execution timestamp
+ * @property {Date} lastPaymentAt - Last payment timestamp
  */
 export class PaymentOrder {
     static generateId(): string;
@@ -42,7 +45,10 @@ export class PaymentOrder {
     id: any;
     clientOrderId: any;
     state: any;
-    frequency: 0;
+    createdAt: any;
+    firstPaymentAt: any;
+    lastPaymentAt: any;
+    frequency: number;
     payments: any[];
     amount: PaymentAmount;
     counterpartyURL: any;
@@ -58,6 +64,10 @@ export class PaymentOrder {
      * @returns {Promise<void>}
      */
     createOneTimeOrder(): Promise<void>;
+    /**
+     * Create recurring order
+     * @returns {Promise<void>}
+     */
     createRecurringOrder(): Promise<void>;
     /**
      * @method process - Process order

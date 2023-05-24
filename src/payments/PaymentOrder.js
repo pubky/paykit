@@ -14,6 +14,9 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @property {string} sendingPriority - Sending priority
  * @property {object} orderParams - Order params
  * @property {object} db - Database
+ * @property {Date} createdAt - Order creation timestamp
+ * @property {Date} firstPaymentAt - Order execution timestamp
+ * @property {Date} lastPaymentAt - Last payment timestamp
  */
 
 class PaymentOrder {
@@ -38,16 +41,18 @@ class PaymentOrder {
 
     this.clientOrderId = orderParams.clientOrderId
 
+    this.createdAt = orderParams.createdAt || Date.now()
+    this.firstPaymentAt = orderParams.firstPaymentAt || Date.now()
+    this.lastPaymentAt = orderParams.lastPaymentAt || null
+
     // parse float is for potential support of fractions of seconds
     this.frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
     if (isNaN(this.frequency) || this.frequency < 0) {
       throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
-    } else if (this.frequency === 0) { // TODO: remove
-    } else { // TODO: for recurring payments we specify:
-      // the first payment date-time
-      // the frequency
-      // optional end date-time
+    } else if (this.frequency > 0) { // TODO: remove
       throw new Error(ERRORS.NOT_IMPLEMENTED) // TODO: remove
+    } else {
+      this.lastPaymentAt = this.firstPaymentAt
     }
 
     this.payments = []
@@ -80,18 +85,30 @@ class PaymentOrder {
    * @returns {Promise<void>}
    */
   async createOneTimeOrder () {
-    const payment = new Payment(
-      { ...this.orderParams, orderId: this.id },
-      this.db
-    )
-    await payment.init()
-
+    const payment = new Payment({
+      ...this.orderParams,
+      executeAt: this.firstPaymentAt,
+      orderId: this.id
+    }, this.db)
     this.payments.push(payment)
   }
 
+  /**
+   * Create recurring order
+   * @returns {Promise<void>}
+   */
   async createRecurringOrder () {
-    // TODO: save order and payments to db in a single transaction
-    throw new Error(ERRORS.NOT_IMPLEMENTED)
+    // For permanently recurring payments we will create them in batches of 100
+    let counter = this.lastPayment ? Math.floor(this.lastPaymentAt / this.frequency) : 100
+
+    this.payments = []
+    for (let i = 0; i < counter; i++) {
+      this.payments.push(new Payment({
+        ...this.orderParams,
+        executeAt: this.firstPaymentAt + this.frequency * i,
+        orderId: this.id
+      }, this.db))
+    }
   }
 
   /**
@@ -131,6 +148,9 @@ class PaymentOrder {
    */
   async processPayment (payment) {
     if (payment.executeAt > Date.now()) return payment
+
+    await payment.init()
+    await payment.update()
 
     if (this.state !== ORDER_STATE.PROCESSING) {
       this.state = ORDER_STATE.PROCESSING

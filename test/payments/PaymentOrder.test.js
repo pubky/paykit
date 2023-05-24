@@ -3,6 +3,7 @@ const { DB } = require('../../src/DB')
 
 const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentState')
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
+const { Payment } = require('../../src/payments/Payment')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
@@ -87,7 +88,7 @@ test('PaymentOrder.init', async t => {
     currency: 'BTC',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: orderParams.sendingPriority,
+    pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
     completedByPlugin: {},
@@ -146,7 +147,7 @@ test('PaymentOrder.save', async t => {
     direction: 'OUT',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: orderParams.sendingPriority,
+    pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
     completedByPlugin: {},
@@ -230,7 +231,7 @@ test('PaymentOrder.createOneTimeOrder', async t => {
     direction: 'OUT',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: ['p2sh', 'p2tr'],
+    pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
     completedByPlugin: {},
@@ -242,16 +243,14 @@ test('PaymentOrder.createOneTimeOrder', async t => {
 test('PaymentOrder.processPayment', async t => {
   const paymentOrder = await getPaymentOrderInstance()
 
-  await t.exception(async () => await paymentOrder.createOneTimeOrder(), ERRORS.ORDER_ID_REQUIRED)
-
   paymentOrder.id = '1234'
-  await paymentOrder.createOneTimeOrder()
+  await paymentOrder.init()
 
   t.is(paymentOrder.payments.length, 1)
 
   const payment = paymentOrder.payments[0].serialize()
   t.alike(payment, {
-    id: null,
+    id: payment.id,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
     counterpartyURL: orderParams.counterpartyURL,
@@ -262,7 +261,7 @@ test('PaymentOrder.processPayment', async t => {
     currency: 'BTC',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: ['p2sh', 'p2tr'],
+    pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
     completedByPlugin: {},
@@ -270,17 +269,14 @@ test('PaymentOrder.processPayment', async t => {
     executeAt: paymentOrder.payments[0].executeAt
   })
 
-  payment.executeAt = new Date() + 10000
+  payment.executeAt = payment.executeAt + 100000
   let res
 
-  res = await paymentOrder.processPayment(paymentOrder.payments[0])
-  t.alike(
-    { ...res.serialize(), executeAt: payment.executeAt },
-    { ...payment, internalState: PAYMENT_STATE.IN_PROGRESS }
-  )
+  res = await paymentOrder.processPayment(new Payment(payment, paymentOrder.db))
+  t.alike(res.serialize(), payment)
 
-  payment.executeAt = new Date() - 10000
-  res = await paymentOrder.processPayment(paymentOrder.payments[0])
+  payment.executeAt = payment.executeAt - 1000000
+  res = await paymentOrder.processPayment(new Payment(payment, paymentOrder.db))
   const serialized = res.serialize()
 
   t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
