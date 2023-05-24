@@ -6,7 +6,7 @@ const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
-const { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
+const { PaymentOrder, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 
 async function getPaymentOrderInstance () {
   const db = new DB()
@@ -17,30 +17,19 @@ async function getPaymentOrderInstance () {
   return new PaymentOrder(params, db)
 }
 
-test('PaymentOrder - new (default type)', async t => {
+test('PaymentOrder - new (default one time)', async t => {
   const paymentOrder = await getPaymentOrderInstance()
 
   t.alike(paymentOrder.orderParams, orderParams)
   t.is(paymentOrder.clientOrderId, orderParams.clientOrderId)
-  t.is(paymentOrder.type, orderParams.type || ORDER_TYPE.ONE_TIME)
-  t.alike(paymentOrder.payments, [])
-  t.is(paymentOrder.frequency, null)
-})
-
-test('PaymentOrder - new (one time)', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
-
-  t.alike(paymentOrder.orderParams, orderParams)
-  t.is(paymentOrder.clientOrderId, orderParams.clientOrderId)
-  t.is(paymentOrder.type, orderParams.type || ORDER_TYPE.ONE_TIME)
   t.alike(paymentOrder.payments, [])
 
-  t.is(paymentOrder.frequency, null)
+  t.is(paymentOrder.frequency, 0)
 
   t.is(paymentOrder.state, ORDER_STATE.CREATED)
 
   t.alike(paymentOrder.amount, new PaymentAmount(orderParams))
-  t.is(paymentOrder.targetURL, orderParams.targetURL)
+  t.is(paymentOrder.counterpartyURL, orderParams.counterpartyURL)
   t.is(paymentOrder.memo, orderParams.memo || '')
 })
 
@@ -48,9 +37,18 @@ test('PaymentOrder - new (recurring)', async t => {
   const db = new DB()
   await db.init()
 
-  const params = { ...orderParams, type: ORDER_TYPE.RECURRING }
+  const params = { ...orderParams, frequency: 2 }
 
   t.exception(() => { new PaymentOrder(params, db) }, ERRORS.NOT_IMPLEMENTED) // eslint-disable-line 
+})
+
+test('PaymentOrder - new (invalid frequency)', async t => {
+  const db = new DB()
+  await db.init()
+
+  const params = { ...orderParams, frequency: 'a' }
+
+  t.exception(() => { new PaymentOrder(params, db) }, ERRORS.INVALID_FREQUENCY('a')) // eslint-disable-line 
 })
 
 test('PaymentOrder.init', async t => {
@@ -65,10 +63,9 @@ test('PaymentOrder.init', async t => {
   t.alike(got, {
     id: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    type: 'one-time',
     state: ORDER_STATE.INITIALIZED,
-    frequency: null,
-    targetURL: orderParams.targetURL,
+    frequency: 0,
+    counterpartyURL: orderParams.counterpartyURL,
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
@@ -77,11 +74,13 @@ test('PaymentOrder.init', async t => {
   })
 
   t.is(paymentOrder.payments.length, 1)
+
   t.alike(paymentOrder.payments[0].serialize(), {
     id: 'totally-random-id',
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    targetURL: orderParams.targetURL,
+    counterpartyURL: orderParams.counterpartyURL,
+    direction: 'OUT',
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
@@ -91,7 +90,7 @@ test('PaymentOrder.init', async t => {
     pendingPlugins: orderParams.sendingPriority,
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {},
+    completedByPlugin: {},
     createdAt: paymentOrder.payments[0].createdAt,
     executeAt: paymentOrder.payments[0].executeAt
   })
@@ -104,15 +103,14 @@ test('PaymentOrder.serialize', async t => {
   t.alike(serialized, {
     id: null,
     clientOrderId: orderParams.clientOrderId,
-    type: ORDER_TYPE.ONE_TIME,
-    frequency: null,
-    amount: orderParams.amount,
-    currency: 'BTC',
-    denomination: 'BASE',
-    targetURL: orderParams.targetURL,
+    state: ORDER_STATE.CREATED,
+    frequency: 0,
+    counterpartyURL: orderParams.counterpartyURL,
     memo: '',
     sendingPriority: orderParams.sendingPriority,
-    state: ORDER_STATE.CREATED
+    amount: orderParams.amount,
+    currency: 'BTC',
+    denomination: 'BASE'
   })
 })
 
@@ -125,10 +123,9 @@ test('PaymentOrder.save', async t => {
   t.alike(gotOrder, {
     id: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    type: 'one-time',
     state: ORDER_STATE.INITIALIZED,
-    frequency: null,
-    targetURL: orderParams.targetURL,
+    frequency: 0,
+    counterpartyURL: orderParams.counterpartyURL,
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
@@ -141,17 +138,18 @@ test('PaymentOrder.save', async t => {
     id: 'totally-random-id',
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    targetURL: orderParams.targetURL,
+    counterpartyURL: orderParams.counterpartyURL,
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
     currency: 'BTC',
+    direction: 'OUT',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
     pendingPlugins: orderParams.sendingPriority,
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {},
+    completedByPlugin: {},
     createdAt: paymentOrder.payments[0].createdAt,
     executeAt: paymentOrder.payments[0].executeAt
   })
@@ -224,17 +222,18 @@ test('PaymentOrder.createOneTimeOrder', async t => {
     id: null,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    targetURL: orderParams.targetURL,
+    counterpartyURL: orderParams.counterpartyURL,
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
     currency: 'BTC',
+    direction: 'OUT',
     denomination: 'BASE',
     internalState: PAYMENT_STATE.INITIAL,
     pendingPlugins: ['p2sh', 'p2tr'],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {},
+    completedByPlugin: {},
     createdAt: paymentOrder.payments[0].createdAt,
     executeAt: paymentOrder.payments[0].executeAt
   })
@@ -255,8 +254,9 @@ test('PaymentOrder.processPayment', async t => {
     id: null,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    targetURL: orderParams.targetURL,
+    counterpartyURL: orderParams.counterpartyURL,
     memo: '',
+    direction: 'OUT',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
     currency: 'BTC',
@@ -265,7 +265,7 @@ test('PaymentOrder.processPayment', async t => {
     pendingPlugins: ['p2sh', 'p2tr'],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {},
+    completedByPlugin: {},
     createdAt: paymentOrder.payments[0].createdAt,
     executeAt: paymentOrder.payments[0].executeAt
   })
@@ -333,7 +333,7 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.id, payment.id)
   t.is(serialized.orderId, paymentOrder.id)
   t.is(serialized.clientOrderId, orderParams.clientOrderId)
-  t.is(serialized.targetURL, orderParams.targetURL)
+  t.is(serialized.counterpartyURL, orderParams.counterpartyURL)
   t.is(serialized.memo, '')
   t.alike(serialized.sendingPriority, orderParams.sendingPriority)
   t.is(serialized.amount, orderParams.amount)
@@ -359,7 +359,7 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.id, payment.id)
   t.is(serialized.orderId, paymentOrder.id)
   t.is(serialized.clientOrderId, orderParams.clientOrderId)
-  t.is(serialized.targetURL, orderParams.targetURL)
+  t.is(serialized.counterpartyURL, orderParams.counterpartyURL)
   t.is(serialized.memo, '')
   t.alike(serialized.sendingPriority, orderParams.sendingPriority)
   t.is(serialized.amount, orderParams.amount)
@@ -390,10 +390,10 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
   t.is(serialized.triedPlugins[1].name, 'p2tr')
   t.is(serialized.triedPlugins[1].state, PLUGIN_STATE.SUCCESS)
-  t.is(serialized.sentByPlugin.name, 'p2tr')
-  t.is(serialized.sentByPlugin.state, PLUGIN_STATE.SUCCESS)
-  t.ok(serialized.sentByPlugin.startAt <= Date.now())
-  t.ok(serialized.sentByPlugin.endAt <= Date.now())
+  t.is(serialized.completedByPlugin.name, 'p2tr')
+  t.is(serialized.completedByPlugin.state, PLUGIN_STATE.SUCCESS)
+  t.ok(serialized.completedByPlugin.startAt <= Date.now())
+  t.ok(serialized.completedByPlugin.endAt <= Date.now())
 })
 
 test('PaymentOrder.cancel', async t => {

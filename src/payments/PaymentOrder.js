@@ -5,12 +5,11 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @class PaymentOrder - This class is used to create a payments
  * @property {string} id - Order id
  * @property {string} clientOrderId - Client order id
- * @property {string} type - Order type
  * @property {string} state - Order state
- * @property {string} frequency - Order frequency
+ * @property {number} frequency - Order frequency in seconds, 0 for one time order
  * @property {Payment[]} payments - Payments associated with this order
  * @property {PaymentAmount} amount - Payment amount
- * @property {string} targetURL - Target URL
+ * @property {string} counterpartyURL - Counterparty URL
  * @property {string} memo - Memo
  * @property {string} sendingPriority - Sending priority
  * @property {object} orderParams - Order params
@@ -38,23 +37,25 @@ class PaymentOrder {
     this.state = orderParams.state || ORDER_STATE.CREATED
 
     this.clientOrderId = orderParams.clientOrderId
-    this.type = orderParams.type || ORDER_TYPE.ONE_TIME
-    if (this.type === ORDER_TYPE.ONE_TIME) {
-      this.frequency = null
-    } else {
-      this.frequency = orderParams.frequency
+
+    // parse float is for potential support of fractions of seconds
+    this.frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
+    if (isNaN(this.frequency) || this.frequency < 0) {
+      throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
+    } else if (this.frequency === 0) { // TODO: remove
+    } else { // TODO: for recurring payments we specify:
+      // the first payment date-time
+      // the frequency
+      // optional end date-time
+      throw new Error(ERRORS.NOT_IMPLEMENTED) // TODO: remove
     }
 
     this.payments = []
 
     this.amount = new PaymentAmount(orderParams)
-    this.targetURL = orderParams.targetURL
+    this.counterpartyURL = orderParams.counterpartyURL
     this.memo = orderParams.memo || ''
     this.sendingPriority = orderParams.sendingPriority
-
-    if (this.type === ORDER_TYPE.RECURRING) {
-      throw new Error(ERRORS.NOT_IMPLEMENTED)
-    }
   }
 
   /**
@@ -65,10 +66,10 @@ class PaymentOrder {
     this.id = PaymentOrder.generateId()
     // TODO: check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
-    if (this.orderParams.type === ORDER_TYPE.RECURRING) {
-      await this.createRecurringOrder()
-    } else {
+    if (this.frequency === 0) {
       await this.createOneTimeOrder()
+    } else {
+      await this.createRecurringOrder()
     }
 
     this.save()
@@ -204,11 +205,10 @@ class PaymentOrder {
     return {
       id: this.id,
       clientOrderId: this.clientOrderId,
-      type: this.type,
       state: this.state,
       frequency: this.frequency,
 
-      targetURL: this.targetURL,
+      counterpartyURL: this.counterpartyURL,
       memo: this.memo,
       sendingPriority: this.sendingPriority,
       ...this.amount.serialize()
@@ -274,7 +274,7 @@ class PaymentOrder {
  * @property {string} NOT_IMPLEMENTED
  * @property {string} ORDER_PARAMS_REQUIRED
  * @property {string} ORDER_AMOUNT_REQUIRED
- * @property {string} ORDER_TARGET_URL_REQUIRED
+ * @property {string} ORDER_COUNTERPARTY_URL_REQUIRED
  * @property {string} ORDER_CLIENT_ORDER_ID_REQUIRED
  * @property {string} ORDER_CONFIG_REQUIRED
  * @property {string} ORDER_CONFIG_SENDING_PARTY_REQUIRED
@@ -285,12 +285,13 @@ class PaymentOrder {
  * @property {string} ORDER_COMPLETED
  * @property {string} CAN_NOT_PROCESS_ORDER
  * @property {function} ORDER_NOT_FOUND
+ * @property {function} INVALID_FREQUENCY
  */
 const ERRORS = {
   NOT_IMPLEMENTED: 'Not implemented',
   ORDER_PARAMS_REQUIRED: 'Order params are required',
   ORDER_AMOUNT_REQUIRED: 'Order amount is required',
-  ORDER_TARGET_URL_REQUIRED: 'Order target url is required',
+  ORDER_COUNTERPARTY_URL_REQUIRED: 'Order coutnerparty url is required',
   ORDER_CLIENT_ORDER_ID_REQUIRED: 'Order client order id is required',
   ORDER_CONFIG_REQUIRED: 'Order config is required',
   ORDER_CONFIG_SENDING_PARTY_REQUIRED: 'Order config sending party is required',
@@ -300,17 +301,8 @@ const ERRORS = {
   ORDER_CANCELLED: 'Order is cancelled',
   ORDER_COMPLETED: 'Order is completed',
   CAN_NOT_PROCESS_ORDER: 'Can not process order',
-  ORDER_NOT_FOUND: (id) => `Order with id ${id} not found`
-}
-
-/**
- * @typedef {Object} ORDER_TYPE
- * @property {string} ONE_TIME
- * @property {string} RECURRING
- */
-const ORDER_TYPE = {
-  ONE_TIME: 'one-time',
-  RECURRING: 'recurring'
+  ORDER_NOT_FOUND: (id) => `Order with id ${id} not found`,
+  INVALID_FREQUENCY: (frequency) => `Invalid frequency ${frequency}`
 }
 
 /**
@@ -329,4 +321,4 @@ const ORDER_STATE = {
   CANCELLED: 'cancelled'
 }
 
-module.exports = { PaymentOrder, ORDER_TYPE, ORDER_STATE, ERRORS }
+module.exports = { PaymentOrder, ORDER_STATE, ERRORS }
