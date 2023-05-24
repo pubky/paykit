@@ -1,4 +1,6 @@
 const { test } = require('brittle')
+const sinon = require('sinon')
+
 const { DB } = require('../../src/DB')
 
 const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentState')
@@ -9,7 +11,7 @@ const { orderParams } = require('../fixtures/paymentParams')
 
 const { PaymentOrder, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 
-async function getPaymentOrderInstance () {
+async function getOneTimePaymentOrderInstance () {
   const db = new DB()
   await db.init()
 
@@ -19,7 +21,7 @@ async function getPaymentOrderInstance () {
 }
 
 test('PaymentOrder - new (default one time)', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
 
   t.alike(paymentOrder.orderParams, orderParams)
   t.is(paymentOrder.clientOrderId, orderParams.clientOrderId)
@@ -53,7 +55,7 @@ test('PaymentOrder - new (invalid frequency)', async t => {
 })
 
 test('PaymentOrder.init', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   t.absent(paymentOrder.id)
   await paymentOrder.init()
 
@@ -98,7 +100,7 @@ test('PaymentOrder.init', async t => {
 })
 
 test('PaymentOrder.serialize', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
 
   const serialized = paymentOrder.serialize()
   t.alike(serialized, {
@@ -116,7 +118,7 @@ test('PaymentOrder.serialize', async t => {
 })
 
 test('PaymentOrder.save', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
@@ -157,7 +159,7 @@ test('PaymentOrder.save', async t => {
 })
 
 test('PaymentOrder.update', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   await paymentOrder.init()
   let got
 
@@ -175,15 +177,21 @@ test('PaymentOrder.update', async t => {
 })
 
 test('PaymentOrder.getFirstOutstandingPayment', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
-  t.absent(paymentOrder.getFirstOutstandingPayment())
+  const paymentOrder = await getOneTimePaymentOrderInstance()
+  const createRecurringPaymentSpy = sinon.spy(paymentOrder, 'createRecurringOrder')
+  let outstandingPayment
+
+  outstandingPayment = await paymentOrder.getFirstOutstandingPayment()
+  t.is(createRecurringPaymentSpy.callCount, 0)
+  t.absent(outstandingPayment)
 
   await paymentOrder.init()
-  t.alike(paymentOrder.getFirstOutstandingPayment(), paymentOrder.payments[0])
+  outstandingPayment = await paymentOrder.getFirstOutstandingPayment()
+  t.alike(outstandingPayment, paymentOrder.payments[0])
 })
 
 test('PaymentOrder.getPaymentInProgress', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   t.absent(paymentOrder.getPaymentInProgress())
 
   await paymentOrder.init()
@@ -194,7 +202,7 @@ test('PaymentOrder.getPaymentInProgress', async t => {
 })
 
 test('PaymentOrder.canProcess', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
 
   t.not(paymentOrder.canProcess())
 
@@ -202,14 +210,8 @@ test('PaymentOrder.canProcess', async t => {
   t.ok(paymentOrder.canProcess())
 })
 
-test('PaymentOrder.createRecurringOrder', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
-
-  await t.exception(async () => await paymentOrder.createRecurringOrder(), ERRORS.NOT_IMPLEMENTED)
-})
-
 test('PaymentOrder.createOneTimeOrder', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
 
   await t.exception(async () => await paymentOrder.createOneTimeOrder(), ERRORS.ORDER_ID_REQUIRED)
 
@@ -241,7 +243,7 @@ test('PaymentOrder.createOneTimeOrder', async t => {
 })
 
 test('PaymentOrder.processPayment', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
 
   paymentOrder.id = '1234'
   await paymentOrder.init()
@@ -284,7 +286,7 @@ test('PaymentOrder.processPayment', async t => {
 })
 
 test('PaymentOrder.complete', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   await paymentOrder.init()
 
   t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
@@ -316,7 +318,7 @@ test('PaymentOrder.complete', async t => {
 })
 
 test('PaymentOrder.process', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   await paymentOrder.init()
   let payment
   let serialized
@@ -393,7 +395,7 @@ test('PaymentOrder.process', async t => {
 })
 
 test('PaymentOrder.cancel', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
@@ -405,10 +407,16 @@ test('PaymentOrder.cancel', async t => {
 })
 
 test('PaymentOrder.find', async t => {
-  const paymentOrder = await getPaymentOrderInstance()
+  const paymentOrder = await getOneTimePaymentOrderInstance()
   await paymentOrder.init()
   const id = paymentOrder.id
 
   const got = await PaymentOrder.find(id, paymentOrder.db)
   t.alike(got.serialize(), paymentOrder.serialize())
 })
+
+// test('PaymentOrder.createRecurringOrder', async t => {
+//   const paymentOrder = await getOneTimePaymentOrderInstance()
+// 
+//   await t.exception(async () => await paymentOrder.createRecurringOrder(), ERRORS.NOT_IMPLEMENTED)
+// })

@@ -101,8 +101,14 @@ class PaymentOrder {
     // For permanently recurring payments we will create them in batches of 100
     let counter = this.lastPayment ? Math.floor(this.lastPaymentAt / this.frequency) : 100
 
-    this.payments = []
     for (let i = 0; i < counter; i++) {
+      let executeAt
+      if (this.payments.length === 0) {
+        executeAt = this.firstPaymentAt
+      } else {
+        executeAt = this.payments[this.payments.length - 1].executeAt + this.frequency
+      }
+
       this.payments.push(new Payment({
         ...this.orderParams,
         executeAt: this.firstPaymentAt + this.frequency * i,
@@ -123,7 +129,7 @@ class PaymentOrder {
 
     // TODO: refactor this if completion is moved out of this class
     // by moving getFirstOutstandingPayment() to processPayment
-    const payment = this.getFirstOutstandingPayment()
+    const payment = await this.getFirstOutstandingPayment()
     if (payment) {
       return await this.processPayment(payment)
     } else {
@@ -164,7 +170,17 @@ class PaymentOrder {
    * @method getFirstOutstandingPayment - Get first outstanding payment
    * @returns {Payment}
    */
-  getFirstOutstandingPayment () {
+  async getFirstOutstandingPayment () {
+    const payment = this.payments.find((payment) => !payment.isFinal())
+    if (payment) return payment
+
+    if (this.frequency === 0) return null
+
+    // XXX: is this safe check?
+    if (this.lastPaymentAt < Date.now()) return null
+
+    await this.createRecurringOrder()
+
     return this.payments.find((payment) => !payment.isFinal())
   }
 
