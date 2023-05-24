@@ -66,6 +66,8 @@ export type PaymentDirection = {
  * @property {Amount} amount - amount of the payment
  * @property {PaymentState} internalState - internal state of the payment
  * @property {PaymentDirection} direction - direction of the payment
+ * @property {Date} createdAt - creation timestamp of the payment
+ * @property {Date} executeAt - execution timestamp of the payment
  */
 export class Payment {
     /**
