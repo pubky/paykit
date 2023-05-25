@@ -1,3 +1,5 @@
+const logger = require('slashtags-logger')('Slashpay', 'payment-order')
+
 const { Payment } = require('./Payment')
 const { PaymentAmount } = require('./PaymentAmount')
 /**
@@ -6,7 +8,7 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @property {string} id - Order id
  * @property {string} clientOrderId - Client order id
  * @property {string} state - Order state
- * @property {number} frequency - Order frequency in seconds, 0 for one time order
+ * @property {number} frequency - Order frequency in milliseconds, 0 for one time order
  * @property {Payment[]} payments - Payments associated with this order
  * @property {PaymentAmount} amount - Payment amount
  * @property {string} counterpartyURL - Counterparty URL
@@ -18,6 +20,11 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @property {Date} firstPaymentAt - Order execution timestamp
  * @property {Date} lastPaymentAt - Last payment timestamp
  */
+
+const CONFIG = {
+  MIN_FREQUENCY: 1000, // 1 second
+  BATCH_SIZE: 100 // 100 payments
+}
 
 class PaymentOrder {
   static generateId () {
@@ -31,6 +38,9 @@ class PaymentOrder {
    * @returns {PaymentOrder}
    */
   constructor (orderParams, db) {
+    logger.info('Creating payment order')
+    logger.debug(`Creating payment order with ${JSON.stringify(orderParams)}`)
+
     this.orderParams = orderParams
     this.db = db
 
@@ -49,9 +59,7 @@ class PaymentOrder {
     this.frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
     if (isNaN(this.frequency) || this.frequency < 0) {
       throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
-    } else if (this.frequency > 0) { // TODO: remove
-      throw new Error(ERRORS.NOT_IMPLEMENTED) // TODO: remove
-    } else {
+    } else if (this.frequency === 0) {
       this.lastPaymentAt = this.firstPaymentAt
     }
 
@@ -61,6 +69,11 @@ class PaymentOrder {
     this.counterpartyURL = orderParams.counterpartyURL
     this.memo = orderParams.memo || ''
     this.sendingPriority = orderParams.sendingPriority
+
+    this.logger = {
+      debug: (msg) => { logger.debug.extend(JSON.stringify(this.serialize()))({ msg }) },
+      info: (msg) => { logger.info.extend(JSON.stringify(this.serialize()))({ msg }) }
+    }
   }
 
   /**
@@ -68,47 +81,45 @@ class PaymentOrder {
    * @returns {Promise<void>}
    */
   async init () {
+    this.logger.info('Initializing payment order')
     this.id = PaymentOrder.generateId()
     // TODO: check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
+
     if (this.frequency === 0) {
-      await this.createOneTimeOrder()
+      this.createPayments(1)
     } else {
-      await this.createRecurringOrder()
+      await this.createPaymentForRecurringOrder()
     }
 
     this.save()
   }
 
   /**
-   * Crate one time order
-   * @returns {Promise<void>}
-   */
-  async createOneTimeOrder () {
-    const payment = new Payment({
-      ...this.orderParams,
-      executeAt: this.firstPaymentAt,
-      orderId: this.id
-    }, this.db)
-    this.payments.push(payment)
-  }
-
-  /**
    * Create recurring order
    * @returns {Promise<void>}
    */
-  async createRecurringOrder () {
+  async createPaymentForRecurringOrder () {
+    this.logger.debug('Initializing recurring payment order')
     // For permanently recurring payments we will create them in batches of 100
-    let counter = this.lastPayment ? Math.floor(this.lastPaymentAt / this.frequency) : 100
+    let counter
+    if (this.lastPaymentAt) {
+      counter = Math.floor((this.lastPaymentAt - this.firstPaymentAt) / this.frequency)
+    } else {
+      counter = CONFIG.BATCH_SIZE
+    }
 
+    this.createPayments(counter)
+  }
+
+  /**
+   * Create payments
+   * @param {number} counter - Number of payments to create
+   * @returns {void}
+   */
+  createPayments (counter) {
+    this.logger.info(`Creating ${counter} payments`)
     for (let i = 0; i < counter; i++) {
-      let executeAt
-      if (this.payments.length === 0) {
-        executeAt = this.firstPaymentAt
-      } else {
-        executeAt = this.payments[this.payments.length - 1].executeAt + this.frequency
-      }
-
       this.payments.push(new Payment({
         ...this.orderParams,
         executeAt: this.firstPaymentAt + this.frequency * i,
@@ -122,15 +133,15 @@ class PaymentOrder {
    * @returns {Promise<Payment>}
    */
   async process () {
+    this.logger.info('Processing payment order')
     if (!this.canProcess()) throw new Error(ERRORS.CAN_NOT_PROCESS_ORDER)
 
     const paymentInProgress = this.getPaymentInProgress()
     if (paymentInProgress) return await paymentInProgress.process()
 
-    // TODO: refactor this if completion is moved out of this class
-    // by moving getFirstOutstandingPayment() to processPayment
     const payment = await this.getFirstOutstandingPayment()
     if (payment) {
+      this.logger.debug(`Processing payment ${payment.id}`)
       return await this.processPayment(payment)
     } else {
       // XXX: consider moving out of this class?
@@ -171,15 +182,15 @@ class PaymentOrder {
    * @returns {Payment}
    */
   async getFirstOutstandingPayment () {
+    this.logger.debug('Getting first outstanding payment')
     const payment = this.payments.find((payment) => !payment.isFinal())
     if (payment) return payment
 
     if (this.frequency === 0) return null
+    if (this.lastPaymentAt && this.lastPaymentAt < Date.now()) return null
 
-    // XXX: is this safe check?
-    if (this.lastPaymentAt < Date.now()) return null
-
-    await this.createRecurringOrder()
+    await this.createPaymentForRecurringOrder()
+    await this.update()
 
     return this.payments.find((payment) => !payment.isFinal())
   }
@@ -199,6 +210,7 @@ class PaymentOrder {
    * @returns {Promise<Payment>} - Last payment
    */
   async complete () {
+    this.logger.debug('Completing payment order')
     if (this.state === ORDER_STATE.CANCELLED) throw new Error(ERRORS.ORDER_CANCELLED)
     if (this.state === ORDER_STATE.COMPLETED) throw new Error(ERRORS.ORDER_COMPLETED)
 
@@ -218,6 +230,7 @@ class PaymentOrder {
    * @returns {Promise<void>}
    */
   async cancel () {
+    this.logger.debug('Cancelling payment order')
     if (this.state === ORDER_STATE.COMPLETED) {
       throw new Error(ERRORS.ORDER_COMPLETED)
     }
@@ -231,6 +244,13 @@ class PaymentOrder {
 
     this.state = ORDER_STATE.CANCELLED
     await this.update()
+  }
+
+  /**
+   * Returns string representation of payment state used for logging
+   */
+  [Symbol.for('nodejs.util.inspect.custom')] () {
+    return JSON.stringify(this.serialize())
   }
 
   /**
@@ -256,6 +276,7 @@ class PaymentOrder {
    * @returns {Promise<void>}
    */
   async save () {
+    this.logger.debug('Saving payment order')
     // TODO: needs to be more sophisticated than this
     // check if payment already exists as well
     // save corresponding payments
@@ -267,7 +288,6 @@ class PaymentOrder {
     //
     //    this.id = PaymentOrder.generateId()
     const orderObject = this.serialize()
-    // Order.validateOrderObject(orderObject)
 
     // TODO: db transaction
     await this.db.save(orderObject)
@@ -281,6 +301,7 @@ class PaymentOrder {
    * @returns {Promise<void>}
    */
   async update () {
+    this.logger.debug('Updating payment order')
     // TODO: add some validation
     // also check for state and existing payments associated with this order
     const serialized = this.serialize()

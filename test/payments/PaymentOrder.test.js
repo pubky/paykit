@@ -20,6 +20,10 @@ async function getOneTimePaymentOrderInstance () {
   return new PaymentOrder(params, db)
 }
 
+function sleep (ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 test('PaymentOrder - new (default one time)', async t => {
   const paymentOrder = await getOneTimePaymentOrderInstance()
 
@@ -34,15 +38,6 @@ test('PaymentOrder - new (default one time)', async t => {
   t.alike(paymentOrder.amount, new PaymentAmount(orderParams))
   t.is(paymentOrder.counterpartyURL, orderParams.counterpartyURL)
   t.is(paymentOrder.memo, orderParams.memo || '')
-})
-
-test('PaymentOrder - new (recurring)', async t => {
-  const db = new DB()
-  await db.init()
-
-  const params = { ...orderParams, frequency: 2 }
-
-  t.exception(() => { new PaymentOrder(params, db) }, ERRORS.NOT_IMPLEMENTED) // eslint-disable-line 
 })
 
 test('PaymentOrder - new (invalid frequency)', async t => {
@@ -178,7 +173,7 @@ test('PaymentOrder.update', async t => {
 
 test('PaymentOrder.getFirstOutstandingPayment', async t => {
   const paymentOrder = await getOneTimePaymentOrderInstance()
-  const createRecurringPaymentSpy = sinon.spy(paymentOrder, 'createRecurringOrder')
+  const createRecurringPaymentSpy = sinon.spy(paymentOrder, 'createPaymentForRecurringOrder')
   let outstandingPayment
 
   outstandingPayment = await paymentOrder.getFirstOutstandingPayment()
@@ -208,38 +203,6 @@ test('PaymentOrder.canProcess', async t => {
 
   await paymentOrder.init()
   t.ok(paymentOrder.canProcess())
-})
-
-test('PaymentOrder.createOneTimeOrder', async t => {
-  const paymentOrder = await getOneTimePaymentOrderInstance()
-
-  await t.exception(async () => await paymentOrder.createOneTimeOrder(), ERRORS.ORDER_ID_REQUIRED)
-
-  paymentOrder.id = '1234'
-  await paymentOrder.createOneTimeOrder()
-
-  t.is(paymentOrder.payments.length, 1)
-
-  const payment = paymentOrder.payments[0].serialize()
-  t.alike(payment, {
-    id: null,
-    orderId: paymentOrder.id,
-    clientOrderId: orderParams.clientOrderId,
-    counterpartyURL: orderParams.counterpartyURL,
-    memo: '',
-    sendingPriority: orderParams.sendingPriority,
-    amount: orderParams.amount,
-    currency: 'BTC',
-    direction: 'OUT',
-    denomination: 'BASE',
-    internalState: PAYMENT_STATE.INITIAL,
-    pendingPlugins: [],
-    triedPlugins: [],
-    currentPlugin: {},
-    completedByPlugin: {},
-    createdAt: paymentOrder.payments[0].createdAt,
-    executeAt: paymentOrder.payments[0].executeAt
-  })
 })
 
 test('PaymentOrder.processPayment', async t => {
@@ -415,8 +378,72 @@ test('PaymentOrder.find', async t => {
   t.alike(got.serialize(), paymentOrder.serialize())
 })
 
-// test('PaymentOrder.createRecurringOrder', async t => {
-//   const paymentOrder = await getOneTimePaymentOrderInstance()
-// 
-//   await t.exception(async () => await paymentOrder.createRecurringOrder(), ERRORS.NOT_IMPLEMENTED)
-// })
+test('PaymentOrder - recurring order (finite)', async t => {
+  const db = new DB()
+  await db.init()
+
+  const params = {
+    ...orderParams,
+    frequency: 1, // 1 ms
+    lastPaymentAt: Date.now() + 3,
+    amount: '1'
+  }
+
+  const paymentOrder = new PaymentOrder(params, db)
+  await paymentOrder.init()
+
+  t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
+  t.is(paymentOrder.payments.length, 3)
+
+  for (let i = 0; i < paymentOrder.payments.length; i++) {
+    // TODO: remove when id is generated
+    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
+  }
+
+  for (let i = 0; i < paymentOrder.payments.length; i++) {
+    const res = await paymentOrder.process()
+    t.is(res.internalState.internalState, PAYMENT_STATE.IN_PROGRESS)
+    await res.complete()
+    t.is(res.internalState.internalState, PAYMENT_STATE.COMPLETED)
+    await sleep(1)
+  }
+})
+
+test('PaymentOrder - recurring order (infinite)', async t => {
+  const db = new DB()
+  await db.init()
+
+  const params = {
+    ...orderParams,
+    frequency: 1, // 1 ms
+    amount: '1'
+  }
+
+  const paymentOrder = new PaymentOrder(params, db)
+  await paymentOrder.init()
+
+  t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
+  t.is(paymentOrder.payments.length, 100)
+
+  for (let i = 0; i < paymentOrder.payments.length; i++) {
+    // TODO: remove when id is generated
+    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
+  }
+
+  for (let i = 0; i < paymentOrder.payments.length; i++) {
+    const res = await paymentOrder.process()
+    t.is(res.internalState.internalState, PAYMENT_STATE.IN_PROGRESS)
+    await res.complete()
+    t.is(res.internalState.internalState, PAYMENT_STATE.COMPLETED)
+    await sleep(1)
+  }
+
+  try {
+    // TODO: remove when id is generated
+    await paymentOrder.process()
+  } catch (err) {
+    // needs an ID generator
+  } finally {
+    t.is(paymentOrder.payments.length, 200)
+  }
+})
