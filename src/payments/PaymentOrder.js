@@ -21,6 +21,7 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @property {Date} lastPaymentAt - Last payment timestamp
  */
 
+// TODO: move to config, use min frequency when agreed upon value
 const CONFIG = {
   MIN_FREQUENCY: 1000, // 1 second
   BATCH_SIZE: 100 // 100 payments
@@ -29,6 +30,52 @@ const CONFIG = {
 class PaymentOrder {
   static generateId () {
     return 'totally-random-order-id'
+  }
+
+  /**
+   * @method validateInput - Validate order params
+   * @param {object} orderParams - Order params
+   * @returns {void}
+   * @throws {Error} - Throws error if order params are invalid
+   */
+  static validateInput (orderParams) {
+    logger.debug(`Validating order params ${JSON.stringify(orderParams)}`)
+    if (!orderParams) throw new Error(ERRORS.NO_ORDER_PARAMS)
+
+    PaymentOrder.validateFrequency(orderParams)
+    PaymentOrder.validateTimestamps(orderParams)
+  }
+
+  /**
+   * @method validateFrequency - Validate order frequency
+   * @param {object} orderParams - Order params
+   * @returns {void}
+   * @throws {Error} - Throws error if order frequency is invalid
+   */
+  static validateFrequency (orderParams) {
+    if (!orderParams.frequency) return
+
+    const frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
+    if (isNaN(frequency) || frequency < 0) throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
+  }
+
+  /**
+   * @method validateTimestamps - Validate order timestamps
+   * @param {object} orderParams - Order params
+   * @returns {void}
+   * @throws {Error} - Throws error if order timestamps are invalid
+   */
+  static validateTimestamps (orderParams) {
+    PaymentOrder.validateTimestamp(orderParams, 'createdAt')
+    PaymentOrder.validateTimestamp(orderParams, 'firstPaymentAt')
+    PaymentOrder.validateTimestamp(orderParams, 'lastPaymentAt')
+  }
+
+  static validateTimestamp (orderParams, timestampName) {
+    if (!orderParams[timestampName]) return
+
+    const timestamp = new Date(orderParams[timestampName])
+    if (isNaN(timestamp.getTime())) throw new Error(ERRORS.INVALID_TIMESTAMP(timestampName, orderParams[timestampName]))
   }
 
   /**
@@ -41,6 +88,8 @@ class PaymentOrder {
     logger.info('Creating payment order')
     logger.debug(`Creating payment order with ${JSON.stringify(orderParams)}`)
 
+    PaymentOrder.validateInput(orderParams)
+
     this.orderParams = orderParams
     this.db = db
 
@@ -49,17 +98,13 @@ class PaymentOrder {
 
     this.state = orderParams.state || ORDER_STATE.CREATED
 
-    this.clientOrderId = orderParams.clientOrderId
-
     this.createdAt = orderParams.createdAt || Date.now()
     this.firstPaymentAt = orderParams.firstPaymentAt || Date.now()
     this.lastPaymentAt = orderParams.lastPaymentAt || null
 
     // parse float is for potential support of fractions of seconds
     this.frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
-    if (isNaN(this.frequency) || this.frequency < 0) {
-      throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
-    } else if (this.frequency === 0) {
+    if (this.frequency === 0) {
       this.lastPaymentAt = this.firstPaymentAt
     }
 
@@ -359,7 +404,8 @@ const ERRORS = {
   ORDER_COMPLETED: 'Order is completed',
   CAN_NOT_PROCESS_ORDER: 'Can not process order',
   ORDER_NOT_FOUND: (id) => `Order with id ${id} not found`,
-  INVALID_FREQUENCY: (frequency) => `Invalid frequency ${frequency}`
+  INVALID_FREQUENCY: (frequency) => `Invalid frequency ${frequency}`,
+  INVALID_TIMESTAMP: (timestampName, value) => `Invalid timestamp ${timestamp}: ${value}`
 }
 
 /**
