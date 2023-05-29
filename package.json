@@ -33,6 +33,7 @@
   "dependencies": {
     "@synonymdev/slashtags-core-data": "^1.0.0-alpha.4",
     "@synonymdev/slashtags-url": "^1.0.0-alpha.3",
+    "b4a": "^1.6.4",
     "slashtags-logger": "github:slashtags/slashtags-logger"
   }
 }
