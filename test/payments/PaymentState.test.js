@@ -23,7 +23,7 @@ test('PaymentState.constructor', t => {
   t.alike(pS.pendingPlugins, [])
   t.alike(pS.triedPlugins, [])
   t.is(pS.currentPlugin, null)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
 })
 
 test('PaymentState.assignPendingPlugins', t => {
@@ -39,7 +39,7 @@ test('PaymentState.serialize', t => {
     pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
-    sentByPlugin: {}
+    completedByPlugin: {}
   })
 })
 
@@ -130,7 +130,7 @@ test('PaymentState.failCurrentPlugin', async t => {
 
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
   t.is(pS.currentPlugin, null)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(pS.triedPlugins.length, 1)
   t.is(pS.triedPlugins[0].name, 'plugin0')
   t.ok(pS.triedPlugins[0].startAt <= Date.now())
@@ -149,7 +149,7 @@ test('PaymentState.fail', async t => {
     pendingPlugins: ['plugin0', 'plugin1', 'plugin2', 'plugin3'],
     triedPlugins: [],
     currentPlugin: null,
-    sentByPlugin: null
+    completedByPlugin: null
   }
 
   pS = new PaymentState(initializedPayment)
@@ -162,7 +162,7 @@ test('PaymentState.fail', async t => {
   t.is(update.callCount, 2)
   t.is(pS.internalState, PAYMENT_STATE.FAILED)
   t.is(pS.currentPlugin, null)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(pS.triedPlugins.length, 1)
   t.is(pS.triedPlugins[0].name, 'pluginX')
   t.ok(pS.triedPlugins[0].startAt <= Date.now())
@@ -191,14 +191,14 @@ test('PaymentState.tryNext', async t => {
     pendingPlugins: ['plugin0', 'plugin1', 'plugin2', 'plugin3'],
     triedPlugins: [],
     currentPlugin: null,
-    sentByPlugin: null
+    completedByPlugin: null
   }
 
   const pS = new PaymentState(initializedPayment)
   t.alike(pS.pendingPlugins, ['plugin0', 'plugin1', 'plugin2', 'plugin3'])
   t.alike(pS.triedPlugins, [])
   t.is(pS.currentPlugin, null)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 0)
   t.is(pS.internalState, PAYMENT_STATE.INITIAL)
 
@@ -213,7 +213,7 @@ test('PaymentState.tryNext', async t => {
   t.ok(pS.currentPlugin.startAt >= start0)
   t.ok(pS.currentPlugin.startAt <= Date.now())
   t.alike(pS.triedPlugins, [])
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 1)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
@@ -232,7 +232,7 @@ test('PaymentState.tryNext', async t => {
   t.is(pS.triedPlugins[0].name, 'plugin0')
   t.ok(pS.triedPlugins[0].startAt >= start0)
   t.ok(pS.triedPlugins[0].endAt <= start1)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 3)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
@@ -246,14 +246,14 @@ test('PaymentState.process', async t => {
     pendingPlugins: ['plugin0', 'plugin1', 'plugin2', 'plugin3'],
     triedPlugins: [],
     currentPlugin: null,
-    sentByPlugin: null
+    completedByPlugin: null
   }
 
   const pS = new PaymentState(initializedPayment)
   t.alike(pS.pendingPlugins, ['plugin0', 'plugin1', 'plugin2', 'plugin3'])
   t.alike(pS.triedPlugins, [])
   t.is(pS.currentPlugin, null)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 0)
   t.is(pS.internalState, PAYMENT_STATE.INITIAL)
 
@@ -266,7 +266,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.currentPlugin.startAt <= Date.now())
   t.is(pS.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.alike(pS.triedPlugins, [])
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 2)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
@@ -287,7 +287,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[0].startAt >= start0)
   t.ok(pS.triedPlugins[0].endAt <= start1)
   t.is(pS.triedPlugins[0].state, PLUGIN_STATE.FAILED)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 4)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
@@ -312,7 +312,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[1].startAt >= start1)
   t.ok(pS.triedPlugins[1].endAt <= start2)
   t.is(pS.triedPlugins[1].state, PLUGIN_STATE.FAILED)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 6)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
@@ -341,7 +341,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[2].startAt >= start2)
   t.ok(pS.triedPlugins[2].endAt <= start3)
   t.is(pS.triedPlugins[2].state, PLUGIN_STATE.FAILED)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 8)
   t.is(pS.internalState, PAYMENT_STATE.IN_PROGRESS)
 
@@ -371,7 +371,7 @@ test('PaymentState.process', async t => {
   t.ok(pS.triedPlugins[3].startAt >= start3)
   t.ok(pS.triedPlugins[3].endAt <= start4)
   t.is(pS.triedPlugins[3].state, PLUGIN_STATE.FAILED)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
   t.is(update.callCount, 10)
   t.is(pS.internalState, PAYMENT_STATE.FAILED)
 
@@ -385,7 +385,7 @@ test('PaymentState.complete', async t => {
     pendingPlugins: ['plugin0', 'plugin1', 'plugin2', 'plugin3'],
     triedPlugins: [],
     currentPlugin: null,
-    sentByPlugin: null
+    completedByPlugin: null
   }
 
   const pS = new PaymentState(initializedPayment)
@@ -399,17 +399,17 @@ test('PaymentState.complete', async t => {
   t.is(pS.currentPlugin.name, 'plugin0')
   t.ok(pS.currentPlugin.startAt <= Date.now())
   t.is(pS.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
-  t.is(pS.sentByPlugin, null)
+  t.is(pS.completedByPlugin, null)
 
   await pS.complete()
 
   t.is(pS.internalState, PAYMENT_STATE.COMPLETED)
   t.is(update.callCount, 3)
   t.is(pS.currentPlugin, null)
-  t.is(pS.sentByPlugin.name, 'plugin0')
-  t.ok(pS.sentByPlugin.startAt <= Date.now())
-  t.ok(pS.sentByPlugin.endAt <= Date.now())
-  t.is(pS.sentByPlugin.state, PLUGIN_STATE.SUCCESS)
+  t.is(pS.completedByPlugin.name, 'plugin0')
+  t.ok(pS.completedByPlugin.startAt <= Date.now())
+  t.ok(pS.completedByPlugin.endAt <= Date.now())
+  t.is(pS.completedByPlugin.state, PLUGIN_STATE.SUCCESS)
 
   t.teardown(() => update.resetHistory())
 })
