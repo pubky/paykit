@@ -1,6 +1,6 @@
 const logger = require('slashtags-logger')('Slashpay', 'payment-order')
 
-const { Payment } = require('./Payment')
+const { Payment, ERRORS: PaymentErrors } = require('./Payment')
 const { PaymentAmount } = require('./PaymentAmount')
 /**
  * Payment Order class
@@ -43,6 +43,8 @@ class PaymentOrder {
 
     PaymentOrder.validateFrequency(orderParams)
     PaymentOrder.validateTimestamps(orderParams)
+
+    if (!orderParams.counterpartyURL) throw new Error(PaymentErrors.COUTNERPARTY_REQUIRED)
   }
 
   /**
@@ -104,7 +106,6 @@ class PaymentOrder {
     this.firstPaymentAt = orderParams.firstPaymentAt || Date.now()
     this.lastPaymentAt = orderParams.lastPaymentAt || null
 
-    // parse float is for potential support of fractions of seconds
     this.frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
     if (this.frequency === 0) {
       this.lastPaymentAt = this.firstPaymentAt
