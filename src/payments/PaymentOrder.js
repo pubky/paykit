@@ -21,9 +21,8 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @property {Date} lastPaymentAt - Last payment timestamp
  */
 
-// TODO: move to config, use min frequency when agreed upon value
 const CONFIG = {
-  MIN_FREQUENCY: 1000, // 1 second
+  MIN_FREQUENCY: 1, // 1 ms
   BATCH_SIZE: 100 // 100 payments
 }
 
@@ -57,6 +56,7 @@ class PaymentOrder {
 
     const frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
     if (isNaN(frequency) || frequency < 0) throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
+    if (frequency > 0 && frequency < CONFIG.MIN_FREQUENCY) throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
   }
 
   /**
@@ -185,12 +185,11 @@ class PaymentOrder {
     if (paymentInProgress) return await paymentInProgress.process()
 
     const payment = await this.getFirstOutstandingPayment()
-    if (payment) {
-      this.logger.debug(`Processing payment ${payment.id}`)
-      return await this.processPayment(payment)
-    } else {
-      return await this.complete()
-    }
+    if (!payment) return await this.complete()
+
+    this.logger.debug(`Processing payment ${payment.id}`)
+
+    return await this.processPayment(payment)
   }
 
   /**
@@ -275,9 +274,7 @@ class PaymentOrder {
    */
   async cancel () {
     this.logger.debug('Cancelling payment order')
-    if (this.state === ORDER_STATE.COMPLETED) {
-      throw new Error(ERRORS.ORDER_COMPLETED)
-    }
+    if (this.state === ORDER_STATE.COMPLETED) throw new Error(ERRORS.ORDER_COMPLETED)
 
     // TODO: after db integration wrap into db transaction
     await this.payments
