@@ -8,10 +8,43 @@ const utils = require('../../src/plugins/utils')
 const storage = require('../fixtures/storageInstance.js')
 
 const { pluginConfig } = require('../fixtures/config.js')
+
 test('PluginManager.constructor', t => {
   const pluginManager = new PluginManager()
 
   t.alike(pluginManager.plugins, {})
+})
+
+test('PluginManager.injectPlugin', async t => {
+  const p2shStub = require('../fixtures/p2sh/main.js')
+  p2shStub.resetAll()
+
+  const validateManifestSpy = sinon.fake(utils.validateManifest)
+  const { PluginManager } = proxyquire('../../src/plugins/PluginManager.js', {
+    './utils': {
+      validateManifest: sinon.replace(utils, 'validateManifest', validateManifestSpy)
+    }
+  })
+  const pluginManager = new PluginManager()
+  const {
+    active: activeA,
+    manifest: manifestA,
+    plugin: pluginP2SH
+  } = await pluginManager.injectPlugin(p2shStub, storage)
+
+  t.alike(pluginManager.plugins.p2sh, {
+    manifest: manifestA,
+    plugin: pluginP2SH,
+    active: activeA
+  })
+
+  t.is(p2shStub.init.callCount, 1)
+  t.alike(p2shStub.init.getCall(0).args, [storage])
+
+  t.is(p2shStub.getmanifest.callCount, 1)
+  t.is(validateManifestSpy.callCount, 1)
+
+  t.teardown(() => sinon.restore())
 })
 
 test('PluginManager.loadPlugin', async t => {

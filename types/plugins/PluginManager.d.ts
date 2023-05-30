@@ -49,6 +49,17 @@ export class PluginManager {
     plugins: {};
     config: any;
     /**
+     * Inject plugin into the manager
+     * @param {any} module - plugin module object
+     * @param {storage} storage - instance with CRUD interface for receiving payments
+     * @returns {Promise<Plugin>} - plugin instance
+     * @throws {Error} - if plugin is already loaded
+     * @throws {Error} - if plugin is not valid
+     * @throws {Error} - if plugin failed to initialize
+     * @throws {Error} - if plugin failed to get manifest
+     */
+    injectPlugin(module: any, storage: any): Promise<Plugin>;
+    /**
      * Load a plugin with runtime by path to the entry point
      * @param {string} pluginEntryPoint - path to plugins main
      * @param {[Storage]} storage - instance with CRUD interface for receiving payments
@@ -92,6 +103,25 @@ export class PluginManager {
      * @throws {Error} - error
      */
     gracefulThrow(error: Error): Promise<void>;
+    /**
+     * Initialize plugin
+     * @param {any} plugin module object
+     * @param {storeage} storage - instance with CRUD interface for receiving payments
+     * @returns {Promise<Plugin>} - plugin instance
+     */
+    initPlugin(module: any, storage: storeage): Promise<Plugin>;
+    /**
+     * Get plugins manifest
+     * @returns {Promise<Object>} - manifest
+     */
+    getManifest(module: any, plugin: any): Promise<any>;
+    /**
+     * Load plugin by path to the entry point or name if path is in config
+     * @param {string} pluginEntryPoint - path to plugins main or plugin name if it is already in config
+     * @returns {any} - plugin module
+     * @throws {Error} - if plugin failed to load
+     */
+    loadByPathOrName(pluginEntryPoint: string): any;
 }
 export const ERRORS: {
     CONFLICT: string;
@@ -101,11 +131,14 @@ export const ERRORS: {
         MISSING: (msg: any) => string;
         NOT_STRING: (msg: any) => string;
     }; /**
-     * Load a plugin with runtime by path to the entry point
-     * @param {string} pluginEntryPoint - path to plugins main
-     * @param {[Storage]} storage - instance with CRUD interface for receiving payments
+     * Inject plugin into the manager
+     * @param {any} module - plugin module object
+     * @param {storage} storage - instance with CRUD interface for receiving payments
      * @returns {Promise<Plugin>} - plugin instance
      * @throws {Error} - if plugin is already loaded
+     * @throws {Error} - if plugin is not valid
+     * @throws {Error} - if plugin failed to initialize
+     * @throws {Error} - if plugin failed to get manifest
      */
     RPC: {
         NOT_ARRAY: (msg: any) => string;
