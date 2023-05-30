@@ -54,9 +54,11 @@ class PaymentOrder {
   static validateFrequency (orderParams) {
     if (!orderParams.frequency) return
 
-    const frequency = orderParams.frequency ? parseFloat(orderParams.frequency) : 0
-    if (isNaN(frequency) || frequency < 0) throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
-    if (frequency > 0 && frequency < CONFIG.MIN_FREQUENCY) throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
+    const frequency = parseFloat(orderParams.frequency)
+    if (frequency === 0) return
+
+    if (isNaN(frequency)) throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
+    if (frequency < CONFIG.MIN_FREQUENCY) throw new Error(ERRORS.INVALID_FREQUENCY(orderParams.frequency))
   }
 
   /**
