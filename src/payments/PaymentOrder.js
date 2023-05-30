@@ -338,7 +338,7 @@ class PaymentOrder {
     this.logger.debug('Updating payment order')
 
     const serialized = this.serialize()
-    PaymentObject.validateInput(serialized)
+    PaymentOrder.validateInput(serialized)
 
     await this.db.update(this.id, serialized)
   }

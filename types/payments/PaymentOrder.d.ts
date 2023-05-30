@@ -124,7 +124,7 @@ export class PaymentOrder {
      */
     serialize(): any;
     /**
-     * @method save - Save order with all corresponding payments to db
+     * @method save - Save order with all corresponding payments to db, also used to add new payments to existing order
      * @returns {Promise<void>}
      */
     save(): Promise<void>;
