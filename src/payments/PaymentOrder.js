@@ -405,7 +405,7 @@ const ERRORS = {
   CAN_NOT_PROCESS_ORDER: 'Can not process order',
   ORDER_NOT_FOUND: (id) => `Order with id ${id} not found`,
   INVALID_FREQUENCY: (frequency) => `Invalid frequency ${frequency}`,
-  INVALID_TIMESTAMP: (timestampName, value) => `Invalid timestamp ${timestamp}: ${value}`
+  INVALID_TIMESTAMP: (tsName, value) => `Invalid timestamp ${tsName}: ${value}`
 }
 
 /**

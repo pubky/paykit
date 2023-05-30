@@ -6,26 +6,30 @@ export type ORDER_STATE = {
     CANCELLED: string;
 };
 export type ERRROS = Obejct;
-/**
- * Payment Order class
- * @class PaymentOrder - This class is used to create a payments
- * @property {string} id - Order id
- * @property {string} clientOrderId - Client order id
- * @property {string} state - Order state
- * @property {number} frequency - Order frequency in seconds, 0 for one time order
- * @property {Payment[]} payments - Payments associated with this order
- * @property {PaymentAmount} amount - Payment amount
- * @property {string} counterpartyURL - Counterparty URL
- * @property {string} memo - Memo
- * @property {string} sendingPriority - Sending priority
- * @property {object} orderParams - Order params
- * @property {object} db - Database
- * @property {Date} createdAt - Order creation timestamp
- * @property {Date} firstPaymentAt - Order execution timestamp
- * @property {Date} lastPaymentAt - Last payment timestamp
- */
 export class PaymentOrder {
     static generateId(): string;
+    /**
+     * @method validateInput - Validate order params
+     * @param {object} orderParams - Order params
+     * @returns {void}
+     * @throws {Error} - Throws error if order params are invalid
+     */
+    static validateInput(orderParams: object): void;
+    /**
+     * @method validateFrequency - Validate order frequency
+     * @param {object} orderParams - Order params
+     * @returns {void}
+     * @throws {Error} - Throws error if order frequency is invalid
+     */
+    static validateFrequency(orderParams: object): void;
+    /**
+     * @method validateTimestamps - Validate order timestamps
+     * @param {object} orderParams - Order params
+     * @returns {void}
+     * @throws {Error} - Throws error if order timestamps are invalid
+     */
+    static validateTimestamps(orderParams: object): void;
+    static validateTimestamp(orderParams: any, timestampName: any): void;
     /**
      * @static find - Find order by id in db
      * @param {string} id - Order id
@@ -54,21 +58,26 @@ export class PaymentOrder {
     counterpartyURL: any;
     memo: any;
     sendingPriority: any;
+    logger: {
+        debug: (msg: any) => void;
+        info: (msg: any) => void;
+    };
     /**
      * @method init - Initialize order and create payments
      * @returns {Promise<void>}
      */
     init(): Promise<void>;
     /**
-     * Crate one time order
-     * @returns {Promise<void>}
-     */
-    createOneTimeOrder(): Promise<void>;
-    /**
      * Create recurring order
      * @returns {Promise<void>}
      */
-    createRecurringOrder(): Promise<void>;
+    createPaymentForRecurringOrder(): Promise<void>;
+    /**
+     * Create payments
+     * @param {number} counter - Number of payments to create
+     * @returns {void}
+     */
+    createPayments(counter: number): void;
     /**
      * @method process - Process order
      * @returns {Promise<Payment>}
@@ -148,6 +157,7 @@ export namespace ERRORS {
     const CAN_NOT_PROCESS_ORDER: string;
     function ORDER_NOT_FOUND(id: any): string;
     function INVALID_FREQUENCY(frequency: any): string;
+    function INVALID_TIMESTAMP(tsName: any, value: any): string;
 }
 import { PaymentAmount } from "./PaymentAmount";
 import { Payment } from "./Payment";
