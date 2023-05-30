@@ -128,7 +128,7 @@ class PaymentOrder {
   async init () {
     this.logger.info('Initializing payment order')
     this.id = PaymentOrder.generateId()
-    // TODO: check if order with this.clientOrderId already exists
+    // TODO: after db integration check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
 
     if (this.frequency === 0) {
@@ -189,7 +189,6 @@ class PaymentOrder {
       this.logger.debug(`Processing payment ${payment.id}`)
       return await this.processPayment(payment)
     } else {
-      // XXX: consider moving out of this class?
       return await this.complete()
     }
   }
@@ -280,7 +279,7 @@ class PaymentOrder {
       throw new Error(ERRORS.ORDER_COMPLETED)
     }
 
-    // TODO: db transaction
+    // TODO: after db integration wrap into db transaction
     await this.payments
       .filter((payment) => !payment.isFinal())
       .forEach(async (payment) => {
@@ -317,24 +316,14 @@ class PaymentOrder {
   }
 
   /**
-   * @method save - Save order with all corresponding payments to db
+   * @method save - Save order with all corresponding payments to db, also used to add new payments to existing order
    * @returns {Promise<void>}
    */
   async save () {
     this.logger.debug('Saving payment order')
-    // TODO: needs to be more sophisticated than this
-    // check if payment already exists as well
-    // save corresponding payments
-    //    if (this.id) {
-    //      const order = await this.db.get(this.id, { removed: '*' })
-    //      if (order) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
-    //      // something very fishy is going on
-    //    }
-    //
-    //    this.id = PaymentOrder.generateId()
     const orderObject = this.serialize()
 
-    // TODO: db transaction
+    // TODO: after db integration wrap into db transaction
     await this.db.save(orderObject)
     await Promise.all(this.payments.map(async (payment) => {
       await payment.save()
@@ -347,10 +336,10 @@ class PaymentOrder {
    */
   async update () {
     this.logger.debug('Updating payment order')
-    // TODO: add some validation
-    // also check for state and existing payments associated with this order
+
     const serialized = this.serialize()
-    // Payment.validatePaymentObject(serialized)
+    PaymentObject.validateInput(serialized)
+
     await this.db.update(this.id, serialized)
   }
 
