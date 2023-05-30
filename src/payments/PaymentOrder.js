@@ -374,6 +374,7 @@ class PaymentOrder {
  * @property {string} CAN_NOT_PROCESS_ORDER
  * @property {function} ORDER_NOT_FOUND
  * @property {function} INVALID_FREQUENCY
+ * @property {function} INVALID_TIMESTAMP
  */
 const ERRORS = {
   NOT_IMPLEMENTED: 'Not implemented',
