@@ -125,21 +125,18 @@ export class PluginManager {
 }
 export const ERRORS: {
     CONFLICT: string;
-    FAILED_TO_LOAD: (path: any) => string;
+    FAILED_TO_LOAD: (path: any) => string; /**
+     * Plugin manager class
+     * @class PluginManager
+     * @constructor
+     * @param {Object} config - config object
+     * @property {Object[Plugin]} plugins - loaded plugins
+     */
     INVALID_CONFIG_PLUGIN: string;
     NAME: {
         MISSING: (msg: any) => string;
         NOT_STRING: (msg: any) => string;
-    }; /**
-     * Inject plugin into the manager
-     * @param {any} module - plugin module object
-     * @param {storage} storage - instance with CRUD interface for receiving payments
-     * @returns {Promise<Plugin>} - plugin instance
-     * @throws {Error} - if plugin is already loaded
-     * @throws {Error} - if plugin is not valid
-     * @throws {Error} - if plugin failed to initialize
-     * @throws {Error} - if plugin failed to get manifest
-     */
+    };
     RPC: {
         NOT_ARRAY: (msg: any) => string;
         NOT_STRING: (msg: any, rpc: any) => string;
