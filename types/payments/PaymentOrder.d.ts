@@ -69,9 +69,9 @@ export class PaymentOrder {
     init(): Promise<void>;
     /**
      * Create recurring order
-     * @returns {Promise<void>}
+     * @returns {void}
      */
-    createPaymentForRecurringOrder(): Promise<void>;
+    createPaymentForRecurringOrder(): void;
     /**
      * Create payments
      * @param {number} counter - Number of payments to create

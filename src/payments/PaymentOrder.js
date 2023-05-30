@@ -28,6 +28,7 @@ const CONFIG = {
 
 class PaymentOrder {
   static generateId () {
+    // TODO: remove after db integration
     return 'totally-random-order-id'
   }
 
@@ -134,20 +135,16 @@ class PaymentOrder {
     // TODO: after db integration check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
 
-    if (this.frequency === 0) {
-      this.createPayments(1)
-    } else {
-      await this.createPaymentForRecurringOrder()
-    }
+    this.frequency === 0 ? this.createPayments(1) : this.createPaymentForRecurringOrder()
 
-    this.save()
+    await this.save()
   }
 
   /**
    * Create recurring order
-   * @returns {Promise<void>}
+   * @returns {void}
    */
-  async createPaymentForRecurringOrder () {
+  createPaymentForRecurringOrder () {
     this.logger.debug('Initializing recurring payment order')
     // For permanently recurring payments we will create them in batches of 100
     let counter
