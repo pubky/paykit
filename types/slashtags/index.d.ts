@@ -19,6 +19,10 @@ export type Error = {
      * - File not referenced
      */
     FILE_NOT_REFERENCED: string;
+    /**
+     * - Malformed index
+     */
+    MALFORMED_INDEX: string;
 };
 /**
  * SlashtagsConnector class
@@ -108,5 +112,6 @@ export namespace ERRORS {
     const INVALID_URL: string;
     const INDEX_NOT_FOUND: string;
     const FILE_NOT_REFERENCED: string;
+    const MALFORMED_INDEX: string;
 }
 export const SLASHPAY_PATH: "/public/slashpay.json";

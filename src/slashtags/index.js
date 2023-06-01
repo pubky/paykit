@@ -104,11 +104,29 @@ class SlashtagsConnector {
     if (!this.ready) throw new Error(ERRORS.NOT_READY)
     SlashtagsConnector.validate(value)
 
+    // NOTE: url should be an object to support `join` and `toString`. If path is not public, key should be included
+    const res = this.getUrl() + key
+
+    if (key === SLASHPAY_PATH) {
+      await this.coreData.create(key, encode(value), opts)
+      return res
+    }
+
+    let index = await this.readLocal(SLASHPAY_PATH, opts)
+    if (!index) {
+      index = { paymentEndpoints: {} }
+      await this.coreData.create(SLASHPAY_PATH, encode(index), opts)
+    }
+
+    const { paymentEndpoints } = index
+    if (!paymentEndpoints) throw new Error(ERRORS.MALFORMED_INDEX)
     await this.coreData.create(key, encode(value), opts)
 
-    // NOTE: url should be an object to support `join` and `toString`
-    // if path is not public, key should be included
-    return this.coreData.url + key
+    const name = key.split('/').pop().split('.')[0]
+    paymentEndpoints[name] = key
+    await this.update(SLASHPAY_PATH, index, opts)
+
+    return res
   }
 
   /**
@@ -153,19 +171,22 @@ class SlashtagsConnector {
     const index = await this.readLocal(SLASHPAY_PATH, opts)
     if (!index) throw new Error(ERRORS.INDEX_NOT_FOUND)
 
+    const { paymentEndpoints } = index
+    if (!paymentEndpoints) throw new Error(ERRORS.MALFORMED_INDEX)
+
     if (key === SLASHPAY_PATH) {
-      const paths = Object.values(index)
+      const paths = Object.values(paymentEndpoints)
       await Promise.all(paths.map(path => this.coreData.delete(path, opts)))
       await this.coreData.delete(key, opts)
       return
     }
 
-    const entries = Object.entries(index)
+    const entries = Object.entries(paymentEndpoints)
     const pair = entries.find(([_, path]) => path === key)
     if (!pair) throw new Error(ERRORS.FILE_NOT_REFERENCED)
 
     await this.coreData.delete(pair[1], opts)
-    delete index[pair[0]]
+    delete paymentEndpoints[pair[0]]
 
     await this.update(SLASHPAY_PATH, index, opts)
   }
@@ -185,13 +206,15 @@ class SlashtagsConnector {
  * @property {string} INVALID_URL - Invalid URL
  * @property {string} INDEX_NOT_FOUND - Index not found
  * @property {string} FILE_NOT_REFERENCED - File not referenced
+ * @property {string} MALFORMED_INDEX - Malformed index
  */
 const ERRORS = {
   NOT_READY: 'SlashtagsConnector is not ready',
   INVALID_JSON: 'Invalid JSON',
   INVALID_URL: 'Invalid URL',
   INDEX_NOT_FOUND: 'Index not found',
-  FILE_NOT_REFERENCED: 'File not referenced'
+  FILE_NOT_REFERENCED: 'File not referenced',
+  MALFORMED_INDEX: 'Malformed index'
 }
 
 /**

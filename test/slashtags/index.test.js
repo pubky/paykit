@@ -44,7 +44,7 @@ test('SlashtagsConnector.getUrl', async t => {
 
   const slashtagsConnector = new SlashtagsConnector(testnet)
 
-  await t.exception(async () => slashtagsConnector.create(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnector.create(), ERRORS.NOT_READY)
   await slashtagsConnector.init()
 
   t.is(slashtagsConnector.getUrl(), slashtagsConnector.coreData.url)
@@ -57,13 +57,14 @@ test('SlashtagsConnector.create', async t => {
 
   const slashtagsConnector = new SlashtagsConnector(testnet)
 
-  await t.exception(async () => slashtagsConnector.create(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnector.create(), ERRORS.NOT_READY)
   await slashtagsConnector.init()
 
-  await t.exception(async () => slashtagsConnector.create(), ERRORS.INVALID_JSON)
+  await t.exception(async () => await slashtagsConnector.create(), ERRORS.INVALID_JSON)
 
-  const path = '/foo.json'
+  const path = '/public/foo.json'
   const url = await slashtagsConnector.create(path, { test: 'test' })
+
   t.is(url, `${slashtagsConnector.coreData.url}${path}`)
 
   t.teardown(async () => await slashtagsConnector.close())
@@ -74,7 +75,7 @@ test('SlashtagsConnector.readLocal - default path', async t => {
 
   const slashtagsConnector = new SlashtagsConnector(testnet)
 
-  await t.exception(async () => slashtagsConnector.readLocal(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnector.readLocal(), ERRORS.NOT_READY)
   await slashtagsConnector.init()
 
   const path = SLASHPAY_PATH
@@ -94,7 +95,7 @@ test('SlashtagsConnector.readLocal - non-default path', async t => {
 
   const path = '/foo.json'
 
-  await t.exception(async () => slashtagsConnector.readLocal(path), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnector.readLocal(path), ERRORS.NOT_READY)
   await slashtagsConnector.init()
 
   const stored = { test: 'test' }
@@ -110,14 +111,14 @@ test('SlashtagsConnector.readRemote - default path', async t => {
   const testnet = await createTestnet(3, t.teardown)
 
   const slashtagsConnectorReader = new SlashtagsConnector(testnet)
-  await t.exception(async () => slashtagsConnectorReader.readRemote(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnectorReader.readRemote(), ERRORS.NOT_READY)
   await slashtagsConnectorReader.init()
 
   const slashtagsConnectorWriter = new SlashtagsConnector(testnet)
-  await t.exception(async () => slashtagsConnectorWriter.readRemote(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnectorWriter.readRemote(), ERRORS.NOT_READY)
   await slashtagsConnectorWriter.init()
 
-  await t.exception(async () => slashtagsConnectorReader.readRemote(), ERRORS.INVALID_URL)
+  await t.exception(async () => await slashtagsConnectorReader.readRemote(), ERRORS.INVALID_URL)
 
   const stored = { test: 'test' }
   await slashtagsConnectorWriter.create(SLASHPAY_PATH, stored)
@@ -136,11 +137,11 @@ test('SlashtagsConnector.readRemote - non-default public path', async t => {
   const testnet = await createTestnet(3, t.teardown)
 
   const slashtagsConnectorReader = new SlashtagsConnector(testnet)
-  await t.exception(async () => slashtagsConnectorReader.readRemote(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnectorReader.readRemote(), ERRORS.NOT_READY)
   await slashtagsConnectorReader.init()
 
   const slashtagsConnectorWriter = new SlashtagsConnector(testnet)
-  await t.exception(async () => slashtagsConnectorWriter.readRemote(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnectorWriter.readRemote(), ERRORS.NOT_READY)
   await slashtagsConnectorWriter.init()
 
   const path = '/public/foo.json'
@@ -160,7 +161,7 @@ test('SlashtagsConnector.update', async t => {
   const testnet = await createTestnet(3, t.teardown)
 
   const slashtagsConnector = new SlashtagsConnector(testnet)
-  await t.exception(async () => slashtagsConnector.readLocal(), ERRORS.NOT_READY)
+  await t.exception(async () => await slashtagsConnector.readLocal(), ERRORS.NOT_READY)
   await slashtagsConnector.init()
 
   const path = '/public/foo.json'
@@ -191,7 +192,7 @@ test('SlashtagsConnector.delete - index', async t => {
 
   await t.exception(async () => await slashtagsConnector.delete(indexPath), ERRORS.INDEX_NOT_FOUND)
 
-  const indexFile = { test: paymentPath }
+  const indexFile = { paymentEndpoints: { test: paymentPath } }
   await slashtagsConnector.create(indexPath, indexFile)
 
   const paymentFile = { test: 'test' }
@@ -221,30 +222,44 @@ test('SlashtagsConnector.delete - payment file', async t => {
   await t.exception(async () => await slashtagsConnector.readLocal(), ERRORS.NOT_READY)
   await slashtagsConnector.init()
 
+  let readIndex
   const indexPath = SLASHPAY_PATH
-  const paymentPath = '/public/test.json'
+
+  const paymentAPath = '/public/testA.json'
+  const paymentAFile = { testA: 'testA' }
+  let readPaymentA
+
+  const paymentBPath = '/public/testB.json'
+  const paymentBFile = { testB: 'testB' }
 
   await t.exception(async () => await slashtagsConnector.delete(indexPath), ERRORS.INDEX_NOT_FOUND)
 
-  const indexFile = { testA: paymentPath, testB: 'testB' }
-  await slashtagsConnector.create(indexPath, indexFile)
+  await slashtagsConnector.create(paymentAPath, paymentAFile)
 
-  const paymentFile = { test: 'test' }
-  await slashtagsConnector.create(paymentPath, paymentFile)
+  readIndex = await slashtagsConnector.readLocal(indexPath)
+  t.alike(readIndex, { paymentEndpoints: { testA: paymentAPath } })
 
-  const readIndex = await slashtagsConnector.readLocal(indexPath)
-  t.alike(readIndex, indexFile)
+  readPaymentA = await slashtagsConnector.readLocal(paymentAPath)
+  t.alike(readPaymentA, paymentAFile)
 
-  const readPayment = await slashtagsConnector.readLocal(paymentPath)
-  t.alike(readPayment, paymentFile)
+  await slashtagsConnector.create(paymentBPath, paymentBFile)
 
-  await slashtagsConnector.delete(paymentPath)
+  readIndex = await slashtagsConnector.readLocal(indexPath)
+  t.alike(readIndex, { paymentEndpoints: { testA: paymentAPath, testB: paymentBPath } })
 
-  const readIndexDeleted = await slashtagsConnector.readLocal(indexPath)
-  t.alike(readIndexDeleted, { testB: 'testB' })
+  readPaymentA = await slashtagsConnector.readLocal(paymentAPath)
+  t.alike(readPaymentA, paymentAFile)
 
-  const readPaymentDeleted = await slashtagsConnector.readLocal(paymentPath)
-  t.alike(readPaymentDeleted, null)
+  const readPaymentB = await slashtagsConnector.readLocal(paymentBPath)
+  t.alike(readPaymentB, paymentBFile)
+
+  await slashtagsConnector.delete(paymentAPath)
+
+  readIndex = await slashtagsConnector.readLocal(indexPath)
+  t.alike(readIndex, { paymentEndpoints: { testB: paymentBPath } })
+
+  readPaymentA = await slashtagsConnector.readLocal(paymentAPath)
+  t.alike(readPaymentA, null)
 
   t.teardown(async () => await slashtagsConnector.close())
 })
