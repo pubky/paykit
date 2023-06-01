@@ -6,7 +6,9 @@ const SlashtagsURL = require('@synonymdev/slashtags-url')
 const ERRORS = {
   NOT_READY: 'SlashtagsConnector is not ready',
   INVALID_JSON: 'Invalid JSON',
-  INVALID_URL: 'Invalid URL'
+  INVALID_URL: 'Invalid URL',
+  INDEX_NOT_FOUND: 'Index not found',
+  FILE_NOT_REFERENCED: 'File not referenced'
 }
 
 // XXX I do not like idea of signaling encrypted vs unencrypted data via path
@@ -74,7 +76,7 @@ class SlashtagsConnector {
 
     await this.coreData.create(key, encode(value), opts)
 
-    // XXX url should be an object to support `join` and `toString` etc
+    // XXX url should be an object to support `join` and `toString`
     // if path is not public, key should be included
     return this.coreData.url + key
   }
@@ -95,13 +97,24 @@ class SlashtagsConnector {
   async delete (key = SLASHPAY_PATH, opts = {}) {
     if (!this.ready) throw new Error(ERRORS.NOT_READY)
 
-    // TODO: read paths from local
-    // handle if key does not exist???
-    // delete each read one and delete key
-    // for partial delete find key in root file and delete
-    // delete file by path
+    const index = await this.readLocal(SLASHPAY_PATH, opts)
+    if (!index) throw new Error(ERRORS.INDEX_NOT_FOUND)
 
-    await this.coreData.delete(key, opts)
+    if (key === SLASHPAY_PATH) {
+      const paths = Object.values(index)
+      await Promise.all(paths.map(path => this.coreData.delete(path, opts)))
+      await this.coreData.delete(key, opts)
+      return
+    }
+
+    const entries = Object.entries(index)
+    const pair = entries.find(([_, path]) => path === key)
+    if (!pair) throw new Error(ERRORS.FILE_NOT_REFERENCED)
+
+    await this.coreData.delete(pair[1], opts)
+    delete index[pair[0]]
+
+    await this.update(SLASHPAY_PATH, index, opts)
   }
 
   async close () {
