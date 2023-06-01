@@ -123,42 +123,4 @@ export class PluginManager {
      */
     loadByPathOrName(pluginEntryPoint: string): any;
 }
-export const ERRORS: {
-    CONFLICT: string;
-    FAILED_TO_LOAD: (path: any) => string;
-    INVALID_CONFIG_PLUGIN: string;
-    NAME: {
-        MISSING: (msg: any) => string;
-        NOT_STRING: (msg: any) => string;
-    }; /**
-     * Inject plugin into the manager
-     * @param {any} module - plugin module object
-     * @param {storage} storage - instance with CRUD interface for receiving payments
-     * @returns {Promise<Plugin>} - plugin instance
-     * @throws {Error} - if plugin is already loaded
-     * @throws {Error} - if plugin is not valid
-     * @throws {Error} - if plugin failed to initialize
-     * @throws {Error} - if plugin failed to get manifest
-     */
-    RPC: {
-        NOT_ARRAY: (msg: any) => string;
-        NOT_STRING: (msg: any, rpc: any) => string;
-        NOT_UNIQ: (msg: any) => string;
-        NOT_IMPLEMENTED: (msg: any, rpc: any) => string;
-        MISSING_LISTENER: (msg: any) => string;
-        MISSING_PAY: (msg: any) => string;
-    };
-    EVENTS: {
-        NOT_ARRAY: (msg: any) => string;
-        NOT_STRING: (msg: any, event: any) => string;
-        MISSING_LISTENER: (msg: any) => string;
-        MISSING_WATCH: (msg: any) => string;
-    };
-    PLUGIN: {
-        INIT: (msg: any) => string;
-        GET_MANIFEST: (msg: any) => string;
-        STOP: (msg: any) => string;
-        EVENT_DISPATCH: (name: any, msg: any) => string;
-        NOT_FOUND: (name: any) => string;
-    };
-};
+export const ERRORS: any;
