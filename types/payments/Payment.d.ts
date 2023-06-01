@@ -113,9 +113,10 @@ export class Payment {
      *
      * @param {db} db - database
      */
-    constructor(paymentParams: PaymentParams, db: any);
+    constructor(paymentParams: PaymentParams, db: any, slashtagsConnector: any);
     db: any;
     sendingPriority: any;
+    slashtagsConnector: any;
     id: any;
     orderId: any;
     clientOrderId: any;
