@@ -123,39 +123,4 @@ export class PluginManager {
      */
     loadByPathOrName(pluginEntryPoint: string): any;
 }
-export const ERRORS: {
-    CONFLICT: string;
-    FAILED_TO_LOAD: (path: any) => string; /**
-     * Plugin manager class
-     * @class PluginManager
-     * @constructor
-     * @param {Object} config - config object
-     * @property {Object[Plugin]} plugins - loaded plugins
-     */
-    INVALID_CONFIG_PLUGIN: string;
-    NAME: {
-        MISSING: (msg: any) => string;
-        NOT_STRING: (msg: any) => string;
-    };
-    RPC: {
-        NOT_ARRAY: (msg: any) => string;
-        NOT_STRING: (msg: any, rpc: any) => string;
-        NOT_UNIQ: (msg: any) => string;
-        NOT_IMPLEMENTED: (msg: any, rpc: any) => string;
-        MISSING_LISTENER: (msg: any) => string;
-        MISSING_PAY: (msg: any) => string;
-    };
-    EVENTS: {
-        NOT_ARRAY: (msg: any) => string;
-        NOT_STRING: (msg: any, event: any) => string;
-        MISSING_LISTENER: (msg: any) => string;
-        MISSING_WATCH: (msg: any) => string;
-    };
-    PLUGIN: {
-        INIT: (msg: any) => string;
-        GET_MANIFEST: (msg: any) => string;
-        STOP: (msg: any) => string;
-        EVENT_DISPATCH: (name: any, msg: any) => string;
-        NOT_FOUND: (name: any) => string;
-    };
-};
+export const ERRORS: any;

@@ -34,18 +34,20 @@ export class PaymentOrder {
      * @static find - Find order by id in db
      * @param {string} id - Order id
      * @param {DB} db - DB instance
+     * @param {slashtags} slashtags - Slashtags instance
      * @returns {Promise<PaymentOrder>}
      */
-    static find(id: string, db: DB): Promise<PaymentOrder>;
+    static find(id: string, db: DB, slashtags: any): Promise<PaymentOrder>;
     /**
      * @constructor - PaymentOrder constructor
      * @param {object} orderParams - Order params
      * @param {object} db - Database
      * @returns {PaymentOrder}
      */
-    constructor(orderParams: object, db: object);
+    constructor(orderParams: object, db: object, slashtags: any);
     orderParams: any;
     db: any;
+    slashtags: any;
     id: any;
     clientOrderId: any;
     state: any;
