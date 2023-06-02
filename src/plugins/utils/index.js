@@ -1,5 +1,31 @@
 const utils = require('../../utils')
 
+/**
+ * @typedef {Object} Error
+ * @property {string} CONFLICT - conflicting plugin names
+ * @property {string} FAILED_TO_LOAD - failed to load plugin
+ * @property {string} INVALID_CONFIG_PLUGIN - plugin name is missconfigured
+ * @property {Object} NAME - name errors
+ * @property {string} NAME.MISSING - name is missing
+ * @property {string} NAME.NOT_STRING - name is not a string
+ * @property {Object} RPC - rpc errors
+ * @property {string} RPC.NOT_STRING - rpc method is not a string
+ * @property {string} RPC.NOT_UNIQ - rpc methods are not unique
+ * @property {string} RPC.NOT_IMPLEMENTED - rpc method is not implemented
+ * @property {string} RPC.MISSING_LISTENER - rpc listener is not implemented
+ * @property {string} RPC.MISSING_PAY - rpc must implement "pay" method
+ * @property {Object} EVENTS - events errors
+ * @property {string} EVENTS.NOT_ARRAY - events is not an array
+ * @property {string} EVENTS.NOT_STRING - event is not a string
+ * @property {string} EVENTS.MISSING_LISTENER - event listener is not implemented
+ * @property {string} EVENTS.MISSING_WATCH - event must subscribe to "serve" event
+ * @property {Object} PLUGIN - plugin errors
+ * @property {string} PLUGIN.INIT - failed to initialize plugin
+ * @property {string} PLUGIN.GET_MANIFEST - failed to get manifest
+ * @property {string} PLUGIN.STOP - failed to stop plugin
+ * @property {string} PLUGIN.EVENT_DISPATCH - failed to dispatch event
+ * @property {string} PLUGIN.NOT_FOUND - plugin not found
+ */
 const ERRORS = {
   CONFLICT: 'Conflicting plugin names',
   FAILED_TO_LOAD: (path) => `Failed to load plugin at ${path}`,
