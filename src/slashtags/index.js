@@ -10,6 +10,13 @@ const SLASHPAY_PATH = '/public/slashpay.json'
  * SlashtagsConnector class
  * @class SlashtagsConnector
  * @param {Object} params - parameters for core data
+ * @property {{secretKey: Uint8Array, publicKey: Uint8Array}} [params.keyPair]
+ * @property {Uint8Array[]} [params.seeders] Seeders' public keys
+ * @property {Hyperswarm} [params.swarm]
+ * @property {Corestore} [params.corestore]
+ * @property {string | object} [params.storage] storage path or Random Access Storage instance
+ * @property {Array<{host: string, port: number}>} [params.bootstrap] bootstrapping nodes for HyperDHT
+ * @property {Uint8Array} [params.seedersTopic] topic for seeders discovery
  * @property {CoreData} coreData - core data instance
  * @property {boolean} ready - is SlashtagsConnector ready
  */
