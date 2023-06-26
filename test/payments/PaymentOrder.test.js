@@ -239,6 +239,25 @@ test('PaymentOrder.canProcess', async t => {
   })
 })
 
+test('PaymentOrder.canProcess - failed payment', async t => {
+  const { paymentOrder, receiver, sender } = await getOneTimePaymentOrderEntities(t)
+  await paymentOrder.init()
+
+  const payment = paymentOrder.payments[0]
+  await payment.process()
+  while (!payment.isFailed()) {
+    await payment.failCurrentPlugin()
+    await payment.process()
+  }
+
+  t.absent(paymentOrder.canProcess())
+
+  t.teardown(async () => {
+    await receiver.close()
+    await sender.close()
+  })
+})
+
 test('PaymentOrder.processPayment', async t => {
   const { paymentOrder, receiver, sender } = await getOneTimePaymentOrderEntities(t, true)
 

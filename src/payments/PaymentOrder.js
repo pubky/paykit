@@ -200,6 +200,10 @@ class PaymentOrder {
    * @returns {boolean}
    */
   canProcess () {
+    // NOTE: stop processing subscription is one payment failed
+    const failedPayments = this.payments.find((payment) => payment.isFailed())
+    if (failedPayments) return false
+
     return this.state === ORDER_STATE.INITIALIZED || this.state === ORDER_STATE.PROCESSING
   }
 
