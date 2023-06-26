@@ -653,3 +653,44 @@ test('Payment.isFinal', async t => {
     sinon.restore()
   })
 })
+
+test('Payment.isFailed', async t => {
+  const { sender, receiver, payment } = await createPaymentEntities(t, true, {
+    id: 'test',
+    executeAt: new Date(Date.now() + 100000),
+    pendingPlugins: paymentParams.sendingPriority
+  })
+  await payment.init()
+
+  const isFailed = sinon.replace(
+    payment.internalState,
+    'isFailed',
+    sinon.fake(payment.internalState.isFailed)
+  )
+
+  t.is(payment.isFailed(), false)
+  t.is(isFailed.callCount, 1)
+
+  await payment.process()
+  await payment.failCurrentPlugin()
+
+  t.is(payment.isFailed(), false)
+  t.is(isFailed.callCount, 2)
+
+  await payment.process()
+  await payment.failCurrentPlugin()
+
+  t.is(payment.isFailed(), false)
+  t.is(isFailed.callCount, 3)
+
+  await payment.process()
+
+  t.is(payment.isFailed(), true)
+  t.is(isFailed.callCount, 4)
+
+  t.teardown(async () => {
+    await receiver.close()
+    await sender.close()
+    sinon.restore()
+  })
+})

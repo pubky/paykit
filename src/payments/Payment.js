@@ -330,6 +330,14 @@ class Payment {
   isFinal () {
     return this.internalState.isFinal()
   }
+
+  /**
+   * checks if payment is failed
+   * @returns {boolean}
+   */
+  isFailed () {
+    return this.internalState.isFailed()
+  }
 }
 
 /**
