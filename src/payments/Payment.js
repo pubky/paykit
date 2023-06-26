@@ -15,6 +15,8 @@ const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
  * @property {Amount} amount - amount of the payment
  * @property {PaymentState} internalState - internal state of the payment
  * @property {PaymentDirection} direction - direction of the payment
+ * @property {Date} createdAt - creation timestamp of the payment
+ * @property {Date} executeAt - execution timestamp of the payment
  */
 class Payment {
   /**
