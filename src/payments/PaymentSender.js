@@ -165,6 +165,18 @@ const ERRORS = {
   NO_PLUGINS_AVAILABLE: 'No plugins available for making payment'
 }
 
+/**
+ * @typedef {Object} PLUGIN_STATES
+ * @property {String} FAILED
+ * @property {String} SUCCESS
+ */
+const PLUGIN_STATES = {
+  FAILED: 'failed',
+  SUCCESS: 'success'
+}
+
 module.exports = {
-  PaymentSender
+  PaymentSender,
+  PLUGIN_STATES,
+  ERRORS
 }

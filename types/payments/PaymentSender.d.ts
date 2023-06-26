@@ -1,3 +1,7 @@
+export type PLUGIN_STATES = {
+    FAILED: string;
+    SUCCESS: string;
+};
 export type ERRORS = {
     NO_PLUGINS_AVAILABLE: string;
 };
@@ -67,4 +71,11 @@ export class PaymentSender {
      * @returns {Promise<void>}
      */
     handleSuccess(payment: Payment): Promise<void>;
+}
+export namespace PLUGIN_STATES {
+    const FAILED: string;
+    const SUCCESS: string;
+}
+export namespace ERRORS {
+    const NO_PLUGINS_AVAILABLE: string;
 }

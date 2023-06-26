@@ -11,7 +11,7 @@ const { pluginConfig } = require('../fixtures/config.js')
 const { orderParams } = require('../fixtures/paymentParams')
 
 const { PAYMENT_STATE } = require('../../src/payments/Payment')
-const { PaymentSender } = require('../../src/payments/PaymentSender')
+const { PaymentSender, PLUGIN_STATES } = require('../../src/payments/PaymentSender')
 const { PaymentOrder, ORDER_STATE, ERRORS: ORDER_ERRORS } = require('../../src/payments/PaymentOrder')
 
 const { getOneTimePaymentOrderEntities, sleep } = require('../helpers')
@@ -83,7 +83,7 @@ test('PaymentSender.stateUpdateCallback (success)', async t => {
   const payment = paymentOrder.payments[0]
   const paymentUpdate = {
     id: payment.id,
-    pluginState: 'success'
+    pluginState: PLUGIN_STATES.SUCCESS
   }
   await paymentSender.stateUpdateCallback(paymentUpdate)
 
@@ -112,7 +112,7 @@ test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
   const payment = paymentOrder.payments[0]
   let paymentUpdate = {
     id: payment.id,
-    pluginState: 'failed'
+    pluginState: PLUGIN_STATES.FAILED
   }
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
@@ -124,7 +124,7 @@ test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
 
   paymentUpdate = {
     id: payment.id,
-    pluginState: 'success'
+    pluginState: PLUGIN_STATES.SUCCESS
   }
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
@@ -189,7 +189,7 @@ test('PaymentSender.stateUpdateCallback (failure, failure)', async t => {
   const payment = paymentOrder.payments[0]
   let paymentUpdate = {
     id: payment.id,
-    pluginState: 'failed'
+    pluginState: PLUGIN_STATES.FAILED
   }
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
@@ -201,7 +201,7 @@ test('PaymentSender.stateUpdateCallback (failure, failure)', async t => {
 
   paymentUpdate = {
     id: payment.id,
-    pluginState: 'failed'
+    pluginState: PLUGIN_STATES.FAILED
   }
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
@@ -322,7 +322,7 @@ test('PaymentSender - recurring payment all success', async t => {
     const payment = paymentOrder.payments[i]
     const paymentUpdate = {
       id: payment.id,
-      pluginState: 'success'
+      pluginState: PLUGIN_STATES.SUCCESS
     }
     await paymentSender.stateUpdateCallback(paymentUpdate)
 
@@ -396,14 +396,14 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
       t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
       await paymentSender.stateUpdateCallback({
         id: paymentOrder.payments[i].id,
-        pluginState: 'failed'
+        pluginState: PLUGIN_STATES.FAILED
       })
       await sleep(1)
 
       t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
       await paymentSender.stateUpdateCallback({
         id: paymentOrder.payments[i].id,
-        pluginState: 'success'
+        pluginState: PLUGIN_STATES.SUCCESS
       })
       await sleep(1)
 
@@ -412,7 +412,7 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
     t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
     await paymentSender.stateUpdateCallback({
       id: paymentOrder.payments[i].id,
-      pluginState: 'success'
+      pluginState: PLUGIN_STATES.SUCCESS
     })
     await sleep(1)
   }
@@ -486,14 +486,14 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
       t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
       await paymentSender.stateUpdateCallback({
         id: paymentOrder.payments[i].id,
-        pluginState: 'failed'
+        pluginState: PLUGIN_STATES.FAILED
       })
       await sleep(1)
 
       t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
       await paymentSender.stateUpdateCallback({
         id: paymentOrder.payments[i].id,
-        pluginState: 'failed'
+        pluginState: PLUGIN_STATES.FAILED
       })
       await sleep(1)
 
@@ -502,7 +502,7 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
     t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
     await paymentSender.stateUpdateCallback({
       id: paymentOrder.payments[i].id,
-      pluginState: 'success'
+      pluginState: PLUGIN_STATES.SUCCESS
     })
     await sleep(1)
   }
