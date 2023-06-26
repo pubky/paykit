@@ -1,6 +1,6 @@
 const logger = require('slashtags-logger')('Slashpay', 'payment')
 
-const { SlashtagsAccessObject } = require('../SlashtagsAccessObject')
+const { SlashtagsConnector } = require('../slashtags')
 const { PaymentAmount } = require('./PaymentAmount')
 const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
 /**
@@ -105,7 +105,7 @@ class Payment {
    * @param {db} db - database
    */
 
-  constructor (paymentParams, db) {
+  constructor (paymentParams, db, slashtagsConnector) {
     logger.info('Creating payment')
     logger.debug(`Creating payment with ${JSON.stringify(paymentParams)}`)
 
@@ -114,6 +114,7 @@ class Payment {
 
     this.db = db
     this.sendingPriority = paymentParams.sendingPriority || []
+    this.slashtagsConnector = slashtagsConnector || new SlashtagsConnector()
 
     this.id = paymentParams.id || null
     this.orderId = paymentParams.orderId
@@ -154,12 +155,10 @@ class Payment {
    */
   async init () {
     this.logger.info('Initializing payment')
+    await this.slashtagsConnector.init()
 
     this.logger.debug('Retrieving payment file')
-    const remoteStorage = new SlashtagsAccessObject()
-    // XXX: url may contain path to payment file
-    await remoteStorage.init(this.counterpartyURL)
-    const paymentFile = await remoteStorage.read('/slashpay.json')
+    const paymentFile = await this.slashtagsConnector.readRemote(this.counterpartyURL)
     if (!paymentFile) throw new Error(ERRORS.NO_PAYMENT_FILE)
     this.logger.debug('Retrieved payment file')
 
