@@ -1,7 +1,7 @@
 const orderParams = {
   clientOrderId: 'clientOrderId',
   amount: '100',
-  sendingPriority: ['p2sh', 'lightning']
+  sendingPriority: ['p2sh', 'p2tr']
 }
 
 const paymentParams = {

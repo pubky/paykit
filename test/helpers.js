@@ -27,7 +27,7 @@ module.exports = {
       await receiver.create(SLASHPAY_PATH, {
         paymentEndpoints: {
           p2sh: '/public/p2sh.json',
-          lightning: '/public/lightning.json'
+          p2tr: '/public/p2tr.json'
         }
       })
     }
