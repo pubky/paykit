@@ -1,5 +1,6 @@
 const path = require('path')
-const { Payment } = require('./Payment')
+const { Payment, PAYMENT_DIRECTION, PAYMENT_STATE } = require('./Payment')
+const { SLASHPAY_PATH } = require('../slashtags')
 /**
  * PaymentReceiver is a class which is responsible for making plugins to receive payments
  * @class PaymentReceiver
@@ -17,15 +18,12 @@ class PaymentReceiver {
     this.storage = storage // internal public interface
     this.notificationCallback = notificationCallback
     this.pluginManager = pluginManager
+    this.ready = false
   }
-
-
 
   // TODO: allow for initialization of receiving payment with specified amount. Logically this can be introduced as
   // as one-time-incoming payment with amount validation happening here, as some plugins may not support such.
   // Slashpay.json for such payments should be stored in a separate core in order to no
-  //
-  //
   //
   // TODO: make sure slashtags-data works with full spectrum of  private/public vs persisted/ephemeral
 
@@ -36,7 +34,7 @@ class PaymentReceiver {
   async init () {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
     const slashpayFile = this.generateSlashpayContent(paymentPluginNames)
-    const url = await this.storage.create('./slashpay.json', slashpayFile)
+    const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
     await this.pluginManager.dispatchEvent('receivePayment', {
       // TODO: define payload to make plugins create their own slashpay files
@@ -52,6 +50,8 @@ class PaymentReceiver {
     //   this.pluginManager.plugins[name].readyToReceivePayments = false
     // })
 
+    this.ready = true
+
     return url
   }
 
@@ -60,17 +60,17 @@ class PaymentReceiver {
    * @param {Object} payload - payment object
    * @returns {Promise<void>}
    */
-  async handleNewPayment (payload) {
-    // FIXME: add properties specific to incoming payment
-    // add id?
+  async handleNewPayment (payload, source) {
+    const sendingPriority = [payload.completedByPlugin.name]
     const payment = new Payment({
       ...payload,
-      sendingPriority: [payload.pluginName],
-      foo: 'test incomming'
+      sendingPriority,
+      direction: PAYMENT_DIRECTION.IN,
+      internalState: PAYMENT_STATE.COMPLETED
     }, this.db)
     await payment.save()
 
-    await this.notificationCallback(payment)
+    this.notificationCallback(payment)
   }
 
   /**
@@ -81,7 +81,7 @@ class PaymentReceiver {
   generateSlashpayContent (paymentPluginNames) {
     const slashpayFile = { paymentEndpoints: {} }
     paymentPluginNames.forEach((n) => {
-      slashpayFile.paymentEndpoints[n] = path.join('slashpay', n, 'slashpay.json')
+      slashpayFile.paymentEndpoints[n] = path.join('/public/slashpay', n, 'slashpay.json')
     })
 
     return slashpayFile
@@ -98,6 +98,11 @@ class PaymentReceiver {
   }
 }
 
+const ERRORS = {
+  PAYMENT_RECEIVER_NOT_READY: 'PAYMENT_RECEIVER_NOT_READY'
+}
+
 module.exports = {
-  PaymentReceiver
+  PaymentReceiver,
+  ERRORS
 }
