@@ -1,6 +1,5 @@
 const logger = require('slashtags-logger')('Slashpay', 'payment')
 
-const { SlashtagsConnector } = require('../slashtags')
 const { PaymentAmount } = require('./PaymentAmount')
 const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
 /**
@@ -99,12 +98,12 @@ class Payment {
    * @param {PaymentParams} paymentParams
    * @property {string} [paymentParmas.id] - payment id
    * @property {PaymentState} [paymentParams.internalState] - internal state of the payment
-   * @property {string} counterpartyURL - destination of the payment
-   * @property {string} clientOrderId - client payment id
-   * @property {Amount} amount - amount of the payment
-   * @property {string[]} sendingPriority - list of plugins to use to send the payment
-   *
+   * @property {string} paymentParams.counterpartyURL - destination of the payment
+   * @property {string} paymentParams.clientOrderId - client payment id
+   * @property {Amount} paymentParams.amount - amount of the payment
+   * @property {string[]} paymentParams.sendingPriority - list of plugins to use to send the payment
    * @param {db} db - database
+   * @param {SlashtagsConnector} [slashtagsConnector] - slashtags connector
    */
 
   constructor (paymentParams, db, slashtagsConnector) {
@@ -116,7 +115,7 @@ class Payment {
 
     this.db = db
     this.sendingPriority = paymentParams.sendingPriority || []
-    this.slashtagsConnector = slashtagsConnector || new SlashtagsConnector()
+    this.slashtagsConnector = slashtagsConnector
 
     this.id = paymentParams.id || null
     this.orderId = paymentParams.orderId
