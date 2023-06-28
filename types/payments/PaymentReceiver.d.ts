@@ -18,21 +18,23 @@ export class PaymentReceiver {
     ready: boolean;
     /**
      * Initialize, get ready to receive payments at returned URL
+     * @param {PaymentAmount} [amount] - amount of money to receive
      * @returns {Promise<String>} - url to local drive where slashpay.json file is located
      */
-    init(): Promise<string>;
+    init(amount?: PaymentAmount): Promise<string>;
     /**
      * Callback which is called by plugin when payment is received
      * @param {Object} payload - payment object
      * @returns {Promise<void>}
      */
-    handleNewPayment(payload: any, source: any): Promise<void>;
+    handleNewPayment(payload: any, regenerateSlashpay?: boolean): Promise<void>;
     /**
      * @method generateSlashpayContent
      * @param {Array<String>} paymentPluginNames - list of payment plugin names
+     * @param {PaymentAmount} [amount] - amount of money to receive
      * @returns {Object} - content of slashpay.json file
      */
-    generateSlashpayContent(paymentPluginNames: Array<string>): any;
+    generateSlashpayContent(paymentPluginNames: Array<string>, amount?: PaymentAmount): any;
     /**
      * @method getListOfSupportedPaymentMethods
      * @returns {Array<String>} - list of payment plugin names

@@ -82,6 +82,7 @@ test('PaymentReceiver.handleNewPayment', async t => {
   await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, {})
 
   const notificationCallback = sinon.fake.resolves()
+  const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
   const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, notificationCallback)
 
   await paymentReceiver.handleNewPayment({
@@ -120,13 +121,15 @@ test('PaymentReceiver.handleNewPayment', async t => {
   const arg = notificationCallback.getCall(0).args[0]
   t.alike(arg.serialize(), payment)
 
+  t.is(pluginDispatch.callCount, 1)
+
   t.teardown(async () => {
     await receiver.close()
     sinon.restore()
   })
 })
 
-test('PaymentReceiver.generateSlashpayContent', async t => {
+test('PaymentReceiver.generateSlashpayContent - no amount', async t => {
   const { db, receiver } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -139,6 +142,27 @@ test('PaymentReceiver.generateSlashpayContent', async t => {
     paymentEndpoints: {
       p2sh: '/public/slashpay/p2sh/slashpay.json',
       p2tr: '/public/slashpay/p2tr/slashpay.json'
+    }
+  })
+
+  t.teardown(async () => {
+    await receiver.close()
+  })
+})
+
+test('PaymentReceiver.generateSlashpayContent - with amount', async t => {
+  const { db, receiver } = await createStorageEntities(t)
+
+  const pluginManager = new PluginManager(pluginConfig)
+  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, receiver)
+
+  const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, () => {})
+
+  const slashpayContent = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'], 100)
+  t.alike(slashpayContent, {
+    paymentEndpoints: {
+      p2sh: '/some-id/slashpay/p2sh/slashpay.json',
+      p2tr: '/some-id/slashpay/p2tr/slashpay.json'
     }
   })
 

@@ -21,25 +21,22 @@ class PaymentReceiver {
     this.ready = false
   }
 
-  // TODO: allow for initialization of receiving payment with specified amount. Logically this can be introduced as
-  // as one-time-incoming payment with amount validation happening here, as some plugins may not support such.
-  // Slashpay.json for such payments should be stored in a separate core in order to no
-  //
   // TODO: make sure slashtags-data works with full spectrum of  private/public vs persisted/ephemeral
 
   /**
    * Initialize, get ready to receive payments at returned URL
+   * @param {PaymentAmount} [amount] - amount of money to receive
    * @returns {Promise<String>} - url to local drive where slashpay.json file is located
    */
-  async init () {
+  async init (amount) {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const slashpayFile = this.generateSlashpayContent(paymentPluginNames)
+    const slashpayFile = this.generateSlashpayContent(paymentPluginNames, amount)
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
-    await this.pluginManager.dispatchEvent('receivePayment', {
-      // TODO: define payload to make plugins create their own slashpay files
-      notificationCallback: this.notificationCallback
-    })
+    const payload = { notificationCallback: this.notificationCallback }
+    if (amount) payload.amount = amount.serialize()
+
+    await this.pluginManager.dispatchEvent('receivePayment', payload)
 
     // XXX what if some plugins failed to initialize?
     // we need some kind of a mechanism to track their readiness
@@ -60,7 +57,7 @@ class PaymentReceiver {
    * @param {Object} payload - payment object
    * @returns {Promise<void>}
    */
-  async handleNewPayment (payload, source) {
+  async handleNewPayment (payload, regenerateSlashpay = true) {
     const sendingPriority = [payload.completedByPlugin.name]
     const payment = new Payment({
       ...payload,
@@ -70,18 +67,30 @@ class PaymentReceiver {
     }, this.db)
     await payment.save()
 
-    this.notificationCallback(payment)
+    if (regenerateSlashpay) {
+      await this.pluginManager.dispatchEvent('receivePayment', {
+        notificationCallback: this.notificationCallback
+      })
+    }
+
+    await this.notificationCallback(payment)
   }
 
   /**
    * @method generateSlashpayContent
    * @param {Array<String>} paymentPluginNames - list of payment plugin names
+   * @param {PaymentAmount} [amount] - amount of money to receive
    * @returns {Object} - content of slashpay.json file
    */
-  generateSlashpayContent (paymentPluginNames) {
+  generateSlashpayContent (paymentPluginNames, amount) {
     const slashpayFile = { paymentEndpoints: {} }
-    paymentPluginNames.forEach((n) => {
-      slashpayFile.paymentEndpoints[n] = path.join('/public/slashpay', n, 'slashpay.json')
+    // TODO: id generation
+    const id = 'some-id'
+
+    paymentPluginNames.forEach((name) => {
+      slashpayFile.paymentEndpoints[name] = amount
+        ? path.join('/', id, 'slashpay', name, 'slashpay.json')
+        : path.join('/public/slashpay', name, 'slashpay.json')
     })
 
     return slashpayFile
