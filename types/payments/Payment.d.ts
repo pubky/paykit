@@ -108,17 +108,17 @@ export class Payment {
      * @param {PaymentParams} paymentParams
      * @property {string} [paymentParmas.id] - payment id
      * @property {PaymentState} [paymentParams.internalState] - internal state of the payment
-     * @property {string} counterpartyURL - destination of the payment
-     * @property {string} clientOrderId - client payment id
-     * @property {Amount} amount - amount of the payment
-     * @property {string[]} sendingPriority - list of plugins to use to send the payment
-     *
+     * @property {string} paymentParams.counterpartyURL - destination of the payment
+     * @property {string} paymentParams.clientOrderId - client payment id
+     * @property {Amount} paymentParams.amount - amount of the payment
+     * @property {string[]} paymentParams.sendingPriority - list of plugins to use to send the payment
      * @param {db} db - database
+     * @param {SlashtagsConnector} [slashtagsConnector] - slashtags connector
      */
-    constructor(paymentParams: PaymentParams, db: any, slashtagsConnector: any);
+    constructor(paymentParams: PaymentParams, db: any, slashtagsConnector?: SlashtagsConnector);
     db: any;
     sendingPriority: any;
-    slashtagsConnector: any;
+    slashtagsConnector: SlashtagsConnector;
     id: any;
     orderId: any;
     clientOrderId: any;
