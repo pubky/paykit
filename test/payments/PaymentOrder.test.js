@@ -13,44 +13,7 @@ const { PaymentOrder, ORDER_STATE, ERRORS } = require('../../src/payments/Paymen
 const createTestnet = require('@hyperswarm/testnet')
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
 
-async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, opts = {}) {
-  const db = new DB()
-  await db.init()
-
-  const testnet = await createTestnet(3, t)
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
-  const sender = new SlashtagsConnector(testnet)
-  await sender.init()
-
-  const params = {
-    ...orderParams,
-    counterpartyURL: receiver.getUrl(),
-    ...opts
-  }
-
-  if (initializeReceiver) {
-    await receiver.create(SLASHPAY_PATH, {
-      paymentEndpoints: {
-        p2sh: '/public/p2sh.json',
-        lightning: '/public/lightning.json'
-      }
-    })
-  }
-
-  const paymentOrder = new PaymentOrder(params, db, sender)
-
-  return {
-    db,
-    paymentOrder,
-    receiver,
-    sender
-  }
-}
-
-function sleep (ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
+const { getOneTimePaymentOrderEntities, sleep } = require('../helpers')
 
 test('PaymentOrder - new (default one time)', async t => {
   const { paymentOrder, receiver, sender } = await getOneTimePaymentOrderEntities(t)
@@ -276,6 +239,25 @@ test('PaymentOrder.canProcess', async t => {
   })
 })
 
+test('PaymentOrder.canProcess - failed payment', async t => {
+  const { paymentOrder, receiver, sender } = await getOneTimePaymentOrderEntities(t)
+  await paymentOrder.init()
+
+  const payment = paymentOrder.payments[0]
+  await payment.process()
+  while (!payment.isFailed()) {
+    await payment.failCurrentPlugin()
+    await payment.process()
+  }
+
+  t.absent(paymentOrder.canProcess())
+
+  t.teardown(async () => {
+    await receiver.close()
+    await sender.close()
+  })
+})
+
 test('PaymentOrder.processPayment', async t => {
   const { paymentOrder, receiver, sender } = await getOneTimePaymentOrderEntities(t, true)
 
@@ -382,7 +364,7 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.currency, 'BTC')
   t.is(serialized.denomination, 'BASE')
   t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
-  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.pendingPlugins, ['p2tr'])
   t.alike(serialized.triedPlugins, [])
   t.is(serialized.currentPlugin.name, 'p2sh')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
@@ -415,7 +397,7 @@ test('PaymentOrder.process', async t => {
   t.ok(serialized.triedPlugins[0].startAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt <= Date.now())
 
-  t.is(serialized.currentPlugin.name, 'lightning')
+  t.is(serialized.currentPlugin.name, 'p2tr')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
 
   await payment.complete()
@@ -430,9 +412,9 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.triedPlugins.length, 2)
   t.is(serialized.triedPlugins[0].name, 'p2sh')
   t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
-  t.is(serialized.triedPlugins[1].name, 'lightning')
+  t.is(serialized.triedPlugins[1].name, 'p2tr')
   t.is(serialized.triedPlugins[1].state, PLUGIN_STATE.SUCCESS)
-  t.is(serialized.completedByPlugin.name, 'lightning')
+  t.is(serialized.completedByPlugin.name, 'p2tr')
   t.is(serialized.completedByPlugin.state, PLUGIN_STATE.SUCCESS)
   t.ok(serialized.completedByPlugin.startAt <= Date.now())
   t.ok(serialized.completedByPlugin.endAt <= Date.now())
@@ -484,7 +466,7 @@ test('PaymentOrder - recurring order (finite)', async t => {
   await receiver.create(SLASHPAY_PATH, {
     paymentEndpoints: {
       p2sh: '/public/p2sh.json',
-      lightning: '/public/lightning.json'
+      p2tr: '/public/p2tr.json'
     }
   })
 
@@ -534,7 +516,7 @@ test('PaymentOrder - recurring order (infinite)', async t => {
   await receiver.create(SLASHPAY_PATH, {
     paymentEndpoints: {
       p2sh: '/public/p2sh.json',
-      lightning: '/public/lightning.json'
+      p2tr: '/public/p2tr.json'
     }
   })
 

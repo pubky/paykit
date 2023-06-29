@@ -30,7 +30,7 @@ async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
     await receiver.create(SLASHPAY_PATH, {
       paymentEndpoints: {
         p2sh: '/public/p2sh.json',
-        lightning: '/public/lightning.json'
+        p2tr: '/public/p2tr.json'
       }
     })
   }
@@ -217,7 +217,7 @@ test('Payment.init - no matching plugins', async t => {
 test('Payment.init - selected priority', async t => {
   const { sender, receiver, payment } = await createPaymentEntities(t)
   await payment.init()
-  t.alike(payment.sendingPriority, ['p2sh', 'lightning'])
+  t.alike(payment.sendingPriority, ['p2sh', 'p2tr'])
 
   t.teardown(async () => {
     await receiver.close()
@@ -239,7 +239,7 @@ test('Payment.serialize', async t => {
     amount: '100',
     currency: 'BTC',
     denomination: 'BASE',
-    sendingPriority: ['p2sh', 'lightning'],
+    sendingPriority: ['p2sh', 'p2tr'],
     pendingPlugins: [],
     triedPlugins: [],
     currentPlugin: {},
@@ -339,7 +339,7 @@ test('Payment.process', async t => {
 
   serialized = payment.serialize()
   t.is(serialized.internalState, PAYMENT_STATE.INITIAL)
-  t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
+  t.alike(serialized.pendingPlugins, ['p2sh', 'p2tr'])
   t.alike(serialized.triedPlugins, [])
   t.alike(serialized.currentPlugin, {})
   t.alike(serialized.completedByPlugin, {})
@@ -355,7 +355,7 @@ test('Payment.process', async t => {
 
   serialized = payment.serialize()
   t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
-  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.pendingPlugins, ['p2tr'])
 
   t.alike(serialized.triedPlugins, [])
 
@@ -372,7 +372,7 @@ test('Payment.process', async t => {
   await payment.process()
   serialized = payment.serialize()
   t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
-  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.pendingPlugins, ['p2tr'])
   t.alike(serialized.triedPlugins, [])
   t.is(serialized.currentPlugin.name, 'p2sh')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
@@ -396,7 +396,7 @@ test('Payment.process', async t => {
   t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
   t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
 
-  t.is(serialized.currentPlugin.name, 'lightning')
+  t.is(serialized.currentPlugin.name, 'p2tr')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
 
@@ -415,7 +415,7 @@ test('Payment.process', async t => {
   t.ok(serialized.triedPlugins[0].endAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
   t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
-  t.is(serialized.currentPlugin.name, 'lightning')
+  t.is(serialized.currentPlugin.name, 'p2tr')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
   t.is(serialized.currentPlugin.state, PLUGIN_STATE.SUBMITTED)
   t.alike(serialized.completedByPlugin, {})
@@ -436,7 +436,7 @@ test('Payment.process', async t => {
   t.ok(serialized.triedPlugins[0].endAt <= Date.now())
   t.ok(serialized.triedPlugins[0].endAt >= serialized.triedPlugins[0].startAt)
   t.is(serialized.triedPlugins[0].state, PLUGIN_STATE.FAILED)
-  t.is(serialized.triedPlugins[1].name, 'lightning')
+  t.is(serialized.triedPlugins[1].name, 'p2tr')
   t.ok(serialized.triedPlugins[1].startAt <= Date.now())
   t.ok(serialized.triedPlugins[1].endAt <= Date.now())
   t.ok(serialized.triedPlugins[1].endAt >= serialized.triedPlugins[0].startAt)
@@ -470,7 +470,7 @@ test('Payment.complete', async t => {
   let serialized
   serialized = payment.serialize()
   t.is(serialized.internalState, PAYMENT_STATE.INITIAL)
-  t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
+  t.alike(serialized.pendingPlugins, ['p2sh', 'p2tr'])
   t.alike(serialized.triedPlugins, [])
   t.alike(serialized.currentPlugin, {})
   t.alike(serialized.completedByPlugin, {})
@@ -481,7 +481,7 @@ test('Payment.complete', async t => {
   await t.exception(async () => await payment.complete(), STATE_ERRORS.INVALID_STATE(PAYMENT_STATE.INITIAL))
   serialized = payment.serialize()
   t.is(serialized.internalState, PAYMENT_STATE.INITIAL)
-  t.alike(serialized.pendingPlugins, ['p2sh', 'lightning'])
+  t.alike(serialized.pendingPlugins, ['p2sh', 'p2tr'])
   t.alike(serialized.triedPlugins, [])
   t.alike(serialized.currentPlugin, {})
   t.alike(serialized.completedByPlugin, {})
@@ -493,7 +493,7 @@ test('Payment.complete', async t => {
 
   serialized = payment.serialize()
   t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)
-  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.pendingPlugins, ['p2tr'])
   t.alike(serialized.triedPlugins, [])
   t.is(serialized.currentPlugin.name, 'p2sh')
   t.ok(serialized.currentPlugin.startAt <= Date.now())
@@ -505,7 +505,7 @@ test('Payment.complete', async t => {
   await payment.complete()
   serialized = payment.serialize()
   t.is(serialized.internalState, PAYMENT_STATE.COMPLETED)
-  t.alike(serialized.pendingPlugins, ['lightning'])
+  t.alike(serialized.pendingPlugins, ['p2tr'])
   t.is(serialized.triedPlugins.length, 1)
   t.is(serialized.triedPlugins[0].name, 'p2sh')
   t.ok(serialized.triedPlugins[0].startAt <= Date.now())
@@ -646,6 +646,47 @@ test('Payment.isFinal', async t => {
   await payment.complete()
   t.is(payment.isFinal(), true)
   t.is(isFinal.callCount, 3)
+
+  t.teardown(async () => {
+    await receiver.close()
+    await sender.close()
+    sinon.restore()
+  })
+})
+
+test('Payment.isFailed', async t => {
+  const { sender, receiver, payment } = await createPaymentEntities(t, true, {
+    id: 'test',
+    executeAt: new Date(Date.now() + 100000),
+    pendingPlugins: paymentParams.sendingPriority
+  })
+  await payment.init()
+
+  const isFailed = sinon.replace(
+    payment.internalState,
+    'isFailed',
+    sinon.fake(payment.internalState.isFailed)
+  )
+
+  t.is(payment.isFailed(), false)
+  t.is(isFailed.callCount, 1)
+
+  await payment.process()
+  await payment.failCurrentPlugin()
+
+  t.is(payment.isFailed(), false)
+  t.is(isFailed.callCount, 2)
+
+  await payment.process()
+  await payment.failCurrentPlugin()
+
+  t.is(payment.isFailed(), false)
+  t.is(isFailed.callCount, 3)
+
+  await payment.process()
+
+  t.is(payment.isFailed(), true)
+  t.is(isFailed.callCount, 4)
 
   t.teardown(async () => {
     await receiver.close()

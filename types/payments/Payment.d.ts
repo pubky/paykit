@@ -264,6 +264,11 @@ export class Payment {
      * @returns {boolean}
      */
     isFinal(): boolean;
+    /**
+     * checks if payment is failed
+     * @returns {boolean}
+     */
+    isFailed(): boolean;
 }
 import { PAYMENT_STATE } from "./PaymentState";
 import { PLUGIN_STATE } from "./PaymentState";
