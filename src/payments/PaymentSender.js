@@ -28,7 +28,7 @@ class PaymentSender {
     const payment = await this.paymentOrder.process()
     const { plugin } = await this.getCurrentPlugin(payment)
 
-    // TODO: ommit
+    // TODO: omit
     // - sendingPriority
     // - createdAt
     // - executedAt
