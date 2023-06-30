@@ -18,7 +18,7 @@ const utils = require('../../utils')
  * @property {string} EVENTS.NOT_ARRAY - events is not an array
  * @property {string} EVENTS.NOT_STRING - event is not a string
  * @property {string} EVENTS.MISSING_LISTENER - event listener is not implemented
- * @property {string} EVENTS.MISSING_WATCH - event must subscribe to "serve" event
+ * @property {string} EVENTS.MISSING_WATCH - event must subscribe to "receivePayment" event
  * @property {Object} PLUGIN - plugin errors
  * @property {string} PLUGIN.INIT - failed to initialize plugin
  * @property {string} PLUGIN.GET_MANIFEST - failed to get manifest
@@ -46,7 +46,7 @@ const ERRORS = {
     NOT_ARRAY: (msg) => `${msg} events is not an array`,
     NOT_STRING: (msg, event) => `${msg} event ${event} is not a string`,
     MISSING_LISTENER: (msg) => `${msg} event listener is not implemented`,
-    MISSING_WATCH: (msg) => `${msg} must subscribe to "serve" event`
+    MISSING_WATCH: (msg) => `${msg} must subscribe to "receivePayment" event`
   },
   PLUGIN: {
     INIT: (msg) => `Failed to initialize plugin: ${msg}`,
@@ -132,7 +132,9 @@ function validateEvents (manifest, plugin, msg) {
     utils.validateType(event, 'string', ERRORS.EVENTS.NOT_STRING(msg, event))
   })
 
-  utils.assert(manifest.events.includes('watch'), ERRORS.EVENTS.MISSING_WATCH(msg))
+  if (manifest.type === 'payment') {
+    utils.assert(manifest.events.includes('receivePayment'), ERRORS.EVENTS.MISSING_WATCH(msg))
+  }
 }
 
 module.exports = {
