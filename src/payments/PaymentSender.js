@@ -28,6 +28,13 @@ class PaymentSender {
     const payment = await this.paymentOrder.process()
     const { plugin } = await this.getCurrentPlugin(payment)
 
+    // TODO: ommit
+    // - sendingPriority
+    // - createdAt
+    // - executedAt
+    // - direction
+    // - internalState
+    // TODO: in counterpartyURL specify path to `/public/slashpay/<pluginName>/slashpay.json`
     await plugin.pay(payment.serialize(), this.entryPointForPlugin)
   }
 
@@ -73,6 +80,7 @@ class PaymentSender {
    * @returns {Promise<void>}
    */
   async stateUpdateCallback (update) {
+    // XXX: this may be a bottle neck as it assumes that there is only one payment in progress at time
     const payment = this.paymentOrder.getPaymentInProgress()
     // XXX: this should never happen
     if (!payment) throw new Error('No payment in process')

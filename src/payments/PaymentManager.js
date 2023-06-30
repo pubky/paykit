@@ -145,6 +145,7 @@ class PaymentManager {
   async entryPointForUser (data) {
     const paymentSender = await this.getPaymentSender(data.orderId)
 
+    // TOOD: consider adding requirements to the data format
     await paymentSender.updatePayment(data)
   }
 
