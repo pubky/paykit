@@ -26,16 +26,25 @@ class PaymentSender {
    */
   async submit () {
     const payment = await this.paymentOrder.process()
-    const { plugin } = await this.getCurrentPlugin(payment)
+    const { plugin, manifest: { name } } = await this.getCurrentPlugin(payment)
 
-    // TODO: omit
-    // - sendingPriority
-    // - createdAt
-    // - executedAt
-    // - direction
-    // - internalState
-    // TODO: in counterpartyURL specify path to `/public/slashpay/<pluginName>/slashpay.json`
-    await plugin.pay(payment.serialize(), this.entryPointForPlugin)
+    const serialized = payment.serialize()
+    const payload = {
+      id: serialized.id,
+      orderId: serialized.orderId,
+      counterpartyURL: serialized.counterpartyURL,
+      memo: serialized.memo,
+      amount: serialized.amount,
+      currency: serialized.currency,
+      denomination: serialized.denomination
+    }
+
+    // Payments with specified amount are done to the full path to slashpay.json
+    // which must also include encryption key to the payee private drive
+    if (!payload.counterpartyURL.endsWith('.json')) {
+      payload.counterpartyURL = `${payload.counterpartyURL}/public/slashpay/${name}/slashpay.json`
+    }
+    await plugin.pay(payload, this.entryPointForPlugin)
   }
 
   /**
