@@ -113,7 +113,7 @@ test('PaymentManager.receivePayments', async t => {
 test('PaymentManager.handleNewPayment', async t => {
   const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
 
-  const paymentManager = new PaymentManager(config, db, receiver)
+  const paymentManager = new PaymentManager(config, db, receiver, console.log)
   await paymentManager.init()
 
   const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
@@ -157,7 +157,7 @@ test('PaymentManager.handlePaymentUpdate', async t => {
   const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
   paymentOrder.init()
 
-  const paymentManager = new PaymentManager(config, db, receiver)
+  const paymentManager = new PaymentManager(config, db, receiver, console.log)
   await paymentManager.init()
 
   await paymentManager.sendPayment(paymentOrder.id)

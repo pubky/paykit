@@ -21,12 +21,14 @@ class PaymentManager {
    * @param {Object} config - configuration object
    * @param {any} db - instance of Database class
    * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
+   * @param {Function} notificationCallback - callback function for user notifications
    */
-  constructor (config, db, slashtagsConnector) {
+  constructor (config, db, slashtagsConnector, notificationCallback) {
     this.config = config
     this.db = db
     this.slashtagsConnector = slashtagsConnector
     this.pluginManager = new PluginManager(this.config)
+    this.notificationCallback = notificationCallback
 
     this.ready = false
   }
@@ -47,6 +49,11 @@ class PaymentManager {
    * @returns {Promise<PaymentOrder>} - instance of Payment class
    */
   async createPaymentOrder (paymentObject) {
+    const paymentParams = { ...paymentObject }
+    if (!paymentParams.sendingPriority || paymentParams.sendingPriority.length === 0) {
+      paymentParams.sendingPriority = this.config.sendingPriority
+    }
+
     const paymentOrder = new PaymentOrder(paymentObject, this.db, this.slashtagsConnector)
     await paymentOrder.init()
 
@@ -165,7 +172,7 @@ class PaymentManager {
    * @returns {Promise<void>}
    */
   async userNotificationEndpoint (payload) {
-    console.log('askClient', payload)
+    this.notificationCallback(payload)
   }
 }
 
