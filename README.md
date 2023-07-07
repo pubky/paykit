@@ -1,8 +1,27 @@
 # Slashpay
 
-Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey ("slashtag") which refers to a data store containing all supported payment endpoints. Internally system consists of [core](core) and [plugins](plugins), see [diagram](diagram) for more details on internal system interaction.
+Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey ("slashtag") which refers to a data store containing all supported payment endpoints. Internally system consists of [core](#core) and [plugins](#plugins), see [diagram](#collaboration-diagram) for more details on internal system interaction.
 
-## Core {#core}
+## API
+TODO: describe initialization etc after adding server and lib modes
+
+```javascript
+const notificationCallback = console.log
+const slashpay = new Slashpay(notificationCallback)
+const paymentOrder = await slashpay.createPaymentOrder({
+  clientOrderId: '<unique id>'
+  amount: '<sting amount, defaults to sats>'
+  counterparyURL: '<slashtags url to the drive o to the slashpay json>'
+})
+
+await slashpay.sendPayment(paymentOrder.id)
+
+const url = await slashpay.receivePayments()
+// TODO: add more
+```
+
+
+## Core
 The core consists of:
 ### Business logic classes:
 - `PaymentManager` - facade class which exposes business logic to user and plugins;
@@ -18,34 +37,34 @@ The core consists of:
 - `DatabaseConnector` - pseudo ORM for connection with Sqlite storage for managing internal state;
 - `SlashtagsConnector` - class for abstracting away CRUD operations over slashtags.
 
-## Plugins {#plugins}
+## Plugins
 Plugins can be used also for auxiliary logic implementation like system monitoring. General plugin responsibilities:
 - must be loadable with `require`;
 - must implement `async init()` method responsible for plugin initialization;
-- must implement `async getmanifest()` method, see [manifest](#getmanifest).
+- must implement `async getmanifest()` method, see [manifest](#plugin-manifest).
 
-### Plugin manifest {#getmanifest}
+### Plugin manifest
 JSON object returned via `async getmanifest()` method. Returning data must be a valid JSON object with following keys:
 - string `name` - required unique name of the plugin in scope of slashpay instance;
 - string `type` - value (so far supported type is `"payment"`);
 - optional array of strings `rpc` - mapping name of the command to function, see [rpc](#rpc-methods);
 - optional array of strings `events` - mapping name of command to function, see [events](#events).
 
-#### RPC methods {#rpc-mehtods}
+#### RPC methods
 Plugin methods to be called by core in a unicast manner:
 - may implement `stop()` method which would be invoked for graceful shutdown of the plugin;
 - type `payment` requires implementation of methods:
   - `pay(<payment object>, <callback>)` - method responsible for invocation of logic for submitting payment, see [payment](#payment) and [callback](#feedback-communication).
 
-#### Events {#events}
+#### Events
 Plugin methods to be called by core in a multicast manner:
 `events` - optional array of strings. Different types of plugins require implementation of different RPC methods.
 Type `payment` requires implementation of "watch" event listener:
  - `receivePayments({ notificationCallback, amount })` - method responsible for invocation of logic for initialization of receiving payments, see [amount](#amount) and [notification callback](#feedback-communication).
 
-#### Data objects {#data-objects}
+#### Data objects
 
-##### Payment {#payment}
+##### Payment
 Payment - is a JSON object of following structure:
 - `id` - unique string identified of payment;
 - `orderId` - uniqye string identifier of corresponding payment order;
@@ -55,12 +74,12 @@ Payment - is a JSON object of following structure:
 - `denomination` - string denomination of the specified amount. Allowed values are either "BASE" or "MAIN";
 - `currency` - string curency code in ISO3166-1 Alpha3 format.
 
-##### Amount {#amount}
+##### Amount
 - `amount` - string amount. Value is specified in given denomination;
 - `denomination` - string denomination of the specified amount. Allowed values are either "BASE" or "MAIN";
 - `currency` - string curency code in ISO3166-1 Alpha3 format.
 
-#### Feedback communication {#feedback-communication}
+#### Feedback communication
 Callback - function which accepts single parameter and responsible for feedback communication. The payload may contain property `type` with string following values:
 - `payment_new` - will:
   - update internal core's state if payload is a valid payment object;
@@ -77,7 +96,7 @@ Callback - function which accepts single parameter and responsible for feedback 
 - default - forward to user.
 
 
-## Collaboration diagram {#diagram}
+## Collaboration diagram
 
 ### Creating Payment
 Diagram which describes inner workings of the payment creation process
