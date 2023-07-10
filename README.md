@@ -42,7 +42,7 @@ The core consists of business logic and auxiliary classes.
 ## Plugins
 All payment methods can be added through plugins. Any auxiliary logic can also be implemented via plugins. The general plugin requirements are as follows:
 - They must be loadable with `require`
-- They must implement the `async init()` method for plugin initialization;
+- They must implement the `async init()` method for plugin initialization
 - They must implement the `async getmanifest()` method (see [manifest](#plugin-manifest))
 
 ### Plugin manifest
