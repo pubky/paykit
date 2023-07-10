@@ -114,7 +114,7 @@ This diagram depicts the receipt of a payment.
 
 # Other resources
 
-For more details information refer to:
+For more detailed information, please consult the following:
 - [source code](./src/)
 - [core unit tests](./test/payments/)
 - [end-to-end tests](./test/e2e/)
