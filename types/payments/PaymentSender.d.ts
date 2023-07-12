@@ -39,10 +39,10 @@ export class PaymentSender {
     /**
      * Get plugin currently handling payment
      * @method getCurrentPlugin
-     * @param {Payment} payment
+     * @param {PaymentObject} payment
      * @returns {Promise<Plugin>} plugin
      */
-    getCurrentPlugin(payment: Payment): Promise<Plugin>;
+    getCurrentPlugin(payment: PaymentObject): Promise<Plugin>;
     /**
      * Update payment state upon request of plugin sent to PaymentManager
      * @method stateUpdateCallback
@@ -53,24 +53,24 @@ export class PaymentSender {
     /**
      * Handle plugin state
      * @method handlePluginState
-     * @param {Payment} payment
+     * @param {PaymentObject} payment
      * @returns {Promise<void>}
      */
-    handlePluginState(payment: Payment): Promise<void>;
+    handlePluginState(payment: PaymentObject): Promise<void>;
     /**
      * Handle payment failure
      * @method handleFailure
-     * @param {Payment} payment
+     * @param {PaymentObject} payment
      * @returns {Promise<void>}
      */
-    handleFailure(payment: Payment): Promise<void>;
+    handleFailure(payment: PaymentObject): Promise<void>;
     /**
      * Handle payment success
      * @method handleSuccess
-     * @param {Payment} payment
+     * @param {PaymentObject} payment
      * @returns {Promise<void>}
      */
-    handleSuccess(payment: Payment): Promise<void>;
+    handleSuccess(payment: PaymentObject): Promise<void>;
 }
 export namespace PLUGIN_STATES {
     const FAILED: string;

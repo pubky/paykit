@@ -10,7 +10,7 @@ const { pluginConfig } = require('../fixtures/config.js')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
-const { PAYMENT_STATE } = require('../../src/payments/Payment')
+const { PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentSender, PLUGIN_STATES } = require('../../src/payments/PaymentSender')
 const { PaymentOrder, ORDER_STATE, ERRORS: ORDER_ERRORS } = require('../../src/payments/PaymentOrder')
 
@@ -56,9 +56,21 @@ test('PaymentSender.submit', async t => {
   const paymentSender = new PaymentSender(paymentOrder, pluginManager, () => {})
   await paymentSender.submit()
 
+  const serialized = paymentOrder.payments[0].serialize()
+  const pluginName = 'p2sh'
+  const payload = {
+    id: serialized.id,
+    orderId: serialized.orderId,
+    memo: serialized.memo,
+    amount: serialized.amount,
+    currency: serialized.currency,
+    denomination: serialized.denomination,
+    counterpartyURL: `${serialized.counterpartyURL}/public/slashpay/${pluginName}/slashpay.json`
+  }
+
   t.is(Object.keys(pluginManager.plugins).length, 1)
   t.is(pluginManager.plugins.p2sh.plugin.pay.callCount, 1)
-  t.alike(pluginManager.plugins.p2sh.plugin.pay.getCall(0).args, [paymentOrder.payments[0].serialize(), paymentSender.entryPointForPlugin])
+  t.alike(pluginManager.plugins.p2sh.plugin.pay.getCall(0).args, [payload, paymentSender.entryPointForPlugin])
 
   t.teardown(async () => {
     await sender.close()

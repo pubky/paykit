@@ -26,9 +26,25 @@ class PaymentSender {
    */
   async submit () {
     const payment = await this.paymentOrder.process()
-    const { plugin } = await this.getCurrentPlugin(payment)
+    const { plugin, manifest: { name } } = await this.getCurrentPlugin(payment)
 
-    await plugin.pay(payment.serialize(), this.entryPointForPlugin)
+    const serialized = payment.serialize()
+    const payload = {
+      id: serialized.id,
+      orderId: serialized.orderId,
+      counterpartyURL: serialized.counterpartyURL,
+      memo: serialized.memo,
+      amount: serialized.amount,
+      currency: serialized.currency,
+      denomination: serialized.denomination
+    }
+
+    // Payments with specified amount are done to the full path to slashpay.json
+    // which must also include encryption key to the payee private drive
+    if (!payload.counterpartyURL.endsWith('.json')) {
+      payload.counterpartyURL = `${payload.counterpartyURL}/public/slashpay/${name}/slashpay.json`
+    }
+    await plugin.pay(payload, this.entryPointForPlugin)
   }
 
   /**
@@ -47,7 +63,7 @@ class PaymentSender {
   /**
    * Get plugin currently handling payment
    * @method getCurrentPlugin
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<Plugin>} plugin
    */
   async getCurrentPlugin (payment) {
@@ -73,6 +89,7 @@ class PaymentSender {
    * @returns {Promise<void>}
    */
   async stateUpdateCallback (update) {
+    // XXX: this may be a bottle neck as it assumes that there is only one payment in progress at time
     const payment = this.paymentOrder.getPaymentInProgress()
     // XXX: this should never happen
     if (!payment) throw new Error('No payment in process')
@@ -86,7 +103,7 @@ class PaymentSender {
   /**
    * Handle plugin state
    * @method handlePluginState
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<void>}
    */
   async handlePluginState (payment) {
@@ -104,7 +121,7 @@ class PaymentSender {
   /**
    * Handle payment failure
    * @method handleFailure
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<void>}
    */
   async handleFailure (payment) {
@@ -121,7 +138,7 @@ class PaymentSender {
   /**
    * Handle payment success
    * @method handleSuccess
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<void>}
    */
   async handleSuccess (payment) {

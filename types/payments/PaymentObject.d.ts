@@ -55,8 +55,8 @@ export type PaymentDirection = {
     OUT: string;
 };
 /**
- * Payment class
- * @class Payment
+ * PaymentObject class
+ * @class PaymentObject
  * @property {string} id - payment id
  * @property {string} orderId - order id
  * @property {string} clientOrderId - client payment id
@@ -69,7 +69,7 @@ export type PaymentDirection = {
  * @property {Date} createdAt - creation timestamp of the payment
  * @property {Date} executeAt - execution timestamp of the payment
  */
-export class Payment {
+export class PaymentObject {
     /**
      * Generate random id
      * @returns {string}
@@ -104,9 +104,9 @@ export class Payment {
      */
     static validatePaymentObject(pO: Payment): void;
     /**
-     * @constructor Payment
+     * @constructor PaymentObject
      * @param {PaymentParams} paymentParams
-     * @property {string} [paymentParmas.id] - payment id
+     * @property {string} [paymentParmas.id] - payment object id
      * @property {PaymentState} [paymentParams.internalState] - internal state of the payment
      * @property {string} paymentParams.counterpartyURL - destination of the payment
      * @property {string} paymentParams.clientOrderId - client payment id
@@ -210,9 +210,9 @@ export class Payment {
      * @property {string|null} processingPlugin - plugin that is currently processing the payment
      */
     /**
-     * Save payment to db
+     * Save payment object to db
      * @returns {Promise<void>}
-     * @throws {Error} - if payment is not valid
+     * @throws {Error} - if payment object is not valid
      */
     save(): Promise<void>;
     /**
@@ -229,21 +229,21 @@ export class Payment {
     update(): Promise<void>;
     /**
      * Process payment by iterating through sendingPriority and updating internalState
-     * @returns {Promise<Payment>}
+     * @returns {Promise<PaymentObject>}
      */
-    process(): Promise<Payment>;
+    process(): Promise<PaymentObject>;
     /**
      * Complete payment by setting internalState to COMPLETED
      * @throws {Error} - if payment is not in progress
-     * @returns {Promise<Payment>}
+     * @returns {Promise<PaymentObject>}
      */
-    complete(): Promise<Payment>;
+    complete(): Promise<PaymentObject>;
     /**
      * Cancel payment by setting internalState to CANCELED
      * @throws {Error} - if payment is not initial
-     * @returns {Promise<Payment>}
+     * @returns {Promise<PaymentObject>}
      */
-    cancel(): Promise<Payment>;
+    cancel(): Promise<PaymentObject>;
     /**
      * get current plugin from state
      * @returns {Plugin|null}
@@ -251,9 +251,9 @@ export class Payment {
     getCurrentPlugin(): Plugin | null;
     /**
      * fail current plugin
-     * @returns {Promise<Payment>}
+     * @returns {Promise<PaymentObject>}
      */
-    failCurrentPlugin(): Promise<Payment>;
+    failCurrentPlugin(): Promise<PaymentObject>;
     /**
      * checks if payment is in progress
      * @returns {boolean}

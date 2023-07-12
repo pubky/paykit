@@ -2,7 +2,7 @@ const sinon = require('sinon')
 const { test } = require('brittle')
 
 const { DB } = require('../../src/DB')
-const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/Payment')
+const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
 const createTestnet = require('@hyperswarm/testnet')

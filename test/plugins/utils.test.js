@@ -16,7 +16,7 @@ test('validateManifest', async (t) => {
   t.execution(utils.validateManifest({
     name: 'p2sh',
     rpc: ['stop'],
-    events: ['watch', 'event1', 'event2']
+    events: ['receivePayment', 'event1', 'event2']
   }, plugin))
 
   t.is(validateName.callCount, 1)
@@ -102,11 +102,11 @@ test('validateEvents', async (t) => {
   )
 
   t.exception(
-    () => utils.validateEvents({ events: ['test1', 'test2'] }, plugin, 'test prefix'),
+    () => utils.validateEvents({ type: 'payment', events: ['test1', 'test2'] }, plugin, 'test prefix'),
     ERRORS.EVENTS.MISSING_WATCH('test prefix')
   )
 
-  t.execution(utils.validateEvents({ events: ['watch', 'test'] }, plugin, 'test prefix'))
+  t.execution(utils.validateEvents({ events: ['receivePayment', 'test'] }, plugin, 'test prefix'))
 
   t.teardown(() => {
     sinon.restore()

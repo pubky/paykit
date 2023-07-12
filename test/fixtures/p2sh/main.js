@@ -19,7 +19,7 @@ const getManifestFake = sinon.fake(() => {
     version: '1.0.0',
     type: 'payment',
     rpc: ['stop', 'pay', 'updatePayment'],
-    events: ['watch', 'event1', 'event2']
+    events: ['receivePayment', 'event1', 'event2']
   }
 })
 
