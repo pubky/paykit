@@ -5,7 +5,7 @@ const { test } = require('brittle')
 const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
-const { PLUGIN_STATE } = require('../../src/payments/Payment')
+const { PLUGIN_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentManager } = require('../../src/payments/PaymentManager')
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
