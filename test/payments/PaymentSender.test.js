@@ -10,7 +10,7 @@ const { pluginConfig } = require('../fixtures/config.js')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
-const { PAYMENT_STATE } = require('../../src/payments/Payment')
+const { PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentSender, PLUGIN_STATES } = require('../../src/payments/PaymentSender')
 const { PaymentOrder, ORDER_STATE, ERRORS: ORDER_ERRORS } = require('../../src/payments/PaymentOrder')
 

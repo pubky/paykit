@@ -63,7 +63,7 @@ class PaymentSender {
   /**
    * Get plugin currently handling payment
    * @method getCurrentPlugin
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<Plugin>} plugin
    */
   async getCurrentPlugin (payment) {
@@ -103,7 +103,7 @@ class PaymentSender {
   /**
    * Handle plugin state
    * @method handlePluginState
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<void>}
    */
   async handlePluginState (payment) {
@@ -121,7 +121,7 @@ class PaymentSender {
   /**
    * Handle payment failure
    * @method handleFailure
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<void>}
    */
   async handleFailure (payment) {
@@ -138,7 +138,7 @@ class PaymentSender {
   /**
    * Handle payment success
    * @method handleSuccess
-   * @param {Payment} payment
+   * @param {PaymentObject} payment
    * @returns {Promise<void>}
    */
   async handleSuccess (payment) {
