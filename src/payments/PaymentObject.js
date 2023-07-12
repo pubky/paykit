@@ -1,10 +1,10 @@
-const logger = require('slashtags-logger')('Slashpay', 'payment')
+const logger = require('slashtags-logger')('Slashpay', 'payment-object')
 
 const { PaymentAmount } = require('./PaymentAmount')
 const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
 /**
- * Payment class
- * @class Payment
+ * PaymentObject class
+ * @class PaymentObject
  * @property {string} id - payment id
  * @property {string} orderId - order id
  * @property {string} clientOrderId - client payment id
@@ -17,7 +17,7 @@ const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
  * @property {Date} createdAt - creation timestamp of the payment
  * @property {Date} executeAt - execution timestamp of the payment
  */
-class Payment {
+class PaymentObject {
   /**
    * Generate random id
    * @returns {string}
@@ -64,7 +64,7 @@ class Payment {
     if (!paymentParams.orderId) throw new Error(ERRORS.ORDER_ID_REQUIRED)
     if (!paymentParams.clientOrderId) throw new Error(ERRORS.CLIENT_ID_REQUIRED)
     if (!paymentParams.counterpartyURL) throw new Error(ERRORS.COUTNERPARTY_REQUIRED)
-    Payment.validateDirection(paymentParams)
+    PaymentObject.validateDirection(paymentParams)
   }
 
   /**
@@ -89,14 +89,14 @@ class Payment {
     if (!pO.id) throw new Error(ERRORS.ID_REQUIRED)
     if (!pO.internalState) throw new Error(ERRORS.INTERNAL_STATE_REQUIRED)
 
-    Payment.validatePaymentParams(pO)
+    PaymentObject.validatePaymentParams(pO)
     PaymentAmount.validate(pO)
   }
 
   /**
-   * @constructor Payment
+   * @constructor PaymentObject
    * @param {PaymentParams} paymentParams
-   * @property {string} [paymentParmas.id] - payment id
+   * @property {string} [paymentParmas.id] - payment object id
    * @property {PaymentState} [paymentParams.internalState] - internal state of the payment
    * @property {string} paymentParams.counterpartyURL - destination of the payment
    * @property {string} paymentParams.clientOrderId - client payment id
@@ -107,11 +107,11 @@ class Payment {
    */
 
   constructor (paymentParams, db, slashtagsConnector) {
-    logger.info('Creating payment')
-    logger.debug(`Creating payment with ${JSON.stringify(paymentParams)}`)
+    logger.info('Creating payment object')
+    logger.debug(`Creating payment object with ${JSON.stringify(paymentParams)}`)
 
-    Payment.validatePaymentParams(paymentParams)
-    Payment.validateDB(db)
+    PaymentObject.validatePaymentParams(paymentParams)
+    PaymentObject.validateDB(db)
 
     this.db = db
     this.sendingPriority = paymentParams.sendingPriority || []
@@ -211,23 +211,23 @@ class Payment {
    */
 
   /**
-   * Save payment to db
+   * Save payment object to db
    * @returns {Promise<void>}
-   * @throws {Error} - if payment is not valid
+   * @throws {Error} - if payment object is not valid
    */
   async save () {
-    this.logger.info('Saving payment')
+    this.logger.info('Saving payment object')
     if (!this.id) {
-      this.id = Payment.generateId()
+      this.id = PaymentObject.generateId()
     }
 
-    const payment = await this.db.get(this.id, { removed: '*' })
-    if (payment) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
+    const paymentObject = await this.db.get(this.id, { removed: '*' })
+    if (paymentObject) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
 
-    const paymentObject = this.serialize()
-    Payment.validatePaymentObject(paymentObject)
-    await this.db.save(paymentObject)
-    this.logger.debug('Payment saved')
+    const serialized = this.serialize()
+    PaymentObject.validatePaymentObject(serialized)
+    await this.db.save(serialized)
+    this.logger.debug('Payment object saved')
   }
 
   /**
@@ -236,13 +236,13 @@ class Payment {
    * @returns {Promise<void>}
    */
   async delete (force = false) {
-    this.logger.info('Deleting payment')
+    this.logger.info('Deleting payment object')
     if (force) {
-      this.logger.info('Force deleting payment')
+      this.logger.info('Force deleting payment object')
       throw new Error(ERRORS.NOT_ALLOWED)
     }
     await this.db.update(this.id, { removed: true })
-    this.logger.debug('Payment deleted')
+    this.logger.debug('Payment object deleted')
   }
 
   /**
@@ -251,18 +251,18 @@ class Payment {
    * @throws {Error} - if payment is not valid
    */
   async update () {
-    this.logger.info('Updating payment')
+    this.logger.info('Updating payment object')
 
     const serialized = this.serialize()
-    Payment.validatePaymentObject(serialized)
+    PaymentObject.validatePaymentObject(serialized)
     await this.db.update(this.id, serialized)
 
-    this.logger.debug('Payment updated')
+    this.logger.debug('Payment object updated')
   }
 
   /**
    * Process payment by iterating through sendingPriority and updating internalState
-   * @returns {Promise<Payment>}
+   * @returns {Promise<PaymentObject>}
    */
   async process () {
     try {
@@ -277,7 +277,7 @@ class Payment {
   /**
    * Complete payment by setting internalState to COMPLETED
    * @throws {Error} - if payment is not in progress
-   * @returns {Promise<Payment>}
+   * @returns {Promise<PaymentObject>}
    */
   async complete () {
     await this.internalState.complete()
@@ -288,7 +288,7 @@ class Payment {
   /**
    * Cancel payment by setting internalState to CANCELED
    * @throws {Error} - if payment is not initial
-   * @returns {Promise<Payment>}
+   * @returns {Promise<PaymentObject>}
    */
   async cancel () {
     await this.internalState.cancel()
@@ -306,7 +306,7 @@ class Payment {
 
   /**
    * fail current plugin
-   * @returns {Promise<Payment>}
+   * @returns {Promise<PaymentObject>}
    */
   async failCurrentPlugin () {
     await this.internalState.failCurrentPlugin()
@@ -385,7 +385,7 @@ const PAYMENT_DIRECTION = {
 }
 
 module.exports = {
-  Payment,
+  PaymentObject,
   PAYMENT_STATE,
   PLUGIN_STATE,
   ERRORS,

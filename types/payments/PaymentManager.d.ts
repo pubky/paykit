@@ -29,12 +29,14 @@ export class PaymentManager {
      * @param {Object} config - configuration object
      * @param {any} db - instance of Database class
      * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
+     * @param {Function} notificationCallback - callback function for user notifications
      */
-    constructor(config: any, db: any, slashtagsConnector: SlashtagsConnector);
+    constructor(config: any, db: any, slashtagsConnector: SlashtagsConnector, notificationCallback: Function);
     config: any;
     db: any;
     slashtagsConnector: SlashtagsConnector;
     pluginManager: PluginManager;
+    notificationCallback: Function;
     ready: boolean;
     /**
      * Initialize the payment manager

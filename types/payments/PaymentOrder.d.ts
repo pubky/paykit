@@ -162,4 +162,3 @@ export namespace ERRORS {
     function INVALID_TIMESTAMP(tsName: any, value: any): string;
 }
 import { PaymentAmount } from "./PaymentAmount";
-import { Payment } from "./Payment";
