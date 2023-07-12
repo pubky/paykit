@@ -79,12 +79,12 @@ export class PaymentOrder {
      * @param {number} counter - Number of payments to create
      * @returns {void}
      */
-    createPayments(counter: number): void;
+    createPaymentObjects(counter: number): void;
     /**
      * @method process - Process order
-     * @returns {Promise<Payment>}
+     * @returns {Promise<PaymentObject>}
      */
-    process(): Promise<Payment>;
+    process(): Promise<PaymentObject>;
     /**
      * Checks if order is ready to be processed
      * @method canProcess
@@ -93,27 +93,27 @@ export class PaymentOrder {
     canProcess(): boolean;
     /**
      * @method processPayment - Process payment
-     * @param {Payment} payment - Payment to process
-     * @returns {Promise<Payment>}
+     * @param {PaymentObject} payment - Payment to process
+     * @returns {Promise<PaymentObject>}
      */
-    processPayment(payment: Payment): Promise<Payment>;
+    processPayment(payment: PaymentObject): Promise<PaymentObject>;
     /**
      * @method getFirstOutstandingPayment - Get first outstanding payment
-     * @returns {Payment}
+     * @returns {PaymentObject}
      */
-    getFirstOutstandingPayment(): Payment;
+    getFirstOutstandingPayment(): PaymentObject;
     /**
      * @method getPaymentInProgress - Get payment in progress
-     * @returns {Payment}
+     * @returns {PaymentObject}
      */
-    getPaymentInProgress(): Payment;
+    getPaymentInProgress(): PaymentObject;
     /**
      * @method complete - Complete order
      * @throws {Error} - If order is already completed
      * @throws {Error} - If order is cancelled
-     * @returns {Promise<Payment>} - Last payment
+     * @returns {Promise<PaymentObject>} - Last payment
      */
-    complete(): Promise<Payment>;
+    complete(): Promise<PaymentObject>;
     /**
      * @method cancel - Cancel order and all outstanding payments
      * @throws {Error} - If order is already completed
@@ -162,3 +162,4 @@ export namespace ERRORS {
     function INVALID_TIMESTAMP(tsName: any, value: any): string;
 }
 import { PaymentAmount } from "./PaymentAmount";
+import { PaymentObject } from "./PaymentObject";

@@ -5,7 +5,7 @@ const { DB } = require('../../src/DB')
 
 const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentState')
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
-const { Payment } = require('../../src/payments/Payment')
+const { PaymentObject } = require('../../src/payments/PaymentObject')
 
 const { orderParams } = require('../fixtures/paymentParams')
 
@@ -290,11 +290,11 @@ test('PaymentOrder.processPayment', async t => {
   payment.executeAt = payment.executeAt + 100000
   let res
 
-  res = await paymentOrder.processPayment(new Payment(payment, paymentOrder.db, sender))
+  res = await paymentOrder.processPayment(new PaymentObject(payment, paymentOrder.db, sender))
   t.alike(res.serialize(), payment)
 
   payment.executeAt = payment.executeAt - 1000000
-  res = await paymentOrder.processPayment(new Payment(payment, paymentOrder.db, sender))
+  res = await paymentOrder.processPayment(new PaymentObject(payment, paymentOrder.db, sender))
   const serialized = res.serialize()
 
   t.is(serialized.internalState, PAYMENT_STATE.IN_PROGRESS)

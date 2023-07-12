@@ -1,6 +1,6 @@
 const logger = require('slashtags-logger')('Slashpay', 'payment-order')
 
-const { Payment, ERRORS: PaymentErrors } = require('./Payment')
+const { PaymentObject, ERRORS: PaymentErrors } = require('./PaymentObject')
 const { PaymentAmount } = require('./PaymentAmount')
 /**
  * Payment Order class
@@ -9,7 +9,7 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @property {string} clientOrderId - Client order id
  * @property {string} state - Order state
  * @property {number} frequency - Order frequency in milliseconds, 0 for one time order
- * @property {Payment[]} payments - Payments associated with this order
+ * @property {PaymentObject[]} payments - Payments associated with this order
  * @property {PaymentAmount} amount - Payment amount
  * @property {string} counterpartyURL - Counterparty URL
  * @property {string} memo - Memo
@@ -137,7 +137,7 @@ class PaymentOrder {
     // TODO: after db integration check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
 
-    this.frequency === 0 ? this.createPayments(1) : this.createPaymentForRecurringOrder()
+    this.frequency === 0 ? this.createPaymentObjects(1) : this.createPaymentForRecurringOrder()
 
     await this.save()
   }
@@ -156,7 +156,7 @@ class PaymentOrder {
       counter = CONFIG.BATCH_SIZE
     }
 
-    this.createPayments(counter)
+    this.createPaymentObjects(counter)
   }
 
   /**
@@ -164,10 +164,10 @@ class PaymentOrder {
    * @param {number} counter - Number of payments to create
    * @returns {void}
    */
-  createPayments (counter) {
+  createPaymentObjects (counter) {
     this.logger.info(`Creating ${counter} payments`)
     for (let i = 0; i < counter; i++) {
-      this.payments.push(new Payment({
+      this.payments.push(new PaymentObject({
         ...this.orderParams,
         executeAt: this.firstPaymentAt + this.frequency * i,
         orderId: this.id
@@ -177,7 +177,7 @@ class PaymentOrder {
 
   /**
    * @method process - Process order
-   * @returns {Promise<Payment>}
+   * @returns {Promise<PaymentObject>}
    */
   async process () {
     this.logger.info('Processing payment order')
@@ -209,8 +209,8 @@ class PaymentOrder {
 
   /**
    * @method processPayment - Process payment
-   * @param {Payment} payment - Payment to process
-   * @returns {Promise<Payment>}
+   * @param {PaymentObject} payment - Payment to process
+   * @returns {Promise<PaymentObject>}
    */
   async processPayment (payment) {
     if (payment.executeAt > Date.now()) return payment
@@ -228,7 +228,7 @@ class PaymentOrder {
 
   /**
    * @method getFirstOutstandingPayment - Get first outstanding payment
-   * @returns {Payment}
+   * @returns {PaymentObject}
    */
   async getFirstOutstandingPayment () {
     this.logger.debug('Getting first outstanding payment')
@@ -246,7 +246,7 @@ class PaymentOrder {
 
   /**
    * @method getPaymentInProgress - Get payment in progress
-   * @returns {Payment}
+   * @returns {PaymentObject}
    */
   getPaymentInProgress () {
     return this.payments.find((payment) => payment.isInProgress())
@@ -256,7 +256,7 @@ class PaymentOrder {
    * @method complete - Complete order
    * @throws {Error} - If order is already completed
    * @throws {Error} - If order is cancelled
-   * @returns {Promise<Payment>} - Last payment
+   * @returns {Promise<PaymentObject>} - Last payment
    */
   async complete () {
     this.logger.debug('Completing payment order')
@@ -358,7 +358,7 @@ class PaymentOrder {
     if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
 
     const paymentOrder = new PaymentOrder(orderParams, db)
-    paymentOrder.payments = (await db.getPayments(id)).map(p => new Payment(p, db, slashtags))
+    paymentOrder.payments = (await db.getPayments(id)).map(p => new PaymentObject(p, db, slashtags))
 
     return paymentOrder
   }
