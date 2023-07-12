@@ -1,0 +1,23 @@
+{
+  "name": "btc-l1-l2-lnd",
+  "version": "1.0.0",
+  "description": "slashpay plugin to process payments over onchain and lightning with lnd node",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "slashpay",
+    "bitcoin",
+    "lightning",
+    "plugin",
+    "lnd"
+  ],
+  "author": "slashtags",
+  "license": "MIT",
+  "dependencies": {
+    "bottleneck": "^2.19.5",
+    "ln-service": "^56.8.1",
+    "uuid": "^9.0.0"
+  }
+}
