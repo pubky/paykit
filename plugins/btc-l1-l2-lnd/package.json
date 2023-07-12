@@ -4,7 +4,8 @@
   "description": "slashpay plugin to process payments over onchain and lightning with lnd node",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "standard --fix",
+    "test": "brittle test/**/*.test.js --coverage --bail"
   },
   "keywords": [
     "slashpay",
@@ -19,5 +20,9 @@
     "bottleneck": "^2.19.5",
     "ln-service": "^56.8.1",
     "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "brittle": "^3.3.2",
+    "standard": "^17.1.0"
   }
 }

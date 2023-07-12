@@ -1,16 +1,16 @@
-const package = require('./package.json')
+const pack = require('./package.json')
 
 module.exports = {
   getmanifest: () => {
     return {
-      name: package.name,
-      type: "payment",
-      description: package.description,
-      rpc: [ 'pay', 'start' ],
-      events: [ 'watch' ],
+      name: pack.name,
+      type: 'payment',
+      description: pack.description,
+      rpc: ['pay', 'start'],
+      events: ['watch']
     }
   },
   pay: require('./sendPayment.js'),
   watch: require('./watch.js'),
-  start: require('./start.js'),
+  start: require('./start.js')
 }
