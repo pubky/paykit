@@ -1,5 +1,5 @@
 const path = require('path')
-const { Payment, PAYMENT_DIRECTION, PAYMENT_STATE } = require('./Payment')
+const { PaymentObject, PAYMENT_DIRECTION, PAYMENT_STATE } = require('./PaymentObject')
 const { SLASHPAY_PATH } = require('../slashtags')
 /**
  * PaymentReceiver is a class which is responsible for making plugins to receive payments
@@ -59,13 +59,13 @@ class PaymentReceiver {
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
     const sendingPriority = [payload.completedByPlugin.name]
-    const payment = new Payment({
+    const paymentObject = new PaymentObject({
       ...payload,
       sendingPriority,
       direction: PAYMENT_DIRECTION.IN,
       internalState: PAYMENT_STATE.COMPLETED
     }, this.db)
-    await payment.save()
+    await paymentObject.save()
 
     if (regenerateSlashpay) {
       await this.pluginManager.dispatchEvent('receivePayment', {
@@ -73,7 +73,7 @@ class PaymentReceiver {
       })
     }
 
-    await this.notificationCallback(payment)
+    await this.notificationCallback(paymentObject)
   }
 
   /**
