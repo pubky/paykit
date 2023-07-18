@@ -14,12 +14,12 @@ function getWatcher (config) {
         pluginName,
         type: 'payment_new',
         data: receipt,
-        amountWasSpecified: !!amount,
+        amountWasSpecified: !!amount
       })
     }
 
     const invoice = await lnd.generateInvoice({ tokens: amount })
-    outputs['bolt11'] = invoice.data
+    outputs.bolt11 = invoice.data
     lnd.subscribeToInvoice(invoice.id, callback)
 
     await notificationCallback({
@@ -27,7 +27,7 @@ function getWatcher (config) {
       pluginName,
       type: 'ready_to_recieve',
       data: outputs,
-      amountWasSpecified: !!amount,
+      amountWasSpecified: !!amount
     })
   }
 }
@@ -43,7 +43,7 @@ function getPayer (config) {
       pluginName,
       type: '', // XXX
       pluginState: res.error ? 'failed' : 'success', // XXX do better
-      data: res,
+      data: res
     })
   }
 }
@@ -59,5 +59,5 @@ module.exports = {
     }
   },
   pay: getPayer(config),
-  watch: getWatcher(config),
+  watch: getWatcher(config)
 }

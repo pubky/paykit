@@ -2,8 +2,6 @@ const { test } = require('brittle')
 const sinon = require('sinon')
 const proxyquire = require('proxyquire')
 
-const { LndConnect } = require('../LndConnect.js')
-
 const configAlice = {
   CERT: '/Users/dz/.polar/networks/1/volumes/lnd/alice/tls.cert',
   MACAROON: '/Users/dz/.polar/networks/1/volumes/lnd/alice/data/chain/bitcoin/regtest/admin.macaroon',
@@ -47,7 +45,7 @@ test('e2e - amount', async (t) => {
   await bolt11Bob.pay({ bolt11: invoice, notificationCallback: notificationCallbackBob })
 
   t.is(notificationCallbackBob.callCount, 1)
-  const resBob = notificationCallbackBob.getCall(0).args[0] 
+  const resBob = notificationCallbackBob.getCall(0).args[0]
   t.is(resBob.type, '') // XXX ?
   t.is(resBob.pluginName, 'bolt11')
   t.is(resBob.pluginState, 'success')
@@ -102,7 +100,7 @@ test('e2e - no amount', async (t) => {
   })
 
   t.is(notificationCallbackBob.callCount, 1)
-  const resBob = notificationCallbackBob.getCall(0).args[0] 
+  const resBob = notificationCallbackBob.getCall(0).args[0]
   t.is(resBob.type, '') // XXX ?
   t.is(resBob.pluginName, 'bolt11')
   t.is(resBob.pluginState, 'success')
@@ -133,4 +131,3 @@ test('e2e - no amount', async (t) => {
     sinon.restore()
   })
 })
-

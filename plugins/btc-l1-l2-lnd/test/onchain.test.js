@@ -2,8 +2,6 @@ const { test } = require('brittle')
 const sinon = require('sinon')
 const proxyquire = require('proxyquire')
 
-const { LndConnect } = require('../LndConnect.js')
-
 const configAlice = {
   CERT: '/Users/dz/.polar/networks/1/volumes/lnd/alice/tls.cert',
   MACAROON: '/Users/dz/.polar/networks/1/volumes/lnd/alice/data/chain/bitcoin/regtest/admin.macaroon',
@@ -68,7 +66,7 @@ test('e2e', async (t) => {
   })
 
   t.is(notificationCallbackBob.callCount, 1)
-  const resBob = notificationCallbackBob.getCall(0).args[0] 
+  const resBob = notificationCallbackBob.getCall(0).args[0]
   t.is(resBob.type, '') // XXX ?
   t.is(resBob.pluginName, 'onchain')
   t.is(resBob.pluginState, 'success')
@@ -76,7 +74,7 @@ test('e2e', async (t) => {
   t.absent(resBob.data.error)
   t.ok(resBob.data.data.confirmation_count >= 0)
   t.ok(resBob.data.data.id)
-  t.ok(resBob.data.data.is_confirmed == !!resBob.data.data.confirmation_count)
+  t.ok(resBob.data.data.is_confirmed === !!resBob.data.data.confirmation_count)
   t.ok(resBob.data.data.is_outgoing)
   t.is(resBob.data.data.tokens, amount)
 
@@ -84,4 +82,3 @@ test('e2e', async (t) => {
     sinon.restore()
   })
 })
-

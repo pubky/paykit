@@ -4,7 +4,7 @@ const { LndConnect } = require('./LndConnect.js')
 const pluginName = 'onchain'
 
 // read from config instead?
-//const supportedMethods = ['p2wpkh', 'p2pkh']
+// const supportedMethods = ['p2wpkh', 'p2pkh']
 const supportedMethods = ['p2wpkh']
 
 function getWatcher (config) {
@@ -18,7 +18,7 @@ function getWatcher (config) {
         pluginName,
         type: 'payment_new',
         data: receipt,
-        amountWasSpecified: !!amount,
+        amountWasSpecified: !!amount
       })
     }
 
@@ -33,7 +33,7 @@ function getWatcher (config) {
       pluginName,
       type: 'ready_to_recieve',
       data: outputs,
-      amountWasSpecified: !!amount,
+      amountWasSpecified: !!amount
     })
   }
 }
@@ -48,13 +48,12 @@ function getPayer (config) {
 
     console.log(res.error)
 
-
     // XXX what again do I need here?
     await notificationCallback({
       pluginName,
       type: '', // XXX
       pluginState: res.error ? 'failed' : 'success', // XXX do better
-      data: res,
+      data: res
     })
   }
 }
@@ -70,5 +69,5 @@ module.exports = {
     }
   },
   pay: getPayer(config),
-  watch: getWatcher(config),
+  watch: getWatcher(config)
 }
