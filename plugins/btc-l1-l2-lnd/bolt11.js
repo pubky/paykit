@@ -37,9 +37,7 @@ function getPayer (config) {
 
   return async ({ bolt11, notificationCallback, amount = null }) => {
     const res = await lnd.payInvoice({ request: bolt11, tokens: amount })
-    console.log('res', res.error)
 
-    // XXX what again do I need here?
     await notificationCallback({
       id: res.id,
       pluginName,
@@ -56,7 +54,7 @@ module.exports = {
       name: pluginName, // FIXME
       type: 'payment',
       description: 'Slashpay bitcoin l2 payments',
-      rpc: ['pay', 'start'],
+      rpc: ['pay'],
       events: ['watch']
     }
   },
