@@ -65,9 +65,15 @@ module.exports = {
       type: 'payment',
       description: 'Slashpay bitcoin l1 payments',
       rpc: ['pay'],
-      events: ['watch']
+      events: ['receivePayment']
     }
   },
-  pay: getPayer(config),
-  watch: getWatcher(config)
+  init: () => {
+    console.log(pluginName, 'init')
+
+    return {
+      pay: getPayer(config),
+      receivePayment: getWatcher(config)
+    }
+  },
 }
