@@ -27,6 +27,7 @@ class PluginManager {
    * @throws {Error} - if plugin failed to initialize
    * @throws {Error} - if plugin failed to get manifest
    */
+  // XXX storage is not needed here
   async injectPlugin (module, storage) {
     logger.debug('Injecting plugin')
     const plugin = await this.initPlugin(module, storage)

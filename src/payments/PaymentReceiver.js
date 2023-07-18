@@ -30,11 +30,15 @@ class PaymentReceiver {
    */
   async init (amount) {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const slashpayFile = this.generateSlashpayContent(paymentPluginNames, amount)
+    const { id, slashpayFile } = this.generateSlashpayContent(paymentPluginNames, amount)
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
-    const payload = { notificationCallback: this.notificationCallback }
-    if (amount) payload.amount = amount.serialize()
+
+    const payload = { id, notificationCallback: this.notificationCallback }
+
+    if (amount) {
+      payload.amount = amount.serialize()
+    }
 
     await this.pluginManager.dispatchEvent('receivePayment', payload)
 
@@ -58,12 +62,24 @@ class PaymentReceiver {
    * @returns {Promise<void>}
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
-    const sendingPriority = [payload.completedByPlugin.name]
+    const sendingPriority = [payload.pluginName]
     const paymentObject = new PaymentObject({
-      ...payload,
+      ...payload.data,
+
       sendingPriority,
       direction: PAYMENT_DIRECTION.IN,
-      internalState: PAYMENT_STATE.COMPLETED
+      internalState: PAYMENT_STATE.COMPLETED,
+
+      clientOrderId: 'yo yo yo',
+      counterpartyURL: 'something',
+      completedByPlugin: {
+        name: payload.pluginName,
+        state: 'success',
+        startAt: Date.now(),
+        completeAt: Date.now(),
+      },
+      amount: '1' // oups, decode
+
     }, this.db)
     await paymentObject.save()
 
@@ -93,7 +109,10 @@ class PaymentReceiver {
         : path.join('/public/slashpay', name, 'slashpay.json')
     })
 
-    return slashpayFile
+    return {
+      slashpayFile,
+      id
+    }
   }
 
   /**

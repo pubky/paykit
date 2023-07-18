@@ -39,12 +39,19 @@ class PaymentSender {
       denomination: serialized.denomination
     }
 
+    const read = await payment.slashtagsConnector.readRemote(payload.counterpartyURL)
+    const pluginURL = payload.counterpartyURL.split('/')[0] + read.paymentEndpoints[name]
     // Payments with specified amount are done to the full path to slashpay.json
     // which must also include encryption key to the payee private drive
-    if (!payload.counterpartyURL.endsWith('.json')) {
-      payload.counterpartyURL = `${payload.counterpartyURL}/public/slashpay/${name}/slashpay.json`
-    }
-    await plugin.pay(payload, this.entryPointForPlugin)
+
+    const pluginData = await payment.slashtagsConnector.readRemote(pluginURL)
+
+    await plugin.pay({
+      // FIXME
+      bolt11: pluginData,
+      amount: payload.amount,
+      notificationCallback: this.entryPointForPlugin.bind(this)
+    })
   }
 
   /**

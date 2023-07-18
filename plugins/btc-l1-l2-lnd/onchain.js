@@ -31,7 +31,7 @@ function getWatcher (config) {
 
     await notificationCallback({
       pluginName,
-      type: 'ready_to_recieve',
+      type: 'ready_to_receive',
       data: outputs,
       amountWasSpecified: !!amount
     })
@@ -42,8 +42,15 @@ function getPayer (config) {
   const lnd = config.config ? config : new LndConnect(config)
 
   return async ({ address, amount, notificationCallback }) => {
+    let target
+    if (typeof address === 'string') {
+      target = address
+    } else {
+      target = Object.values(address)[0]
+    }
+
     const res = await lnd.sendOnChainFunds({
-      address, tokens: amount
+      address: target, tokens: amount
     })
 
     // XXX what again do I need here?

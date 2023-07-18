@@ -33,7 +33,7 @@ test('e2e', async (t) => {
   let address
 
   const notificationCallbackAlice = (payload) => {
-    if (payload.type === 'ready_to_recieve') {
+    if (payload.type === 'ready_to_receive') {
       t.is(payload.pluginName, 'onchain')
       t.is(payload.amountWasSpecified, false)
       t.ok(payload.data)
@@ -50,7 +50,6 @@ test('e2e', async (t) => {
 
       t.pass()
     } else {
-      console.log(payload)
       t.fail()
     }
   }

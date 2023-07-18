@@ -34,7 +34,7 @@ test('e2e - amount', async (t) => {
 
   t.is(notificationCallbackAlice.callCount, 1)
   const resAlice = notificationCallbackAlice.getCall(0).args[0]
-  t.is(resAlice.type, 'ready_to_recieve')
+  t.is(resAlice.type, 'ready_to_receive')
   t.is(resAlice.pluginName, 'bolt11')
   t.is(resAlice.amountWasSpecified, true)
   t.ok(resAlice.data.bolt11)
@@ -85,7 +85,7 @@ test('e2e - no amount', async (t) => {
 
   t.is(notificationCallbackAlice.callCount, 1)
   const resAlice = notificationCallbackAlice.getCall(0).args[0]
-  t.is(resAlice.type, 'ready_to_recieve')
+  t.is(resAlice.type, 'ready_to_receive')
   t.is(resAlice.pluginName, 'bolt11')
   t.is(resAlice.amountWasSpecified, false)
   t.ok(resAlice.data.bolt11)

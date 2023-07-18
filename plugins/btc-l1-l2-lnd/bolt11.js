@@ -25,7 +25,7 @@ function getWatcher (config) {
     await notificationCallback({
       id: invoice.id,
       pluginName,
-      type: 'ready_to_recieve',
+      type: 'ready_to_receive',
       data: outputs,
       amountWasSpecified: !!amount
     })
@@ -35,8 +35,11 @@ function getWatcher (config) {
 function getPayer (config) {
   const lnd = config.config ? config : new LndConnect(config)
 
+  // FIXME
   return async ({ bolt11, notificationCallback, amount = null }) => {
-    const res = await lnd.payInvoice({ request: bolt11, tokens: amount })
+    let request = typeof bolt11 === 'string' ? bolt11 : bolt11.bolt11
+
+    const res = await lnd.payInvoice({ request, tokens: amount })
 
     await notificationCallback({
       id: res.id,

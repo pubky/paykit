@@ -85,7 +85,7 @@ class PaymentManager {
       this.db,
       this.pluginManager,
       this.slashtagsConnector,
-      this.entryPointForPlugin
+      this.entryPointForPlugin.bind(this)
     )
     return await paymentReceiver.init()
   }
@@ -111,6 +111,15 @@ class PaymentManager {
       await this.handlePaymentUpdate(payload)
     } else if (payload.type === PAYLOAD_TYPE.PAYMENT_ORDER_COMPLETED) {
       await this.userNotificationEndpoint(payload)
+    } else if (payload.type === PAYLOAD_TYPE.READY_TO_RECEIVE) {
+      // FIXME: if ammount was passed path will be private
+      const path = `public/slashpay/${payload.pluginName}/slashpay.json`
+      try {
+        await this.slashtagsConnector.create(path, payload.data)
+      } catch (e) {
+        // FIXME: error check
+        await this.slashtagsConnector.update(path, payload.data)
+      }
     } else {
       await this.userNotificationEndpoint(payload)
     }
@@ -128,7 +137,7 @@ class PaymentManager {
       this.slashtagsConnector,
       this.userNotificationEndpoint.bind(this)
     )
-    await paymentReceiver.handleNewPayment(payload)
+    await paymentReceiver.handleNewPayment(payload, payload.amountWasSpecified)
   }
 
   /**
@@ -163,7 +172,11 @@ class PaymentManager {
    */
   async getPaymentSender (id) {
     const paymentOrder = await PaymentOrder.find(id, this.db, this.slashtagsConnector)
-    return new PaymentSender(paymentOrder, this.pluginManager, this.entryPointForPlugin.bind(this))
+    return new PaymentSender(
+      paymentOrder,
+      this.pluginManager,
+      this.entryPointForPlugin.bind(this),
+    )
   }
 
   /**
@@ -181,11 +194,13 @@ class PaymentManager {
  * @property {String} PAYMENT_NEW - payment_new
  * @property {String} PAYMENT_UPDATE - payment_update
  * @property {String} PAYMENT_ORDER_COMPLETED - payment_order_completed
+ * @property {String} READY_TO_RECEIVE - ready_to_receive
  */
 const PAYLOAD_TYPE = {
   PAYMENT_NEW: 'payment_new',
   PAYMENT_UPDATE: 'payment_update',
-  PAYMENT_ORDER_COMPLETED: 'payment_order_completed'
+  PAYMENT_ORDER_COMPLETED: 'payment_order_completed',
+  READY_TO_RECEIVE: 'ready_to_receive'
 }
 
 module.exports = {
