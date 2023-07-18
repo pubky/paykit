@@ -4,11 +4,9 @@ const { LndConnect } = require('./LndConnect.js')
 const pluginName = 'bolt11'
 
 function getWatcher (config) {
-  console.log('get wather')
   const lnd = config.config ? config : new LndConnect(config)
 
   return async ({ amount, notificationCallback }) => {
-    console.log('wather itself')
     const outputs = {}
 
     const callback = async (receipt) => {
@@ -61,8 +59,6 @@ module.exports = {
     }
   },
   init: () => {
-    console.log(pluginName, 'init')
-
     return {
       pay: getPayer(config),
       receivePayment: getWatcher(config)

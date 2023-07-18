@@ -20,17 +20,17 @@ const configBob = {
 
 const bolt11Alice = proxyquire('../bolt11.js', {
   './config.js': configAlice
-})
+}).init()
 
 const bolt11Bob = proxyquire('../bolt11.js', {
   './config.js': configBob
-})
+}).init()
 
 test('e2e - amount', async (t) => {
   const amount = 10
   const notificationCallbackAlice = sinon.fake()
 
-  await bolt11Alice.watch({ amount, notificationCallback: notificationCallbackAlice })
+  await bolt11Alice.receivePayment({ amount, notificationCallback: notificationCallbackAlice })
 
   t.is(notificationCallbackAlice.callCount, 1)
   const resAlice = notificationCallbackAlice.getCall(0).args[0]
@@ -81,7 +81,7 @@ test('e2e - no amount', async (t) => {
   const notificationCallbackAlice = sinon.fake()
   const amount = 11
 
-  await bolt11Alice.watch({ notificationCallback: notificationCallbackAlice })
+  await bolt11Alice.receivePayment({ notificationCallback: notificationCallbackAlice })
 
   t.is(notificationCallbackAlice.callCount, 1)
   const resAlice = notificationCallbackAlice.getCall(0).args[0]

@@ -46,8 +46,6 @@ function getPayer (config) {
       address, tokens: amount
     })
 
-    console.log(res.error)
-
     // XXX what again do I need here?
     await notificationCallback({
       pluginName,
@@ -69,8 +67,6 @@ module.exports = {
     }
   },
   init: () => {
-    console.log(pluginName, 'init')
-
     return {
       pay: getPayer(config),
       receivePayment: getWatcher(config)

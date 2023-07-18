@@ -20,11 +20,11 @@ const configBob = {
 
 const onchainAlice = proxyquire('../onchain.js', {
   './config.js': configAlice
-})
+}).init()
 
 const onchainBob = proxyquire('../onchain.js', {
   './config.js': configBob
-})
+}).init()
 
 test('e2e', async (t) => {
   t.timeout(60000)
@@ -56,7 +56,7 @@ test('e2e', async (t) => {
   }
   const amount = 1000
 
-  await onchainAlice.watch({ notificationCallback: notificationCallbackAlice })
+  await onchainAlice.receivePayment({ notificationCallback: notificationCallbackAlice })
 
   const notificationCallbackBob = sinon.fake()
   await onchainBob.pay({
