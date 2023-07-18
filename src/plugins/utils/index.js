@@ -126,7 +126,7 @@ function validateEvents (manifest, plugin, msg) {
     return
   }
 
-  utils.validateType(plugin.onEvent, 'function', ERRORS.EVENTS.MISSING_LISTENER(msg))
+  //utils.validateType(plugin.onEvent, 'function', ERRORS.EVENTS.MISSING_LISTENER(msg))
   utils.validateType(manifest.events, Array.isArray, ERRORS.EVENTS.NOT_ARRAY(msg))
   manifest.events.forEach(event => {
     utils.validateType(event, 'string', ERRORS.EVENTS.NOT_STRING(msg, event))

@@ -114,7 +114,7 @@ class PluginManager {
         .map(async ([name, plugin]) => {
           try {
             logger.debug.extend(event).extend(name)('Dispatching event')
-            await plugin.plugin.onEvent(event, data)
+            await plugin.plugin[event](data)
           } catch (e) {
             ERRORS.PLUGIN.EVENT_DISPATCH(name, e.message)
             // TODO: log error
@@ -192,6 +192,9 @@ class PluginManager {
    */
   loadByPathOrName (pluginEntryPoint) {
     logger.info(`Loading plugin ${pluginEntryPoint}`)
+    if (typeof this.config.plugins[pluginEntryPoint] === 'object') {
+      return this.config.plugins[pluginEntryPoint]
+    }
     try {
       return require(pluginEntryPoint)
     } catch (e) {
