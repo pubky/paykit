@@ -14,6 +14,15 @@ function getWatcher (config) {
         type: 'payment_new',
         data: receipt,
         amountWasSpecified: !!amount
+        // TODO: extract from receipt
+        // amount
+        // networkId - use network id?
+        // memo
+      // amount: payload.amount, // send it in payload
+      // memo: payload.memo || '', // send it in payload
+      // denomination: payload.denomination || 'BASE',
+      // currency: payload.currency || 'BTC',
+      // clientOrderId: payload.networkId, // send in payload
       })
     }
 
@@ -34,7 +43,7 @@ function getWatcher (config) {
 function getPayer (config) {
   const lnd = new LndConnect(config)
 
-  // FIXME
+  // XXX bolt11 should be general common for all plugin names
   return async ({ bolt11, notificationCallback, amount = null }) => {
     const request = typeof bolt11 === 'string' ? bolt11 : bolt11.bolt11
 
@@ -46,6 +55,8 @@ function getPayer (config) {
       type: '', // XXX
       pluginState: res.error ? 'failed' : 'success', // XXX do better
       data: res
+
+      // XXX: needed by core:
     })
   }
 }

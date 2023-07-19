@@ -16,6 +16,15 @@ function getWatcher (config) {
         type: 'payment_new',
         data: receipt,
         amountWasSpecified: !!amount
+        // TODO: extract from receipt
+        // amount // always use base denomination
+        // networkId - use network id?
+        // memo
+      // amount: payload.amount, // send it in payload
+      // memo: payload.memo || '', // send it in payload
+      // denomination: payload.denomination || 'BASE',
+      // currency: payload.currency || 'BTC',
+      // clientOrderId: payload.networkId, // send in payload
       })
     }
 
@@ -38,11 +47,14 @@ function getWatcher (config) {
 function getPayer (config) {
   const lnd = new LndConnect(config)
 
+  // XXX address should be general common for all plugin names
   return async ({ address, amount, notificationCallback }) => {
     let target
     if (typeof address === 'string') {
       target = address
     } else {
+      // XXX: this is a hack, will always send to first address, no biggie but
+      // some heuristic would not hurt
       target = Object.values(address)[0]
     }
 
@@ -56,6 +68,8 @@ function getPayer (config) {
       type: '', // XXX
       pluginState: res.error ? 'failed' : 'success', // XXX do better
       data: res
+
+      // XXX: needed by core:
     })
   }
 }
