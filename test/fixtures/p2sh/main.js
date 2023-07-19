@@ -1,15 +1,19 @@
 const sinon = require('sinon')
 
 const stopFake = sinon.fake(() => {})
-const onEventFake = sinon.fake(() => {})
+const receivePayment = sinon.fake(() => {})
 const payFake = sinon.fake(() => {})
 const updatePaymentFake = sinon.fake(() => {})
+const event1Fake = sinon.fake(() => {})
+const event2Fake = sinon.fake(() => {})
 
 const instance = {
   stop: stopFake,
-  onEvent: onEventFake,
+  receivePayment,
   pay: payFake,
-  updatePayment: updatePaymentFake
+  updatePayment: updatePaymentFake,
+  event1: event1Fake,
+  event2: event2Fake
 }
 
 const initFake = sinon.fake(() => instance)
@@ -28,9 +32,11 @@ const resetAll = () => {
   getManifestFake.resetHistory()
 
   stopFake.resetHistory()
-  onEventFake.resetHistory()
+  receivePayment.resetHistory()
   payFake.resetHistory()
   updatePaymentFake.resetHistory()
+  event1Fake.resetHistory()
+  event2Fake.resetHistory()
 }
 
 instance.resetAll = resetAll
