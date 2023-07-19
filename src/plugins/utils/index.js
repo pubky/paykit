@@ -27,6 +27,7 @@ const utils = require('../../utils')
  * @property {string} PLUGIN.NOT_FOUND - plugin not found
  */
 const ERRORS = {
+  CONFIG_MISSING: 'PluginManager config missing',
   CONFLICT: 'Conflicting plugin names',
   FAILED_TO_LOAD: (path) => `Failed to load plugin at ${path}`,
   INVALID_CONFIG_PLUGIN: 'Plugin name is missconfigured',
@@ -126,7 +127,6 @@ function validateEvents (manifest, plugin, msg) {
     return
   }
 
-  //utils.validateType(plugin.onEvent, 'function', ERRORS.EVENTS.MISSING_LISTENER(msg))
   utils.validateType(manifest.events, Array.isArray, ERRORS.EVENTS.NOT_ARRAY(msg))
   manifest.events.forEach(event => {
     utils.validateType(event, 'string', ERRORS.EVENTS.NOT_STRING(msg, event))
