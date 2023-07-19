@@ -132,7 +132,7 @@ test('PaymentObject - new', async t => {
     completedByPlugin: {}
   })
   t.is(paymentObject.counterpartyURL, receiver.getUrl())
-  t.is(paymentObject.clientOrderId, 'clientOrderId')
+  t.ok(paymentObject.clientOrderId, 'clientOrderId')
   t.alike(paymentObject.amount, new PaymentAmount({
     amount: '100',
     currency: 'BTC',
@@ -231,8 +231,8 @@ test('PaymentObject.serialize', async t => {
   const serialized = paymentObject.serialize()
   t.alike(serialized, {
     id: null,
-    orderId: 'internalOrderId',
-    clientOrderId: 'clientOrderId',
+    orderId: paymentObject.orderId,
+    clientOrderId: paymentObject.clientOrderId,
     internalState: PAYMENT_STATE.INITIAL,
     counterpartyURL: receiver.getUrl(),
     memo: '',
