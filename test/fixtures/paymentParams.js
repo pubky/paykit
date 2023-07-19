@@ -8,7 +8,7 @@ const orderParams = {
 
 const paymentParams = {
   ...orderParams,
-  orderId: uuidv4(), // XXX this should exist
+  orderId: uuidv4() // XXX this should exist
 }
 
 module.exports = {
