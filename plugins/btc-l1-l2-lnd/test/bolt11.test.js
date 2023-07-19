@@ -1,6 +1,5 @@
 const { test } = require('brittle')
 const sinon = require('sinon')
-const proxyquire = require('proxyquire')
 
 const configAlice = {
   CERT: '/Users/dz/.polar/networks/1/volumes/lnd/alice/tls.cert',
@@ -18,13 +17,8 @@ const configBob = {
   URL_PREFIX: 'slashpay:'
 }
 
-const bolt11Alice = proxyquire('../bolt11.js', {
-  './config.js': configAlice
-}).init()
-
-const bolt11Bob = proxyquire('../bolt11.js', {
-  './config.js': configBob
-}).init()
+const bolt11Alice = require('../bolt11.js').init(configAlice)
+const bolt11Bob = require('../bolt11.js').init(configBob)
 
 test('e2e - amount', async (t) => {
   const amount = 10

@@ -1,6 +1,5 @@
 const { test } = require('brittle')
 const sinon = require('sinon')
-const proxyquire = require('proxyquire')
 
 const configAlice = {
   CERT: '/Users/dz/.polar/networks/1/volumes/lnd/alice/tls.cert',
@@ -18,13 +17,8 @@ const configBob = {
   URL_PREFIX: 'slashpay:'
 }
 
-const onchainAlice = proxyquire('../onchain.js', {
-  './config.js': configAlice
-}).init()
-
-const onchainBob = proxyquire('../onchain.js', {
-  './config.js': configBob
-}).init()
+const onchainAlice = require('../onchain.js').init(configAlice)
+const onchainBob = require('../onchain.js').init(configBob)
 
 test('e2e', async (t) => {
   t.timeout(60000)

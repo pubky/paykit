@@ -1,11 +1,23 @@
 const { test } = require('brittle')
-const config = require('../config.js')
-const configBob = require('../config.bob.js')
+const configAlice = {
+  CERT: '/Users/dz/.polar/networks/1/volumes/lnd/alice/tls.cert',
+  MACAROON: '/Users/dz/.polar/networks/1/volumes/lnd/alice/data/chain/bitcoin/regtest/admin.macaroon',
+  SOCKET: '127.0.0.1:10007',
+  SUPPORTED_METHODS: ['bolt11', 'p2wpkh', 'p2sh', 'p2pkh'],
+  URL_PREFIX: 'slashpay:'
+}
+const configBob = {
+  CERT: '/Users/dz/.polar/networks/1/volumes/lnd/bob/tls.cert',
+  MACAROON: '/Users/dz/.polar/networks/1/volumes/lnd/bob/data/chain/bitcoin/regtest/admin.macaroon',
+  SOCKET: '127.0.0.1:10010',
+  SUPPORTED_METHODS: ['bolt11', 'p2wpkh', 'p2sh', 'p2pkh'],
+  URL_PREFIX: 'slashpay:'
+}
 
 const { LndConnect } = require('../LndConnect')
 
 test('LndConenct.getWalletInfo', async t => {
-  const lnd = new LndConnect(config)
+  const lnd = new LndConnect(configAlice)
 
   const res = await lnd.getWalletInfo()
   t.absent(res.error)
@@ -26,7 +38,7 @@ test('LndConnect.generateInvoice, LndConnect.subscribeToInvoice, LndConnect.payI
   t.plan(25)
   t.timeout(60000)
 
-  const alice = new LndConnect(config)
+  const alice = new LndConnect(configAlice)
   const resAlice = await alice.generateInvoice({ tokens, description })
   t.absent(resAlice.error)
   t.ok(resAlice.id)
@@ -63,7 +75,7 @@ test('LndConnect.generateInvoice, LndConnect.subscribeToInvoice, LndConnect.payI
 })
 
 test('LndConnect.generateAddress, LndConnect.subscribeToAddress, LndConnect.sendOnchainFunds', async t => {
-  const lndAlice = new LndConnect(config)
+  const lndAlice = new LndConnect(configAlice)
   t.plan(35)
   t.timeout(60000)
 
@@ -121,10 +133,10 @@ test('LndConnect.generateAddress, LndConnect.subscribeToAddress, LndConnect.send
 })
 
 test('LndConnect.getSupportedMethods', async t => {
-  const lnd = new LndConnect(config)
+  const lnd = new LndConnect(configAlice)
 
-  const methods = [...config.SUPPORTED_METHODS, 'foo']
+  const methods = [...configAlice.SUPPORTED_METHODS, 'foo']
   const supported = lnd.getSupportedMethods(methods)
   t.is(supported.length, 4)
-  t.alike(supported, config.SUPPORTED_METHODS)
+  t.alike(supported, configAlice.SUPPORTED_METHODS)
 })

@@ -1,10 +1,9 @@
-const config = require('./config.js')
 const { LndConnect } = require('./LndConnect.js')
 
 const pluginName = 'bolt11'
 
 function getWatcher (config) {
-  const lnd = config.config ? config : new LndConnect(config)
+  const lnd = new LndConnect(config)
 
   return async ({ amount, notificationCallback }) => {
     const outputs = {}
@@ -33,11 +32,11 @@ function getWatcher (config) {
 }
 
 function getPayer (config) {
-  const lnd = config.config ? config : new LndConnect(config)
+  const lnd = new LndConnect(config)
 
   // FIXME
   return async ({ bolt11, notificationCallback, amount = null }) => {
-    let request = typeof bolt11 === 'string' ? bolt11 : bolt11.bolt11
+    const request = typeof bolt11 === 'string' ? bolt11 : bolt11.bolt11
 
     const res = await lnd.payInvoice({ request, tokens: amount })
 
@@ -61,10 +60,10 @@ module.exports = {
       events: ['receivePayment']
     }
   },
-  init: () => {
+  init: (config) => {
     return {
       pay: getPayer(config),
       receivePayment: getWatcher(config)
     }
-  },
+  }
 }
