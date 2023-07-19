@@ -1,4 +1,6 @@
 const path = require('path')
+const { v4: uuidv4 } = require('uuid')
+
 const { PaymentObject, PAYMENT_DIRECTION, PAYMENT_STATE } = require('./PaymentObject')
 const { SLASHPAY_PATH } = require('../slashtags')
 /**
@@ -33,7 +35,6 @@ class PaymentReceiver {
     const { id, slashpayFile } = this.generateSlashpayContent(paymentPluginNames, amount)
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
-
     const payload = { id, notificationCallback: this.notificationCallback }
 
     if (amount) {
@@ -62,24 +63,27 @@ class PaymentReceiver {
    * @returns {Promise<void>}
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
-    const sendingPriority = [payload.pluginName]
     const paymentObject = new PaymentObject({
-      ...payload.data,
-
-      sendingPriority,
+      orderId: uuidv4(),
+      sendingPriority: [payload.pluginName],
       direction: PAYMENT_DIRECTION.IN,
       internalState: PAYMENT_STATE.COMPLETED,
 
-      clientOrderId: 'yo yo yo',
-      counterpartyURL: 'something',
+      counterpartyURL: this.storage.getUrl(), // we cant really know this so it may always be receiver
+
       completedByPlugin: {
         name: payload.pluginName,
-        state: 'success',
+        state: 'success', // XXX should I read it from plugin?
         startAt: Date.now(),
-        completeAt: Date.now(),
+        endAt: Date.now()
       },
-      amount: '1' // oups, decode
 
+      // FROM PAYLOAD
+      amount: payload.amount, // send it in payload
+      memo: payload.memo || '', // send it in payload
+      denomination: payload.denomination || 'BASE',
+      currency: payload.currency || 'BTC',
+      clientOrderId: payload.networkId // send in payload
     }, this.db)
     await paymentObject.save()
 
@@ -100,8 +104,7 @@ class PaymentReceiver {
    */
   generateSlashpayContent (paymentPluginNames, amount) {
     const slashpayFile = { paymentEndpoints: {} }
-    // TODO: id generation
-    const id = 'some-id'
+    const id = uuidv4()
 
     paymentPluginNames.forEach((name) => {
       slashpayFile.paymentEndpoints[name] = amount
