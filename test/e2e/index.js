@@ -1,6 +1,5 @@
 const { test } = require('brittle')
 const createTestnet = require('@hyperswarm/testnet')
-const proxyquire = require('proxyquire')
 
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
 const { PaymentManager } = require('../../src/payments/PaymentManager')
@@ -17,24 +16,20 @@ test('e2e', async (t) => {
     URL_PREFIX: 'slashpay:'
   }
 
-  const bolt11Alice = proxyquire('../../plugins/btc-l1-l2-lnd/bolt11.js', {
-    './config.js': configAlice
-  })
-
-  const onchainAlice = proxyquire('../../plugins/btc-l1-l2-lnd/onchain.js', {
-    './config.js': configAlice
-  })
+  const bolt11Alice = require('../../plugins/btc-l1-l2-lnd/bolt11.js')
+  const onchainAlice = require('../../plugins/btc-l1-l2-lnd/onchain.js')
 
   const configA = {
     sendingPriority: [
       'bolt11',
-      'onchain',
+      'onchain'
     ],
     plugins: {
-      bolt11: bolt11Alice, // inject instead of require
-      onchain: onchainAlice, // inject instead of require
+      bolt11: bolt11Alice,
+      onchain: onchainAlice
     },
-    // something else?
+    bolt11: configAlice,
+    onchain: configAlice
   }
 
   const slashtagsConnectorA = new SlashtagsConnector(testnet)
@@ -49,7 +44,7 @@ test('e2e', async (t) => {
     (p) => console.log('A:', p)
   )
 
-  //---------------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------------
   const configBob = {
     CERT: '/Users/dz/.polar/networks/1/volumes/lnd/bob/tls.cert',
     MACAROON: '/Users/dz/.polar/networks/1/volumes/lnd/bob/data/chain/bitcoin/regtest/admin.macaroon',
@@ -58,24 +53,20 @@ test('e2e', async (t) => {
     URL_PREFIX: 'slashpay:'
   }
 
-  const bolt11Bob = proxyquire('../../plugins/btc-l1-l2-lnd/bolt11.js', {
-    './config.js': configBob
-  })
-
-  const onchainBob = proxyquire('../../plugins/btc-l1-l2-lnd/onchain.js', {
-    './config.js': configBob
-  })
+  const bolt11Bob = require('../../plugins/btc-l1-l2-lnd/bolt11.js')
+  const onchainBob = require('../../plugins/btc-l1-l2-lnd/onchain.js')
 
   const configB = {
     sendingPriority: [
       'bolt11',
-      'onchain',
+      'onchain'
     ],
     plugins: {
-      bolt11: bolt11Bob, // inject instead of require
-      onchain: onchainBob, // inject instead of require
+      bolt11: bolt11Bob,
+      onchain: onchainBob
     },
-    // something else?
+    bolt11: configBob,
+    onchain: configBob
   }
 
   const slashtagsConnectorB = new SlashtagsConnector(testnet)
@@ -91,32 +82,26 @@ test('e2e', async (t) => {
     (p) => console.log('B:', p)
   )
 
-
   await paymentManagerA.init() // receiver
   await paymentManagerB.init() // sender
 
   const url = await paymentManagerA.receivePayments()
 
-  const foo = new SlashtagsConnector(testnet)
-  await foo.init()
-  const res = await foo.readRemote(url)
-
-  const boltRes = await foo.readRemote(url.split('/')[0] + res.paymentEndpoints.bolt11)
-  const onchainRes = await foo.readRemote(url.split('/')[0] + res.paymentEndpoints.onchain)
-
   const paymentOrder = await paymentManagerB.createPaymentOrder({
     clientOrderId: 'e2e-test-123',
     amount: '1000',
-    sendingPriority: [ 'bolt11', 'onchain' ],
-    counterpartyURL: url,
+    sendingPriority: [
+      'bolt11',
+      'onchain',
+    ],
+    counterpartyURL: url
   })
 
   await paymentManagerB.sendPayment(paymentOrder.id)
 
   t.teardown(async () => {
-    await foo.close()
+    // XXX: stop plugins shutting down the subscriptions to addresses and invoices
     await slashtagsConnectorA.close()
     await slashtagsConnectorB.close()
   })
-
 })
