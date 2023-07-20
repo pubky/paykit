@@ -65,7 +65,8 @@ function getPayer (config) {
     await notificationCallback({
       ...payload,
       pluginName,
-      pluginState: res.error ? 'failed' : 'success',
+      type: 'payment_sent',
+      pluginState: res.error ? 'failed' : 'success', // XXX do better?
       rawData: res
     })
   }

@@ -14,17 +14,15 @@ function getWatcher (config) {
       await notificationCallback({
         pluginName,
         type: 'payment_new',
-        data: receipt,
-        amountWasSpecified: !!amount
-        // TODO: extract from receipt
-        // amount // always use base denomination
-        // networkId - use network id?
-        // memo
-      // amount: payload.amount, // send it in payload
-      // memo: payload.memo || '', // send it in payload
-      // denomination: payload.denomination || 'BASE',
-      // currency: payload.currency || 'BTC',
-      // clientOrderId: payload.networkId, // send in payload
+        rawData: receipt.data,
+        amountWasSpecified: !!amount,
+
+        currency: 'BTC',
+        denomination: 'BASE',
+
+        clientOrderId: receipt.data.transaction,
+        amount: '1000', // XXX after processing tx
+        memo: '',
       })
     }
 
@@ -48,28 +46,36 @@ function getPayer (config) {
   const lnd = new LndConnect(config)
 
   // XXX address should be general common for all plugin names
-  return async ({ address, amount, notificationCallback }) => {
-    let target
-    if (typeof address === 'string') {
-      target = address
+  return async ({ target, payload, notificationCallback }) => {
+    let address
+    if (typeof target === 'string') {
+      address = target
     } else {
       // XXX: this is a hack, will always send to first address, no biggie but
       // some heuristic would not hurt
-      target = Object.values(address)[0]
+      address = Object.values(target)[0]
     }
 
+    // const payload = {
+    //  id: serialized.id, // for identification upon feedback
+    //  orderId: serialized.orderId, // for identification upon feedback
+    //  memo: serialized.memo, // memo - nice to have
+    //  amount: serialized.amount,
+    //  currency: serialized.currency,
+    //  denomination: serialized.denomination
+    // }
+
     const res = await lnd.sendOnChainFunds({
-      address: target, tokens: amount
+      address, tokens: payload.amount
     })
 
     // XXX what again do I need here?
     await notificationCallback({
+      ...payload,
       pluginName,
-      type: '', // XXX
-      pluginState: res.error ? 'failed' : 'success', // XXX do better
+      type: 'payment_sent',
+      pluginState: res.error ? 'failed' : 'success', // XXX do better?
       data: res
-
-      // XXX: needed by core:
     })
   }
 }

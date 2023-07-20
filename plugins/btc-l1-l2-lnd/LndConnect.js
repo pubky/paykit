@@ -1,6 +1,7 @@
 const lns = require('ln-service')
 const uuid = require('uuid') // may not work with bear
 const fs = require('fs')
+const bitcoinjs = require('bitcoinjs-lib')
 
 const toB64 = (path) => fs.readFileSync(path, { encoding: 'base64' })
 
@@ -133,9 +134,12 @@ class LndConnect {
       min_confirmations: 0
     })
     sub.once('confirmation', (data) => { // 1conf
+      let tx = bitcoinjs.Transaction.fromHex(data.transaction)
+
+      // TODO: process tx
       const receipt = {
         error: !data,
-        data: data,
+        data,
         timestamp: new Date().toISOString()
       }
       callback(receipt)

@@ -22,7 +22,7 @@ const onchainBob = require('../onchain.js').init(configBob)
 
 test('e2e', async (t) => {
   t.timeout(60000)
-  t.plan(22)
+  t.plan(19)
 
   let address
 
@@ -35,13 +35,8 @@ test('e2e', async (t) => {
     } else if (payload.type === 'payment_new') {
       t.is(payload.pluginName, 'onchain')
       t.is(payload.amountWasSpecified, false)
-      t.ok(payload.data)
-
-      t.ok(payload.data.orderId)
-      t.absent(payload.data.error)
-      t.ok(payload.data.data)
-      t.ok(Date.parse(payload.data.timestamp) <= new Date())
-
+      t.ok(payload.rawData)
+      t.ok(payload.clientOrderId)
       t.pass()
     } else {
       t.fail()
@@ -53,14 +48,17 @@ test('e2e', async (t) => {
 
   const notificationCallbackBob = sinon.fake()
   await onchainBob.pay({
-    address,
+    target: address,
     notificationCallback: notificationCallbackBob,
-    amount
+    payload: {
+      id: '123',
+      amount
+    }
   })
 
   t.is(notificationCallbackBob.callCount, 1)
   const resBob = notificationCallbackBob.getCall(0).args[0]
-  t.is(resBob.type, '') // XXX ?
+  t.is(resBob.type, 'payment_sent')
   t.is(resBob.pluginName, 'onchain')
   t.is(resBob.pluginState, 'success')
   t.ok(resBob.data.id)

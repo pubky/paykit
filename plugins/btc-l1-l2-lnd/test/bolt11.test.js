@@ -44,6 +44,7 @@ test('e2e - amount', async (t) => {
 
   t.is(notificationCallbackBob.callCount, 1)
   const resBob = notificationCallbackBob.getCall(0).args[0]
+  t.is(resBob.type, 'payment_sent')
   t.is(resBob.pluginName, 'bolt11')
   t.is(resBob.pluginState, 'success')
   t.is(resBob.id, '321')
@@ -105,6 +106,7 @@ test('e2e - no amount', async (t) => {
 
   t.is(notificationCallbackBob.callCount, 1)
   const resBob = notificationCallbackBob.getCall(0).args[0]
+  t.is(resBob.type, 'payment_sent')
   t.is(resBob.pluginName, 'bolt11')
   t.is(resBob.pluginState, 'success')
   t.is(resBob.id, '321')
