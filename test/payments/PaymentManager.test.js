@@ -5,7 +5,7 @@ const { test } = require('brittle')
 const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
-const { PLUGIN_STATE } = require('../../src/payments/PaymentObject')
+const { PAYMENT_STATE, PLUGIN_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentManager } = require('../../src/payments/PaymentManager')
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
@@ -124,27 +124,34 @@ test('PaymentManager.handleNewPayment', async t => {
   )
 
   await paymentManager.handleNewPayment({
-    id: 'test.handleNewPayment',
-    orderId: 'orderId',
-    clientOrderId: 'clientOrderId',
-    counterpartyURL: 'sourceURL',
-    amount: '100',
-    completedByPlugin: {
-      name: 'p2sh',
-      state: PLUGIN_STATE.SUCCESS,
-      startAt: Date.now(),
-      endAt: Date.now()
-    }
+    amount: '1000',
+    pluginName: 'p2sh',
+    networkId: 'network-id'
   })
 
   t.is(stub.calledOnce, true)
   t.is(receiverHandler.calledOnce, true)
 
-  const got = await db.get('test.handleNewPayment')
-  t.is(got.id, 'test.handleNewPayment')
-  t.is(got.clientOrderId, paymentParams.clientOrderId)
-  t.is(got.amount, paymentParams.amount)
-  t.is(got.targetURL, paymentParams.targetURL)
+  // HACK
+  const paymentId = Object.keys(db.db)[0]
+  const got = await db.get(paymentId)
+  t.is(got.id, paymentId)
+  t.ok(got.orderId)
+  t.is(got.clientOrderId, 'network-id')
+  t.is(got.internalState, PAYMENT_STATE.COMPLETED)
+  t.is(got.counterpartyURL, receiver.getUrl())
+  t.is(got.memo, '')
+  t.is(got.amount, '1000')
+  t.is(got.currency, 'BTC')
+  t.is(got.denomination, 'BASE')
+  t.alike(got.sendingPriority, ['p2sh'])
+  t.alike(got.pendingPlugins, [])
+  t.alike(got.triedPlugins, [])
+  t.alike(got.currentPlugin, {})
+  t.is(got.completedByPlugin.name, 'p2sh')
+  t.is(got.completedByPlugin.state, PLUGIN_STATE.SUCCESS)
+  t.ok(got.completedByPlugin.startAt)
+  t.ok(got.completedByPlugin.endAt)
 
   t.teardown(async () => {
     await receiver.close()

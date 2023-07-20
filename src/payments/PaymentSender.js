@@ -48,7 +48,7 @@ class PaymentSender {
     await plugin.pay({
       target: pluginData,
       payload,
-      notificationCallback: this.entryPointForPlugin.bind(this)
+      notificationCallback: this.stateUpdateCallback.bind(this)
     })
   }
 

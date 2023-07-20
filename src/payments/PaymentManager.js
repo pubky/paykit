@@ -175,7 +175,7 @@ class PaymentManager {
     return new PaymentSender(
       paymentOrder,
       this.pluginManager,
-      this.entryPointForPlugin.bind(this),
+      this.entryPointForPlugin.bind(this)
     )
   }
 
