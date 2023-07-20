@@ -57,20 +57,23 @@ test('PaymentSender.submit', async t => {
   await paymentSender.submit()
 
   const serialized = paymentOrder.payments[0].serialize()
-  const pluginName = 'p2sh'
-  const payload = {
+
+  t.is(Object.keys(pluginManager.plugins).length, 1)
+  t.is(pluginManager.plugins.p2sh.plugin.pay.callCount, 1)
+
+  const { target, payload, notificationCallback } = pluginManager.plugins.p2sh.plugin.pay.getCall(0).args[0]
+
+  t.alike(payload, {
     id: serialized.id,
     orderId: serialized.orderId,
     memo: serialized.memo,
     amount: serialized.amount,
     currency: serialized.currency,
-    denomination: serialized.denomination,
-    counterpartyURL: `${serialized.counterpartyURL}/public/slashpay/${pluginName}/slashpay.json`
-  }
+    denomination: serialized.denomination
+  })
 
-  t.is(Object.keys(pluginManager.plugins).length, 1)
-  t.is(pluginManager.plugins.p2sh.plugin.pay.callCount, 1)
-  t.alike(pluginManager.plugins.p2sh.plugin.pay.getCall(0).args, [payload, paymentSender.entryPointForPlugin])
+  t.is(typeof notificationCallback, 'function')
+  t.is(typeof target.p2sh, 'string')
 
   t.teardown(async () => {
     await sender.close()
