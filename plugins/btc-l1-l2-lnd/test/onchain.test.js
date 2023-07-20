@@ -58,7 +58,6 @@ test('e2e', async (t) => {
 
   t.is(notificationCallbackBob.callCount, 1)
   const resBob = notificationCallbackBob.getCall(0).args[0]
-  t.is(resBob.type, 'payment_sent')
   t.is(resBob.pluginName, 'onchain')
   t.is(resBob.pluginState, 'success')
   t.ok(resBob.data.id)
