@@ -88,9 +88,7 @@ class PaymentReceiver {
     await paymentObject.save()
 
     if (regenerateSlashpay) {
-      await this.pluginManager.dispatchEvent('receivePayment', {
-        notificationCallback: this.notificationCallback.bind(this),
-      })
+      await this.init()
     }
 
     await this.notificationCallback(paymentObject)

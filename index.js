@@ -3,14 +3,14 @@ const { DB } = require('./src/DB')
 const { SlashtagsConnector } = require('./src/slashtags')
 
 const defaultConfig = {
-  db: {
-    // TODO:
-  },
+  db: { },
   plugins: {
-    // TODO:
+    bolt11: path.resolve(__dirname, './plugins/btc-l1-l2-lnd/bolt11.js'),
+    onchain: path.resolve(__dirname, './plugins/btc-l1-l2-lnd/onchain.js')
   },
   sendingPriority: [
-    // TODO:
+    'bolt11',
+    'onchain'
   ],
   slashtags: {
     // TODO:
