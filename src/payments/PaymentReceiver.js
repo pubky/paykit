@@ -35,7 +35,7 @@ class PaymentReceiver {
     const { id, slashpayFile } = this.generateSlashpayContent(paymentPluginNames, amount)
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
-    const payload = { id, notificationCallback: this.notificationCallback }
+    const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
 
     if (amount) {
       payload.amount = amount.serialize()
@@ -89,7 +89,7 @@ class PaymentReceiver {
 
     if (regenerateSlashpay) {
       await this.pluginManager.dispatchEvent('receivePayment', {
-        notificationCallback: this.notificationCallback
+        notificationCallback: this.notificationCallback.bind(this),
       })
     }
 

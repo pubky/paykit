@@ -41,8 +41,11 @@ test('e2e', async (t) => {
     configA,
     dbA,
     slashtagsConnectorA,
-    (p) => console.log('A:', p)
+    (p) => console.log('Receiver:', p)
   )
+
+  await paymentManagerA.init() // receiver
+  const url = await paymentManagerA.receivePayments()
 
   // ---------------------------------------------------------------------------------
   const configBob = {
@@ -79,13 +82,10 @@ test('e2e', async (t) => {
     configB,
     dbB,
     slashtagsConnectorB,
-    (p) => console.log('B:', p)
+    (p) => console.log('Sender:', p)
   )
 
-  await paymentManagerA.init() // receiver
   await paymentManagerB.init() // sender
-
-  const url = await paymentManagerA.receivePayments()
 
   const paymentOrder = await paymentManagerB.createPaymentOrder({
     clientOrderId: 'e2e-test-123',
