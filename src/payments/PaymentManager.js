@@ -112,7 +112,8 @@ class PaymentManager {
     } else if (payload.type === PAYLOAD_TYPE.PAYMENT_ORDER_COMPLETED) {
       await this.userNotificationEndpoint(payload)
     } else if (payload.type === PAYLOAD_TYPE.READY_TO_RECEIVE) {
-      // FIXME: if ammount was passed path will be private
+      // TODO: move to helper
+      // FIXME: if amount was passed path will be private
       const path = `public/slashpay/${payload.pluginName}/slashpay.json`
       try {
         await this.slashtagsConnector.create(path, payload.data)
