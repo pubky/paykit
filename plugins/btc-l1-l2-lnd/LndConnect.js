@@ -112,12 +112,7 @@ class LndConnect {
       // TODO: Ensure the proper amount has been received.
       if (data?.received > 0) {
         const receipt = {
-          orderId: uuid.v4(),
-          data: {
-            id: data?.id,
-            sats: data?.received,
-            description: data?.description
-          },
+          data,
           error: !data,
           timestamp: new Date().toISOString()
         }
@@ -139,9 +134,8 @@ class LndConnect {
     })
     sub.once('confirmation', (data) => { // 1conf
       const receipt = {
-        orderId: uuid.v4(),
         error: !data,
-        data: data?.transaction,
+        data: data,
         timestamp: new Date().toISOString()
       }
       callback(receipt)

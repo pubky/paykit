@@ -35,7 +35,7 @@ test('LndConnect.generateInvoice, LndConnect.subscribeToInvoice, LndConnect.payI
   const tokens = 2
   const description = 'test'
 
-  t.plan(25)
+  t.plan(24)
   t.timeout(60000)
 
   const alice = new LndConnect(configAlice)
@@ -51,7 +51,6 @@ test('LndConnect.generateInvoice, LndConnect.subscribeToInvoice, LndConnect.payI
     t.ok(receip.data)
     t.ok(Date.parse(receip.timestamp) <= Date.now())
     t.ok(receip.data.id)
-    t.is(receip.data.sats, tokens)
     t.is(receip.data.description, description)
     t.pass()
   })
