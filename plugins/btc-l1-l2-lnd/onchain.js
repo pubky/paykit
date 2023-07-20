@@ -66,7 +66,7 @@ function getPayer (config) {
     // }
 
     const res = await lnd.sendOnChainFunds({
-      address, tokens: payload.amount
+      address, tokens: parseInt(payload.amount)
     })
 
     // XXX what again do I need here?

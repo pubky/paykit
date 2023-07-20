@@ -22,7 +22,7 @@ const onchainBob = require('../onchain.js').init(configBob)
 
 test('e2e', async (t) => {
   t.timeout(60000)
-  t.plan(19)
+  t.plan(18)
 
   let address
 
