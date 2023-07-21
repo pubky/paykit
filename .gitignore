@@ -2,3 +2,4 @@ node_modules/
 coverage/
 .DS_Store
 plugins/**/node_modules/
+examples/**/.*.js
