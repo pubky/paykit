@@ -29,7 +29,7 @@ test('PaymentReceiver', async t => {
   const { db, receiver } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
-  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, receiver)
+  await pluginManager.loadPlugin('p2sh')
 
   const notificationCallback = () => {}
 
@@ -54,8 +54,8 @@ test('PaymentReceiver.init', async t => {
     sinon.fake(PaymentReceiver.prototype.generateSlashpayContent)
   )
 
-  const pluginManager = new PluginManager()
-  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, receiver)
+  const pluginManager = new PluginManager(pluginConfig)
+  await pluginManager.loadPlugin('p2sh')
 
   const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
 
@@ -78,32 +78,27 @@ test('PaymentReceiver.init', async t => {
 test('PaymentReceiver.handleNewPayment', async t => {
   const { db, receiver } = await createStorageEntities(t)
 
-  const pluginManager = new PluginManager()
-  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, {})
+  const pluginManager = new PluginManager(pluginConfig)
+  await pluginManager.loadPlugin('p2sh')
 
   const notificationCallback = sinon.fake.resolves()
   const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
   const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, notificationCallback)
 
   await paymentReceiver.handleNewPayment({
-    orderId: 'testOrderId',
-    clientOrderId: 'testClientOrderId',
-    counterpartyURL: 'sourceURL',
     amount: '1000',
-    completedByPlugin: {
-      name: 'p2sh',
-      state: PLUGIN_STATE.SUCCESS,
-      startAt: Date.now(),
-      endAt: Date.now()
-    }
+    pluginName: 'p2sh',
+    networkId: 'network-id'
   })
 
-  const payment = await db.get('totally-random-id')
-  t.is(payment.id, 'totally-random-id')
-  t.is(payment.orderId, 'testOrderId')
-  t.is(payment.clientOrderId, 'testClientOrderId')
+  // HACK
+  const paymentId = Object.keys(db.db)[0]
+  const payment = await db.get(paymentId)
+  t.is(payment.id, paymentId)
+  t.ok(payment.orderId)
+  t.is(payment.clientOrderId, 'network-id')
   t.is(payment.internalState, PAYMENT_STATE.COMPLETED)
-  t.is(payment.counterpartyURL, 'sourceURL')
+  t.is(payment.counterpartyURL, receiver.getUrl())
   t.is(payment.memo, '')
   t.is(payment.amount, '1000')
   t.is(payment.currency, 'BTC')
@@ -133,12 +128,13 @@ test('PaymentReceiver.generateSlashpayContent - no amount', async t => {
   const { db, receiver } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
-  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, receiver)
+  await pluginManager.loadPlugin('p2sh')
+  await pluginManager.loadPlugin('p2tr')
 
   const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, () => {})
 
-  const slashpayContent = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'])
-  t.alike(slashpayContent, {
+  const { slashpayFile } = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'])
+  t.alike(slashpayFile, {
     paymentEndpoints: {
       p2sh: '/public/slashpay/p2sh/slashpay.json',
       p2tr: '/public/slashpay/p2tr/slashpay.json'
@@ -154,15 +150,16 @@ test('PaymentReceiver.generateSlashpayContent - with amount', async t => {
   const { db, receiver } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
-  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, receiver)
+  await pluginManager.loadPlugin('p2sh')
+  await pluginManager.loadPlugin('p2tr')
 
   const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, () => {})
 
-  const slashpayContent = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'], 100)
-  t.alike(slashpayContent, {
+  const { id, slashpayFile } = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'], 100)
+  t.alike(slashpayFile, {
     paymentEndpoints: {
-      p2sh: '/some-id/slashpay/p2sh/slashpay.json',
-      p2tr: '/some-id/slashpay/p2tr/slashpay.json'
+      p2sh: `/${id}/slashpay/p2sh/slashpay.json`,
+      p2tr: `/${id}/slashpay/p2tr/slashpay.json`
     }
   })
 
@@ -175,7 +172,7 @@ test('PaymentReceiver.getListOfSupportedPaymentMethods', async t => {
   const { db, receiver } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
-  await pluginManager.loadPlugin(pluginConfig.plugins.p2sh, receiver)
+  await pluginManager.loadPlugin('p2sh')
 
   const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, () => {})
 

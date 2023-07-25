@@ -30,21 +30,26 @@ class PaymentSender {
 
     const serialized = payment.serialize()
     const payload = {
-      id: serialized.id,
-      orderId: serialized.orderId,
-      counterpartyURL: serialized.counterpartyURL,
-      memo: serialized.memo,
+      id: serialized.id, // for identification upon feedback
+      orderId: serialized.orderId, // for identification upon feedback
+      memo: serialized.memo, // memo - nice to have
       amount: serialized.amount,
       currency: serialized.currency,
       denomination: serialized.denomination
     }
 
+    const read = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
+    const pluginURL = payment.counterpartyURL.split('/')[0] + read.paymentEndpoints[name]
     // Payments with specified amount are done to the full path to slashpay.json
     // which must also include encryption key to the payee private drive
-    if (!payload.counterpartyURL.endsWith('.json')) {
-      payload.counterpartyURL = `${payload.counterpartyURL}/public/slashpay/${name}/slashpay.json`
-    }
-    await plugin.pay(payload, this.entryPointForPlugin)
+
+    const pluginData = await payment.slashtagsConnector.readRemote(pluginURL)
+
+    await plugin.pay({
+      target: pluginData,
+      payload,
+      notificationCallback: this.stateUpdateCallback.bind(this)
+    })
   }
 
   /**

@@ -62,7 +62,7 @@ These are plugin methods to be called by core in a unicast manner.
 These are plugin methods to be called by core in a multicast manner. 
 - `events` - An optional array of strings, various types of plugins require implementation of different RPC methods
 - Type `payment` requires implementation of a "watch" event listener:
-  - `receivePayments({ notificationCallback, amount })` - A method responsible for invocation of the logic for initializing the receiving of payments (see [amount](#amount) and [notification callback](#feedback-communication)).
+  - `receivePayments(payload)` - A method responsible for invocation of the logic for initializing the receiving of payments (see [receive payment payload](#payload) and [notification callback](#feedback-communication)).
 
 #### Data objects
 
@@ -81,16 +81,42 @@ Payment is a JSON object with the following components.
 - `denomination` - A string that specifies the denomination of the specified amount (allowed values are either "BASE" or "MAIN")
 - `currency` - A string of the currency code in ISO3166-1 Alpha3 format
 
+##### Payload:
+- `id` - optional string id, used for payments for private slashtags;
+- `amount` - optional string amount, used for payments with specified amount (private slashtgs);
+- `notificationCallback` - feedback communication mechanism.
+
 #### Feedback communication
-Callback - A function which accepts a single parameter and is responsible for feedback communication. The payload may contain the property `type` with the following string values:
-- `payment_new` - This will (1) update the internal core's state if the payload is a valid payment object, and send a notification to the user.
-- `payment_update` - This will (1) update the internal state of the payment which is currently being processed by the plugin and (2) send a notification to the user. Supported states are as follows:
+Callback - A function which accepts a single parameter and is responsible for feedback communication.
+Each call must include string property `pluginName`
+
+
+
+The payload may contain the property `type` with the following string values:
+- `payment_new` - This will (1) update the internal core's state if the payload is a valid payment object, and send a notification to the user. Properties are:
+  - `pluginName` - string name of the plugin
+  - `type` - `payment_new`
+  - `rawData` - optional object which contains raw payment data
+  - `amountSpecified` - boolean property used to signal if there was an expectation for specific amount of incoming payment
+  - `currency` - currency of incoming payment (default BTC)
+  - `denimination` - denomination of incoming payment (default BASE)
+  - `clientOrderId` - global unique identifier of the payment
+  - `amount` - payment amount of specified denomination and currency
+  - `memo` - string payment payee defined description of payment
+
+- `ready_to_receive` - mechanism to notify core that plugin is ready for receiving incoming payments. Properties are:
+  - `pluginName` - plugin name
+  - `type` - `ready_to_receive`
+  - `data` - data to be stored in corresponding slashdrive file
+  - `amountSpecified` - boolean property used to signal if there was an expectation for specific amount of incoming payment
+
+- default - Forward to user. 
+  - `pluginName` - plugin name
+  - `pluginState` - optional field used to signal state of outgoing payment
     - `failed` - Marks the current plugin's attempt to make a payment as failed and asks the next plugin in the pipeline to process the payment
     - `success` - Marks the current payment as successfully completed by a plugin
     - default - Treats update as a intermediary state update which requires action from the user; the required action will be forwarded to user and their update will be forwarded to the plugin via invocation of the plugin's PRC method `updatePayment` with data
-- `payment_order_completed`;
-  - This will (1) mark payment as completed and (2) send a notification to the user
-- default - Forward to user
+  - must include unique payment identifiers like `paymentId` and/or `orderId`
 
 ## Collaboration diagram
 

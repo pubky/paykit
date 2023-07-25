@@ -1,5 +1,7 @@
 const logger = require('slashtags-logger')('Slashpay', 'payment-object')
 
+const { v4: uuidv4 } = require('uuid')
+
 const { PaymentAmount } = require('./PaymentAmount')
 const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
 /**
@@ -23,9 +25,7 @@ class PaymentObject {
    * @returns {string}
    */
   static generateId () {
-    // uuid is not available with runtime because of the crypto module
-    // TODO: figure out how to use it
-    return 'totally-random-id'
+    return uuidv4()
   }
 
   /**

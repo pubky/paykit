@@ -1,4 +1,6 @@
 const path = require('path')
+const { v4: uuidv4 } = require('uuid')
+
 const { PaymentObject, PAYMENT_DIRECTION, PAYMENT_STATE } = require('./PaymentObject')
 const { SLASHPAY_PATH } = require('../slashtags')
 /**
@@ -30,11 +32,14 @@ class PaymentReceiver {
    */
   async init (amount) {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const slashpayFile = this.generateSlashpayContent(paymentPluginNames, amount)
+    const { id, slashpayFile } = this.generateSlashpayContent(paymentPluginNames, amount)
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
-    const payload = { notificationCallback: this.notificationCallback }
-    if (amount) payload.amount = amount.serialize()
+    const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
+
+    if (amount) {
+      payload.amount = amount.serialize()
+    }
 
     await this.pluginManager.dispatchEvent('receivePayment', payload)
 
@@ -58,19 +63,32 @@ class PaymentReceiver {
    * @returns {Promise<void>}
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
-    const sendingPriority = [payload.completedByPlugin.name]
     const paymentObject = new PaymentObject({
-      ...payload,
-      sendingPriority,
+      orderId: uuidv4(),
+      sendingPriority: [payload.pluginName],
       direction: PAYMENT_DIRECTION.IN,
-      internalState: PAYMENT_STATE.COMPLETED
+      internalState: PAYMENT_STATE.COMPLETED,
+
+      counterpartyURL: this.storage.getUrl(), // we cant really know this so it may always be receiver
+
+      completedByPlugin: {
+        name: payload.pluginName,
+        state: 'success', // XXX should I read it from plugin?
+        startAt: Date.now(),
+        endAt: Date.now()
+      },
+
+      // FROM PAYLOAD
+      amount: payload.amount, // send it in payload
+      memo: payload.memo || '', // send it in payload
+      denomination: payload.denomination || 'BASE',
+      currency: payload.currency || 'BTC',
+      clientOrderId: payload.networkId // send in payload
     }, this.db)
     await paymentObject.save()
 
     if (regenerateSlashpay) {
-      await this.pluginManager.dispatchEvent('receivePayment', {
-        notificationCallback: this.notificationCallback
-      })
+      await this.init()
     }
 
     await this.notificationCallback(paymentObject)
@@ -84,8 +102,7 @@ class PaymentReceiver {
    */
   generateSlashpayContent (paymentPluginNames, amount) {
     const slashpayFile = { paymentEndpoints: {} }
-    // TODO: id generation
-    const id = 'some-id'
+    const id = uuidv4()
 
     paymentPluginNames.forEach((name) => {
       slashpayFile.paymentEndpoints[name] = amount
@@ -93,7 +110,10 @@ class PaymentReceiver {
         : path.join('/public/slashpay', name, 'slashpay.json')
     })
 
-    return slashpayFile
+    return {
+      slashpayFile,
+      id
+    }
   }
 
   /**

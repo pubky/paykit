@@ -73,7 +73,7 @@ test('PaymentOrder.init', async t => {
   t.is(paymentOrder.payments.length, 1)
 
   t.alike(paymentOrder.payments[0].serialize(), {
-    id: 'totally-random-id',
+    id: paymentOrder.payments[0].id,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
     counterpartyURL: receiver.getUrl(),
@@ -142,7 +142,7 @@ test('PaymentOrder.save', async t => {
 
   const gotPayment = await paymentOrder.db.get(paymentOrder.payments[0].id)
   t.alike(gotPayment, {
-    id: 'totally-random-id',
+    id: paymentOrder.payments[0].id,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
     counterpartyURL: receiver.getUrl(),

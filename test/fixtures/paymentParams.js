@@ -1,3 +1,5 @@
+const { v4: uuidv4 } = require('uuid')
+
 const orderParams = {
   clientOrderId: 'clientOrderId',
   amount: '100',
@@ -6,7 +8,7 @@ const orderParams = {
 
 const paymentParams = {
   ...orderParams,
-  orderId: 'internalOrderId'
+  orderId: uuidv4() // XXX this should exist
 }
 
 module.exports = {

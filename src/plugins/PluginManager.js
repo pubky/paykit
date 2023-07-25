@@ -14,42 +14,44 @@ class PluginManager {
   constructor (config) {
     logger.info('Initializing plugin manager')
     this.plugins = {}
+    if (!config) throw new Error(ERRORS.CONFIG_MISSING)
+
     this.config = config
+  }
+
+  /**
+   * Load a plugin with runtime by path to the entry point
+   * @param {string} pluginEntryPoint - path to plugins main
+   * @param {[any]} pluginConfig - plugin config
+   * @returns {Promise<Plugin>} - plugin instance
+   * @throws {Error} - if plugin is already loaded
+   */
+  async loadPlugin (pluginEntryPoint, pluginConfig = null) {
+    logger.info('Loading plugin')
+    const { module, config } = this.loadByPathOrName(pluginEntryPoint)
+
+    return await this.injectPlugin(module, config || pluginConfig)
   }
 
   /**
    * Inject plugin into the manager
    * @param {any} module - plugin module object
-   * @param {storage} storage - instance with CRUD interface for receiving payments
+   * @param {object} pluginConfig - plugin config object
    * @returns {Promise<Plugin>} - plugin instance
    * @throws {Error} - if plugin is already loaded
    * @throws {Error} - if plugin is not valid
    * @throws {Error} - if plugin failed to initialize
    * @throws {Error} - if plugin failed to get manifest
    */
-  async injectPlugin (module, storage) {
+  async injectPlugin (module, pluginConfig) {
     logger.debug('Injecting plugin')
-    const plugin = await this.initPlugin(module, storage)
+    const plugin = await this.initPlugin(module, pluginConfig)
     const manifest = await this.getManifest(module, plugin)
 
     const p = { manifest, plugin, active: true }
     this.plugins[manifest.name] = p
 
     return p
-  }
-
-  /**
-   * Load a plugin with runtime by path to the entry point
-   * @param {string} pluginEntryPoint - path to plugins main
-   * @param {[Storage]} storage - instance with CRUD interface for receiving payments
-   * @returns {Promise<Plugin>} - plugin instance
-   * @throws {Error} - if plugin is already loaded
-   */
-  async loadPlugin (pluginEntryPoint, storage) {
-    logger.info('Loading plugin')
-    const module = this.loadByPathOrName(pluginEntryPoint)
-
-    return await this.injectPlugin(module, storage)
   }
 
   /**
@@ -114,7 +116,7 @@ class PluginManager {
         .map(async ([name, plugin]) => {
           try {
             logger.debug.extend(event).extend(name)('Dispatching event')
-            await plugin.plugin.onEvent(event, data)
+            await plugin.plugin[event](data)
           } catch (e) {
             ERRORS.PLUGIN.EVENT_DISPATCH(name, e.message)
             // TODO: log error
@@ -192,11 +194,23 @@ class PluginManager {
    */
   loadByPathOrName (pluginEntryPoint) {
     logger.info(`Loading plugin ${pluginEntryPoint}`)
+    if (typeof this.config.plugins[pluginEntryPoint] === 'object') {
+      return {
+        module: this.config.plugins[pluginEntryPoint],
+        config: this.config[pluginEntryPoint]
+      }
+    }
     try {
-      return require(pluginEntryPoint)
+      return {
+        module: require(pluginEntryPoint),
+        config: this.config[pluginEntryPoint]
+      }
     } catch (e) {
       try {
-        return require(this.config.plugins[pluginEntryPoint])
+        return {
+          module: require(this.config.plugins[pluginEntryPoint]),
+          config: this.config[pluginEntryPoint]
+        }
       } catch (e) {
         throw new Error(ERRORS.FAILED_TO_LOAD(pluginEntryPoint))
       }

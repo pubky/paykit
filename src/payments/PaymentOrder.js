@@ -1,5 +1,7 @@
 const logger = require('slashtags-logger')('Slashpay', 'payment-order')
 
+const { v4: uuidv4 } = require('uuid')
+
 const { PaymentObject, ERRORS: PaymentErrors } = require('./PaymentObject')
 const { PaymentAmount } = require('./PaymentAmount')
 /**
@@ -30,7 +32,7 @@ const CONFIG = {
 class PaymentOrder {
   static generateId () {
     // TODO: remove after db integration
-    return 'totally-random-order-id'
+    return uuidv4()
   }
 
   /**
