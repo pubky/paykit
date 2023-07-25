@@ -69,7 +69,7 @@ test('e2e - amount', async (t) => {
   t.is(notificationAlice.denomination, 'BASE')
   t.is(notificationAlice.currency, 'BTC')
   t.is(typeof notificationAlice.memo, 'string')
-  t.is(notificationAlice.networkId, notificationAlice.rawData.id)
+  t.is(notificationAlice.clientOrderId, notificationAlice.rawData.id)
   t.ok(Date.parse(notificationAlice.createdAt) <= Date.parse(notificationAlice.confirmedAt))
   t.ok(Date.parse(notificationAlice.confirmedAt) <= Date.now())
 
@@ -128,7 +128,7 @@ test('e2e - no amount', async (t) => {
   t.is(notificationAlice.denomination, 'BASE')
   t.is(notificationAlice.currency, 'BTC')
   t.is(typeof notificationAlice.memo, 'string')
-  t.is(notificationAlice.networkId, notificationAlice.rawData.id)
+  t.is(notificationAlice.clientOrderId, notificationAlice.rawData.id)
   t.ok(Date.parse(notificationAlice.createdAt) <= Date.parse(notificationAlice.confirmedAt))
   t.ok(Date.parse(notificationAlice.confirmedAt) <= Date.now())
 

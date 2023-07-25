@@ -63,7 +63,7 @@ class PaymentObject {
     if (!paymentParams) throw new Error(ERRORS.PARAMS_REQUIRED)
     if (!paymentParams.orderId) throw new Error(ERRORS.ORDER_ID_REQUIRED)
     if (!paymentParams.clientOrderId) throw new Error(ERRORS.CLIENT_ID_REQUIRED)
-    if (!paymentParams.counterpartyURL) throw new Error(ERRORS.COUTNERPARTY_REQUIRED)
+    if (!paymentParams.counterpartyURL) throw new Error(ERRORS.COUNTERPARTY_REQUIRED)
     PaymentObject.validateDirection(paymentParams)
   }
 
