@@ -83,7 +83,7 @@ class PaymentReceiver {
       memo: payload.memo || '', // send it in payload
       denomination: payload.denomination || 'BASE',
       currency: payload.currency || 'BTC',
-      clientOrderId: payload.networkId // send in payload
+      clientOrderId: payload.clientOrderId // send in payload
     }, this.db)
     await paymentObject.save()
 

@@ -22,7 +22,7 @@ function getWatcher (config) {
 
         memo: receipt.data.description,
 
-        networkId: receipt.data.id,
+        clientOrderId: receipt.data.id,
 
         createdAt: receipt.data.created_at,
         confirmedAt: receipt.data.confirmed_at,
@@ -48,7 +48,6 @@ function getPayer (config) {
 
   return async ({ target, payload, notificationCallback }) => {
     const request = typeof target === 'string' ? target : target.bolt11
-
     // const payload = {
     //  id: serialized.id, // for identification upon feedback
     //  orderId: serialized.orderId, // for identification upon feedback
@@ -61,7 +60,6 @@ function getPayer (config) {
     // TODO: convert amount based on denomination
     // TODO: validate currency
     const res = await lnd.payInvoice({ request, tokens: payload.amount })
-
     await notificationCallback({
       ...payload,
       pluginName,

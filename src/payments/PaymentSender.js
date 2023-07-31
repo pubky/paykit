@@ -26,6 +26,7 @@ class PaymentSender {
    */
   async submit () {
     const payment = await this.paymentOrder.process()
+
     const { plugin, manifest: { name } } = await this.getCurrentPlugin(payment)
 
     const serialized = payment.serialize()
@@ -73,7 +74,7 @@ class PaymentSender {
    */
   async getCurrentPlugin (payment) {
     const currentPlugin = payment.getCurrentPlugin()
-
+    
     if (!currentPlugin) throw new Error(ERRORS.NO_PLUGINS_AVAILABLE)
 
     const loaded = this.pluginManager.plugins[currentPlugin.name]

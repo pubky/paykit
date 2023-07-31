@@ -88,7 +88,7 @@ test('PaymentReceiver.handleNewPayment', async t => {
   await paymentReceiver.handleNewPayment({
     amount: '1000',
     pluginName: 'p2sh',
-    networkId: 'network-id'
+    clientOrderId: 'network-id'
   })
 
   // HACK

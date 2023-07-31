@@ -3,3 +3,5 @@ coverage/
 .DS_Store
 plugins/**/node_modules/
 examples/**/.*.js
+examples/config.js
+
