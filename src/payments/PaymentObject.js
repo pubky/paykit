@@ -221,11 +221,13 @@ class PaymentObject {
       this.id = PaymentObject.generateId()
     }
 
+    // FIXME: getPayment
     const paymentObject = await this.db.get(this.id, { removed: '*' })
     if (paymentObject) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
+    // FIXME: savePayment
     await this.db.save(serialized)
     this.logger.debug('Payment object saved')
   }
@@ -241,6 +243,7 @@ class PaymentObject {
       this.logger.info('Force deleting payment object')
       throw new Error(ERRORS.NOT_ALLOWED)
     }
+    // FIXME: updatePayment
     await this.db.update(this.id, { removed: true })
     this.logger.debug('Payment object deleted')
   }
@@ -255,6 +258,7 @@ class PaymentObject {
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
+    // FIXME: updatePayment
     await this.db.update(this.id, serialized)
 
     this.logger.debug('Payment object updated')
