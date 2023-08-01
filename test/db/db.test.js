@@ -165,3 +165,27 @@ test('db.updatePayment', async (t) => {
     await dropTables(db)
   })
 })
+
+test('db.getPayments', async (t) => {
+  const payment1 = createPayment()
+  const payment2 = createPayment()
+  const payment3 = createPayment()
+
+  const db = new DB({ name: 'test', path: './test_db' })
+  await db.init()
+
+  await db.savePayment(payment1)
+  await db.savePayment(payment2)
+  await db.savePayment(payment3)
+
+  await db.updatePayment(payment2.id, { internalState: 'completed' })
+  const res = await db.getPayments({ internalState: 'pending' })
+
+  t.is(res.length, 2)
+  t.is(res.find((r) => r.id === payment1.id).id, payment1.id)
+  t.is(res.find((r) => r.id === payment3.id).id, payment3.id)
+
+  await t.teardown(async () => {
+    await dropTables(db)
+  })
+})

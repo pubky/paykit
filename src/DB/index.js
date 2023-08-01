@@ -154,7 +154,7 @@ class DB {
         $executeAt
       )`
 
-    return this.executeStatement(statement, params)
+    return await this.executeStatement(statement, params)
   }
 
   async getPayment(id, opts = {}) {
@@ -182,12 +182,27 @@ class DB {
     return this.executeStatement(statement, params)
   }
 
-  async getPayments(opts = {}) { }
+  // XXX: super naive
+  // TODO: add pagination
+  // TODO: add sorting
+  // ...
+  async getPayments(update) {
+    const params = {}
+    let statement = `SELECT * FROM payments WHERE`
+    Object.keys(update).forEach((k, i)  => {
+      statement += ` ${k} = $${k}`
+      if (i !== Object.keys(update).length - 1) statement += ', '
+
+      params[`$${k}`] = (typeof update[k] === 'object') ? JSON.stringify(update[k]) : update[k]
+    })
+
+    return this.executeStatement(statement, params, 'all')
+  }
 
 
-  async executeStatement(statement, params) {
+  async executeStatement(statement, params, method = 'get') {
     return await new Promise((resolve, reject) => {
-      this.db.sqlite.get(statement, params, (err, res) => {
+      this.db.sqlite[method](statement, params, (err, res) => {
         if (err) return reject(err)
         return resolve(res)
       })
