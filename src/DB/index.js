@@ -17,12 +17,12 @@ class DB {
       //  - denomination TEXT NOT NULL
       // internalState
       //   - internalState TEXT NOT NULL
-      //   - pendingPlugins[] TEXT NOT NULL
-      //   - *triedPlugins[]
-      //     - name TEXT NOT NULL
-      //     - startAt TEXT NOT NULL
-      //     - state TEXT NOT NULL
-      //     - endAt TEXT NOT NULL
+      //   - pendingPlugins TEXT NOT NULL
+      //   - *triedPlugins TEXT NOT NULL
+      //     - name text not null
+      //     - startat text not null
+      //     - state text not null
+      //     - endat text not null
       //   - *currentPlugin
       //     - name TEXT NOT NULL
       //     - startAt TEXT NOT NULL
@@ -40,11 +40,17 @@ class DB {
         id TEXT NOT NULL PRIMARY KEY,
         orderId TEXT NOT NULL,
         clientOrderId TEXT NOT NULL,
-        couterpartyURL TEXT NOT NULL,
+        counterpartyURL TEXT NOT NULL,
         memo TEXT NOT NULL,
         sendingPriority TEXT NOT NULL,
         amount TEXT NOT NULL,
+        denomination TEXT NOT NULL,
+        currency TEXT NOT NULL,
         internalState TEXT NOT NULL,
+        pendingPlugins TEXT NOT NULL,
+        triedPlugins TEXT NOT NULL,
+        currentPlugin TEXT NOT NULL,
+        completedByPlugin TEXT NOT NULL,
         direction TEXT NOT NULL,
         createdAt INTEGER NOT NULL,
         executeAt INTEGER NOT NULL
@@ -67,7 +73,7 @@ class DB {
 
         amount TEXT NOT NULL,
 
-        couterpartyURL TEXT NOT NULL,
+        counterpartyURL TEXT NOT NULL,
         memo TEXT NOT NULL,
         sendingPriority TEXT NOT NULL
       )`
@@ -87,38 +93,67 @@ class DB {
   async savePayment(payment) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
+    const params = {
+      $id: payment.id,
+      $orderId: payment.orderId,
+      $clientOrderId: payment.clientOrderId,
+      $counterpartyURL: payment.counterpartyURL,
+      $memo: payment.memo,
+      $sendingPriority: JSON.stringify(payment.sendingPriority),
+      $amount: payment.amount,
+      $denomination: payment.denomination,
+      $currency: payment.currency,
+      $internalState: payment.internalState,
+      $pendingPlugins: JSON.stringify(payment.pendingPlugins),
+      $triedPlugins: JSON.stringify(payment.triedPlugins),
+      $currentPlugin: JSON.stringify(payment.currentPlugin),
+      $completedByPlugin: JSON.stringify(payment.completedByPlugin),
+      $direction: payment.direction,
+      $createdAt: payment.createdAt,
+      $executeAt: payment.executeAt
+    }
+
+    const statement = `
+      INSERT INTO payments (
+        id,
+        orderId,
+        clientOrderId,
+        counterpartyURL,
+        memo,
+        sendingPriority,
+        amount,
+        denomination,
+        currency,
+        internalState,
+        pendingPlugins,
+        triedPlugins,
+        currentPlugin,
+        completedByPlugin,
+        direction,
+        createdAt,
+        executeAt
+      ) VALUES (
+        $id,
+        $orderId,
+        $clientOrderId,
+        $counterpartyURL,
+        $memo,
+        $sendingPriority,
+        $amount,
+        $denomination,
+        $currency,
+        $internalState,
+        $pendingPlugins,
+        $triedPlugins,
+        $currentPlugin,
+        $completedByPlugin,
+        $direction,
+        $createdAt,
+        $executeAt
+      )`
+
     return new Promise((resolve, reject) => {
-      this.db.sqlite.run(
-        `INSERT INTO payments (
-          id,
-          orderId,
-          clientOrderId,
-          couterpartyURL,
-          memo,
-          sendingPriority,
-          amount,
-          internalState,
-          direction,
-          createdAt,
-          executeAt
-        ) VALUES (
-          $id,
-          $orderId,
-          $clientOrderId,
-          $couterpartyURL,
-          $memo,
-          $sendingPriority,
-          $amount,
-          $internalState,
-          $direction,
-          $createdAt,
-          $executeAt
-        )`, {
-          ...payment,
-          sendingPriority: JSON.stringify(payment.sendingPriority),
-          internalState: JSON.stringify(payment.internalState),
-          amount: JSON.stringify(payment.amount),
-        }, (err, res) => {
+      this.db.sqlite.run(statement, params, (err, res) => {
           if (err) return reject(err)
           return resolve(res)
         }
@@ -126,8 +161,9 @@ class DB {
     })
   }
 
-  async readPayment(id) {
-  }
+  async getPayment(id, opts = {}) { }
+
+  async updatePayment(id, update) { }
 //
 //  async save (payment) {
 //    if (!this.ready) throw new Error(ERROR.NOT_READY)
