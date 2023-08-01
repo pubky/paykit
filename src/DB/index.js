@@ -53,7 +53,8 @@ class DB {
         completedByPlugin TEXT NOT NULL,
         direction TEXT NOT NULL,
         createdAt INTEGER NOT NULL,
-        executeAt INTEGER NOT NULL
+        executeAt INTEGER NOT NULL,
+        removed INTEGER NOT NULL DEFAULT 0
       )`
 
     const createPaymentsQuery = new Promise((resolve, reject) => {
@@ -75,7 +76,8 @@ class DB {
 
         counterpartyURL TEXT NOT NULL,
         memo TEXT NOT NULL,
-        sendingPriority TEXT NOT NULL
+        sendingPriority TEXT NOT NULL,
+        removed INTEGER NOT NULL DEFAULT 0
       )`
 
     const createOrdersQuery = new Promise((resolve, reject) => {
@@ -161,9 +163,24 @@ class DB {
     })
   }
 
-  async getPayment(id, opts = {}) { }
+  async getPayment(id, opts = {}) {
+    const statement = `SELECT * FROM payments WHERE id = $id AND removed = $removed LIMIT 1`
+    const params = {
+      $id: id,
+      $removed: !!opts.removed ? 1 : 0
+    }
+
+    return new Promise((resolve, reject) => {
+      this.db.sqlite.get(statement, params, (err, res) => {
+        if (err) return reject(err)
+        return resolve(res)
+      })
+    })
+  }
 
   async updatePayment(id, update) { }
+
+  async getPayments(opts = {}) { }
 //
 //  async save (payment) {
 //    if (!this.ready) throw new Error(ERROR.NOT_READY)
