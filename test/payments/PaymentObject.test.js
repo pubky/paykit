@@ -123,6 +123,9 @@ test('PaymentObject.validateDirection', t => {
 test('PaymentObject - new', async t => {
   const { sender, receiver, paymentObject } = await createPaymentEntities(t)
 
+  console.log(paymentObject.serialize())
+  throw new Error('ff')
+
   t.is(paymentObject.id, null)
   t.alike(paymentObject.internalState.serialize(), {
     internalState: PAYMENT_STATE.INITIAL,
