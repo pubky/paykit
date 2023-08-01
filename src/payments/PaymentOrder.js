@@ -329,6 +329,7 @@ class PaymentOrder {
     const orderObject = this.serialize()
 
     // TODO: after db integration wrap into db transaction
+    // FIXME: saveOrder
     await this.db.save(orderObject)
     await Promise.all(this.payments.map(async (payment) => {
       await payment.save()
@@ -345,6 +346,7 @@ class PaymentOrder {
     const serialized = this.serialize()
     PaymentOrder.validateInput(serialized)
 
+    // FIXME: updateOrder
     await this.db.update(this.id, serialized)
   }
 
@@ -360,6 +362,7 @@ class PaymentOrder {
     if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
 
     const paymentOrder = new PaymentOrder(orderParams, db)
+    // FIXME: flexible query interface
     paymentOrder.payments = (await db.getPayments(id)).map(p => new PaymentObject(p, db, slashtags))
 
     return paymentOrder
