@@ -142,3 +142,26 @@ test('db.getPayment', async (t) => {
     await dropTables(db)
   })
 })
+
+test('db.updatePayment', async (t) => {
+  const payment = createPayment()
+
+  const db = new DB({ name: 'test', path: './test_db' })
+  await db.init()
+  await db.savePayment(payment)
+
+  const res = await db.getPayment(payment.id)
+
+  comparePayments(t, res, payment)
+
+  await db.updatePayment(payment.id, { internalState: 'completed' })
+
+  const updated = await db.getPayment(payment.id)
+
+  t.is(updated.internalState, 'completed')
+  t.is(updated.id, payment.id)
+
+  await t.teardown(async () => {
+    await dropTables(db)
+  })
+})

@@ -164,7 +164,23 @@ class DB {
     return this.executeStatement(statement, params)
   }
 
-  async updatePayment(id, update) { }
+  async updatePayment(id, update) {
+    let statement = `UPDATE payments SET `
+    const params = { $id: id }
+
+    Object.keys(update).forEach((k, i)  => {
+      if (k === 'id') return
+
+      statement += `${k} = $${k}`
+      if (i !== Object.keys(update).length - 1) statement += ', '
+
+      params[`$${k}`] = (typeof update[k] === 'object') ? JSON.stringify(update[k]) : update[k]
+    })
+
+    statement += ' WHERE id = $id'
+
+    return this.executeStatement(statement, params)
+  }
 
   async getPayments(opts = {}) { }
 
