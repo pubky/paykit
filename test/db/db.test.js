@@ -188,8 +188,6 @@ test('db.getPayment - removed', async (t) => {
   const resA = await db.getPayment(payment1.id, { removed: '*' })
   const resR = await db.getPayment(payment1.id, { removed: true })
 
-  t.ok(resA.removed)
-
   comparePayments(t, resA, resR)
 
   await t.teardown(async () => {

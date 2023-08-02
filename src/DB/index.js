@@ -224,7 +224,7 @@ class DB {
   deserializePayment(payment) {
     if (!payment) return null
 
-    return {
+    const res = {
       ...payment,
       sendingPriority: JSON.parse(payment.sendingPriority || '[]'),
       pendingPlugins: JSON.parse(payment.pendingPlugins || '[]'),
@@ -232,6 +232,10 @@ class DB {
       currentPlugin: JSON.parse(payment.currentPlugin || '{}'),
       completedByPlugin: JSON.parse(payment.completedByPlugin || '{}')
     }
+
+    delete res.removed
+
+    return res
   }
 //
 //  async save (payment) {
