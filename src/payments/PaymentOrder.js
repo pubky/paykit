@@ -31,7 +31,6 @@ const CONFIG = {
 
 class PaymentOrder {
   static generateId () {
-    // TODO: remove after db integration
     return uuidv4()
   }
 
