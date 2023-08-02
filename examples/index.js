@@ -20,13 +20,13 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
       bolt11,
       onchain
     },
-    bolt11: pluginConfig,
-    onchain: pluginConfig
+    bolt11: pluginConfig.plugin,
+    onchain: pluginConfig.plugin
   }
 
   const slashtagsConnector = new SlashtagsConnector()
   await slashtagsConnector.init()
-  const db = new DB()
+  const db = new DB(pluginConfig.db)
   await db.init()
 
   const paymentManager = new PaymentManager(
