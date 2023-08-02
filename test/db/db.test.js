@@ -48,18 +48,19 @@ function comparePayments (t, a, b) {
   t.is(a.clientOrderId, b.clientOrderId)
   t.is(a.counterpartyURL, b.counterpartyURL)
   t.is(a.memo, b.memo)
-  t.is(a.sendingPriority, typeof b.sendingPriority === 'object' ? JSON.stringify(b.sendingPriority) : b.sendingPriority)
   t.is(a.amount, b.amount)
   t.is(a.denomination, b.denomination)
   t.is(a.currency, b.currency)
   t.is(a.internalState, b.internalState)
-  t.is(a.pendingPlugins, typeof b.pendingPlugins === 'object' ? JSON.stringify(b.pendingPlugins) : b.pendingPlugins)
-  t.is(a.triedPlugins, typeof b.triedPlugins === 'object' ? JSON.stringify(b.triedPlugins) : b.triedPlugins)
-  t.is(a.currentPlugin, typeof b.currentPlugin === 'object' ? JSON.stringify(b.currentPlugin) : b.currentPlugin)
-  t.is(a.completedByPlugin, typeof b.completedByPlugin === 'object' ? JSON.stringify(b.completedByPlugin) : b.completedByPlugin)
   t.is(a.direction, b.direction)
   t.is(a.createdAt, b.createdAt)
   t.is(a.executeAt, b.executeAt)
+
+  t.alike(a.sendingPriority,  b.sendingPriority)
+  t.alike(a.pendingPlugins, b.pendingPlugins)
+  t.alike(a.triedPlugins, b.triedPlugins)
+  t.alike(a.currentPlugin, b.currentPlugin)
+  t.alike(a.completedByPlugin, b.completedByPlugin)
 }
 
 test('cosntructor', async (t) => {
@@ -105,7 +106,7 @@ test('db.savePayment', async (t) => {
 
   const statement = `SELECT * FROM payments;`
 
-  const res = await (new Promise((resolve, reject) => {
+  let res = await (new Promise((resolve, reject) => {
     db.db.sqlite.all(statement, (err, res) => {
       if (err) return reject(err)
       return resolve(res)
@@ -113,7 +114,7 @@ test('db.savePayment', async (t) => {
   }))
 
   t.is(res.length, 1)
-  const savedPayment = res[0]
+  const savedPayment = db.deserializePayment(res[0])
 
   comparePayments(t, savedPayment, payment)
 

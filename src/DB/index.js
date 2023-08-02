@@ -169,7 +169,8 @@ class DB {
 
     statement += ' LIMIT 1'
 
-    return this.executeStatement(statement, params)
+    const payment = await this.executeStatement(statement, params)
+    return this.deserializePayment(payment)
   }
 
   async updatePayment(id, update) {
@@ -207,7 +208,8 @@ class DB {
 
     statement += ' ORDER BY createdAt DESC'
 
-    return this.executeStatement(statement, params, 'all')
+    const payments = await this.executeStatement(statement, params, 'all')
+    return payments.map(this.deserializePayment)
   }
 
   async executeStatement(statement, params, method = 'get') {
@@ -217,6 +219,19 @@ class DB {
         return resolve(res)
       })
     })
+  }
+
+  deserializePayment(payment) {
+    if (!payment) return null
+
+    return {
+      ...payment,
+      sendingPriority: JSON.parse(payment.sendingPriority || '[]'),
+      pendingPlugins: JSON.parse(payment.pendingPlugins || '[]'),
+      triedPlugins: JSON.parse(payment.triedPlugins || '[]'),
+      currentPlugin: JSON.parse(payment.currentPlugin || '{}'),
+      completedByPlugin: JSON.parse(payment.completedByPlugin || '{}')
+    }
   }
 //
 //  async save (payment) {
