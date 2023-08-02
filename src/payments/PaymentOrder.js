@@ -358,6 +358,7 @@ class PaymentOrder {
    * @returns {Promise<PaymentOrder>}
    */
   static async find (id, db, slashtags) {
+    // FIXME: getOrder
     const orderParams = await db.get(id)
     if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
 

@@ -212,6 +212,60 @@ class DB {
     return payments.map(this.deserializePayment)
   }
 
+
+  async saveOrder(order) {
+    if (!this.ready) throw new Error(ERROR.NOT_READY)
+
+    const params = {
+      $id: order.id,
+      $clientOrderId: order.clientOrderId,
+      $state: order.state,
+      $frequency: order.frequency,
+      $amount: order.amount,
+      $denomination: order.denomination,
+      $currency: order.currency,
+      $counterpartyURL: order.counterpartyURL,
+      $memo: order.memo,
+      $sendingPriority: JSON.stringify(order.sendingPriority)
+      $createdAt: order.createdAt
+      $finishedAt: order.finishedAt
+      $lastPaymentAt: order.lastPaymentAt
+    }
+
+    const statement = `
+      INSERT INTO orders (
+        id,
+        clientOrderId,
+        state,
+        frequency,
+        amount,
+        denomination,
+        currency,
+        counterpartyURL,
+        memo,
+        sendingPriority,
+        createdAt,
+        finishedAt,
+        lastPaymentAt
+      ) VALUES (
+        $id,
+        $clientOrderId,
+        $state,
+        $frequency,
+        $amount,
+        $denomination,
+        $currency,
+        $counterpartyURL,
+        $memo,
+        $sendingPriority,
+        $createdAt,
+        $finishedAt,
+        $lastPaymentAt
+      )`
+
+    return await this.executeStatement(statement, params)
+  }
+
   async executeStatement(statement, params, method = 'get') {
     return await new Promise((resolve, reject) => {
       this.db.sqlite[method](statement, params, (err, res) => {

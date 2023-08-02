@@ -42,6 +42,34 @@ function createPayment () {
   }
 }
 
+function createOrder () {
+  return {
+    id: uuidv4(),
+    clientOrderId: uuidv4(),
+    counterpartyURL: 'slash:XXXXXXX',
+    frequency: 1,
+    memo: 'test memo',
+    sendingPriority: [ 'p2sh', 'p2tr' ],
+    createdAt: Date.now() - 100000,
+    finishedAt: Date.now() + 100000,
+    amount: '100',
+    currency: 'BTC',
+    denomination: 'BASE',
+    internalState: 'pending',
+    pendingPlugins: [ 'p2sh' ],
+    triedPlugins: [
+      {
+        name: 'p2tr',
+        startAt: Date.now() - 1000,
+        state: 'failed',
+        endAt: Date.now() - 100
+      }
+    ],
+    currentPlugin: {},
+    completedByPlugin: {}
+  }
+}
+
 function comparePayments (t, a, b) {
   t.is(a.id, b.id)
   t.is(a.orderId, b.orderId)
