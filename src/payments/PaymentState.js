@@ -155,7 +155,9 @@ class PaymentState {
   isFinal = () => this.isCompleted() || this.isFailed() || this.isCancelled()
 
   /**
-   * Cancel payment - sets internal state to cancelled and updates payment in db
+   * Cancel payment - sets internal state to cancelled and updates payment in db, if persist is true
+   * if persist is false, returns { statement, params } for update
+   * @returns {Promise<Database| { statement: string, params: object }>}
    * @throws {Error} - if current state is not initial
    */
   async cancel (persist = true) {

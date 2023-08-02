@@ -11,6 +11,10 @@ export type PayloadType = {
      * - payment_order_completed
      */
     PAYMENT_ORDER_COMPLETED: string;
+    /**
+     * - ready_to_receive
+     */
+    READY_TO_RECEIVE: string;
 };
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
@@ -108,6 +112,7 @@ export namespace PAYLOAD_TYPE {
     const PAYMENT_NEW: string;
     const PAYMENT_UPDATE: string;
     const PAYMENT_ORDER_COMPLETED: string;
+    const READY_TO_RECEIVE: string;
 }
 import { PluginManager } from "../plugins/PluginManager";
 import { PaymentOrder } from "./PaymentOrder";

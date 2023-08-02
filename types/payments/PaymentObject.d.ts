@@ -210,11 +210,15 @@ export class PaymentObject {
      * @property {string|null} processingPlugin - plugin that is currently processing the payment
      */
     /**
-     * Save payment object to db
-     * @returns {Promise<void>}
+     * Save payment object to db - if persist is true, payment will be saved to db,
+     * otherwise it will return { statement, params } query object
+     * @returns {Promise<Database| { statement: string, params: object }>}
      * @throws {Error} - if payment object is not valid
      */
-    save(): Promise<void>;
+    save(persist?: boolean): Promise<Database | {
+        statement: string;
+        params: object;
+    }>;
     /**
      * Soft Delete payment from db
      * @param {boolean} force - force delete
@@ -222,11 +226,15 @@ export class PaymentObject {
      */
     delete(force?: boolean): Promise<void>;
     /**
-     * Update payment in db
-     * @returns {Promise<void>}
+     * Update payment in db - if persist is true, payment will be updated in db,
+     * otherwise it will return { statement, params } query object
+     * @returns {Promise<Database| { statement: string, params: object }>}
      * @throws {Error} - if payment is not valid
      */
-    update(): Promise<void>;
+    update(persist?: boolean): Promise<Database | {
+        statement: string;
+        params: object;
+    }>;
     /**
      * Process payment by iterating through sendingPriority and updating internalState
      * @returns {Promise<PaymentObject>}
@@ -239,11 +247,16 @@ export class PaymentObject {
      */
     complete(): Promise<PaymentObject>;
     /**
-     * Cancel payment by setting internalState to CANCELED
+     * Cancel payment by setting internalState to CANCELED, if persist is true, payment will be updated in db,
+     * otherwise it will return { statement, params } query object
+     *
      * @throws {Error} - if payment is not initial
-     * @returns {Promise<PaymentObject>}
+     * @returns {Promise<Database| { statement: string, params: object }>}
      */
-    cancel(): Promise<PaymentObject>;
+    cancel(persist?: boolean): Promise<Database | {
+        statement: string;
+        params: object;
+    }>;
     /**
      * get current plugin from state
      * @returns {Plugin|null}

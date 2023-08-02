@@ -359,8 +359,9 @@ class PaymentOrder {
   }
 
   /**
-   * @method update - Update order in db
-   * @returns {Promise<void>}
+   * @method update - Update order in db if persist is true, order will be saved to db,
+   * if persist is false, it will return { statement,  params }
+   * @returns {Promise<Database| { statement: string, params: object }>}
    */
   async update (persist = true) {
     this.logger.debug('Updating payment order')

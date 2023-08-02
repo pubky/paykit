@@ -211,8 +211,9 @@ class PaymentObject {
    */
 
   /**
-   * Save payment object to db
-   * @returns {Promise<void>}
+   * Save payment object to db - if persist is true, payment will be saved to db,
+   * otherwise it will return { statement, params } query object
+   * @returns {Promise<Database| { statement: string, params: object }>}
    * @throws {Error} - if payment object is not valid
    */
   async save (persist = true) {
@@ -248,8 +249,9 @@ class PaymentObject {
   }
 
   /**
-   * Update payment in db
-   * @returns {Promise<void>}
+   * Update payment in db - if persist is true, payment will be updated in db,
+   * otherwise it will return { statement, params } query object
+   * @returns {Promise<Database| { statement: string, params: object }>}
    * @throws {Error} - if payment is not valid
    */
   async update (persist = true) {
@@ -289,9 +291,11 @@ class PaymentObject {
   }
 
   /**
-   * Cancel payment by setting internalState to CANCELED
+   * Cancel payment by setting internalState to CANCELED, if persist is true, payment will be updated in db,
+   * otherwise it will return { statement, params } query object
+   *
    * @throws {Error} - if payment is not initial
-   * @returns {Promise<PaymentObject>}
+   * @returns {Promise<Database| { statement: string, params: object }>}
    */
   async cancel (persist = true) {
     const res = await this.internalState.cancel(persist)

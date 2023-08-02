@@ -4,12 +4,22 @@ const ERROR = {
   NOT_READY: 'DB is not ready'
 }
 
+/**
+ * @class DB
+ * @param {Object} config
+ * @param {String} config.path
+ * @param {String} config.name
+ */
 class DB {
   constructor (config) {
     this.db = new Sqlite(config)
     this.ready = false
   }
 
+  /**
+   * @method init - Initialize the database
+   * @returns {Promise}
+   */
   async init () {
     await this.db.start()
 
@@ -76,6 +86,12 @@ class DB {
     this.ready = true
   }
 
+  /**
+   * @method savePayment - Save a payment to the database
+   * @param {Object} payment
+   * @param {boolean} execute - Execute the statement or return it
+   * @returns {Promise<Database| { statement: string, params: object }>}
+   */
   async savePayment (payment, execute = true) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
@@ -142,6 +158,12 @@ class DB {
     return { statement, params }
   }
 
+  /**
+   * @method savePayment - Save a payment to the database
+   * @param {string} id
+   * @param {Object} opts
+   * @returns {Promise<PaymentObject>}
+   */
   async getPayment (id, opts = { removed: false }) {
     const params = { $id: id }
     let statement = 'SELECT * FROM payments WHERE id = $id'
@@ -158,6 +180,13 @@ class DB {
     return this.deserializePayment(payment)
   }
 
+  /**
+   * @method updatePayment - Update a payment in the database
+   * @param {string} id
+   * @param {Object} update
+   * @param {boolean} execute - Execute the statement or return it
+   * @returns {Promise<Database| { statement: string, params: object }>}
+   */
   async updatePayment (id, update, execute = true) {
     let statement = 'UPDATE payments SET '
     const params = { $id: id }
@@ -180,6 +209,11 @@ class DB {
   // XXX: super naive
   // TODO: add pagination
   // ...
+  /**
+   * @method getPayments - Get payments from the database
+   * @param {Object} opts
+   * @returns {Promise<Array<PaymentObject>>}
+   */
   async getPayments (opts = {}) {
     const params = {}
     let statement = 'SELECT * FROM payments'
@@ -199,6 +233,12 @@ class DB {
     return payments.map(this.deserializePayment)
   }
 
+  /**
+   * @method saveOrder - Save an order to the database
+   * @param {Object} order
+   * @param {boolean} execute - Execute the statement or return it
+   * @returns {Promise<Database| { statement: string, params: object }>}
+   */
   async saveOrder (order, execute = true) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
@@ -253,6 +293,12 @@ class DB {
     return { statement, params }
   }
 
+  /**
+   * @method getOrder - Get an order from the database
+   * @param {string} id
+   * @param {Object} opts
+   * @returns {Promise<OrderObject>}
+   */
   async getOrder (id, opts = { removed: false }) {
     const params = { $id: id }
     let statement = 'SELECT * FROM orders WHERE id = $id'
@@ -269,6 +315,13 @@ class DB {
     return this.deserializeOrder(order)
   }
 
+  /**
+   * @method updateOrder - Update an order in the database
+   * @param {string} id
+   * @param {Object} update
+   * @param {boolean} execute - Execute the statement or return it
+   * @returns {Promise<Database| { statement: string, params: object }>}
+   */
   async updateOrder (id, update, execute = true) {
     let statement = 'UPDATE orders SET '
     const params = { $id: id }
@@ -288,6 +341,13 @@ class DB {
     return { statement, params }
   }
 
+  /**
+   * @method executeStatement - Execute a statement on the database
+   * @param {string} statement
+   * @param {Object} params
+   * @param {string} method
+   * @returns {Promise<Database>}
+   */
   async executeStatement (statement, params, method = 'get') {
     return await new Promise((resolve, reject) => {
       if (method === 'exec') {
@@ -304,6 +364,11 @@ class DB {
     })
   }
 
+  /**
+   * @method deserializePayment - Deserialize a payment object
+   * @param {Object} payment
+   * @returns {PaymentObject|null}
+   */
   deserializePayment (payment) {
     if (!payment) return null
 
@@ -321,6 +386,11 @@ class DB {
     return res
   }
 
+  /**
+   * @method deserializeOrder - Deserialize an order object
+   * @param {Object} order
+   * @returns {OrderObject|null}
+   */
   deserializeOrder (order) {
     if (!order) return null
 

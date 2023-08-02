@@ -165,10 +165,15 @@ export class PaymentState {
      */
     isFinal: () => boolean;
     /**
-     * Cancel payment - sets internal state to cancelled and updates payment in db
+     * Cancel payment - sets internal state to cancelled and updates payment in db, if persist is true
+     * if persist is false, returns { statement, params } for update
+     * @returns {Promise<Database| { statement: string, params: object }>}
      * @throws {Error} - if current state is not initial
      */
-    cancel(): Promise<void>;
+    cancel(persist?: boolean): Promise<Database | {
+        statement: string;
+        params: object;
+    }>;
     /**
      * Process payment - sets internal state to in progress and updates payment in db for new payments
      * fails payment if there are no pending plugins and updates payment in db
