@@ -172,15 +172,18 @@ test('PaymentManager.handleNewPayment', async t => {
 })
 
 test('PaymentManager.handlePaymentUpdate', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
-  paymentOrder.init()
+  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, receiver, console.log)
   await paymentManager.init()
 
-  await paymentManager.sendPayment(paymentOrder.id)
+  const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
 
-  const stub = sinon.spy(paymentManager, 'userNotificationEndpoint')
+  const paymentOrder = await paymentManager.createPaymentOrder({
+    ...paymentParams,
+    counterpartyURL: receiver.getUrl()
+  })
+  await paymentManager.sendPayment(paymentOrder.id)
 
   await paymentManager.handlePaymentUpdate({
     orderId: paymentOrder.id,
@@ -199,12 +202,15 @@ test('PaymentManager.handlePaymentUpdate', async t => {
 })
 
 test('PaymentManager.entryPointForUser', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
-  paymentOrder.init()
+  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, receiver)
   await paymentManager.init()
 
+  const paymentOrder = await paymentManager.createPaymentOrder({
+    ...paymentParams,
+    counterpartyURL: receiver.getUrl()
+  })
   await paymentManager.sendPayment(paymentOrder.id)
 
   const data = { orderId: paymentOrder.id, pluginName: 'p2sh', foo: 'bar' }
@@ -219,8 +225,7 @@ test('PaymentManager.entryPointForUser', async t => {
 })
 
 test('PaymentManager.entryPointForPlugin waiting for client', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
-  paymentOrder.init()
+  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, receiver)
   await paymentManager.init()

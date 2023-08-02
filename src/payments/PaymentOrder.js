@@ -340,10 +340,22 @@ class PaymentOrder {
     this.logger.debug('Saving payment order')
     const orderObject = this.serialize()
 
-    await this.db.saveOrder(orderObject)
-    await Promise.all(this.payments.map(async (payment) => {
-      await payment.save()
-    }))
+    try {
+      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
+
+      const { statement, params } = await this.db.saveOrder(orderObject, false)
+      await this.db.executeStatement(statement, params, 'run')
+
+      for (const payment of this.payments) {
+        const { statement, params } = await payment.save(false)
+        await this.db.executeStatement(statement, params, 'run')
+      }
+
+      await this.db.executeStatement('COMMIT', [], 'exec')
+    } catch (e) {
+      await this.db.executeStatement('ROLLBACK', [], 'exec')
+      throw e
+    }
   }
 
   /**
