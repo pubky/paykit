@@ -166,7 +166,7 @@ test('PaymentOrder.save', async t => {
     lastPaymentAt: paymentOrder.lastPaymentAt,
   })
 
-  const gotPayment = await paymentOrder.db.getOrder(paymentOrder.payments[0].id)
+  const gotPayment = await paymentOrder.db.getPayment(paymentOrder.payments[0].id)
   t.alike(gotPayment, {
     id: paymentOrder.payments[0].id,
     orderId: paymentOrder.id,
