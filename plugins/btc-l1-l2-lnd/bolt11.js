@@ -25,7 +25,7 @@ function getWatcher (config) {
         clientOrderId: receipt.data.id,
 
         createdAt: receipt.data.created_at,
-        confirmedAt: receipt.data.confirmed_at,
+        confirmedAt: receipt.data.confirmed_at
       })
     }
 

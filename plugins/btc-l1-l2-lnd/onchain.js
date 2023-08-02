@@ -22,7 +22,7 @@ function getWatcher (config) {
 
         clientOrderId: receipt.data.transaction,
         amount: '1000', // XXX after processing tx
-        memo: '',
+        memo: ''
       })
     }
 

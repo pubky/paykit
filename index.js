@@ -1,6 +1,7 @@
 const { PaymentManager } = require('./src/payments/PaymentManager')
 const { DB } = require('./src/DB')
 const { SlashtagsConnector } = require('./src/slashtags')
+const path = require('path')
 
 const defaultConfig = {
   db: { },

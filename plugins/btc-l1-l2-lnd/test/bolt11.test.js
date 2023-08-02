@@ -100,7 +100,7 @@ test('e2e - no amount', async (t) => {
       id: '321',
       amount
     },
-    notificationCallback: notificationCallbackBob,
+    notificationCallback: notificationCallbackBob
   })
 
   t.is(notificationCallbackBob.callCount, 1)
