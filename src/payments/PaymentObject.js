@@ -215,7 +215,7 @@ class PaymentObject {
    * @returns {Promise<void>}
    * @throws {Error} - if payment object is not valid
    */
-  async save () {
+  async save (persist = true) {
     this.logger.info('Saving payment object')
     if (!this.id) {
       this.id = PaymentObject.generateId()
@@ -226,8 +226,10 @@ class PaymentObject {
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
-    await this.db.savePayment(serialized)
+    const res = await this.db.savePayment(serialized, persist)
     this.logger.debug('Payment object saved')
+
+    return res
   }
 
   /**
@@ -250,14 +252,15 @@ class PaymentObject {
    * @returns {Promise<void>}
    * @throws {Error} - if payment is not valid
    */
-  async update () {
+  async update (persist = true) {
     this.logger.info('Updating payment object')
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
-    await this.db.updatePayment(this.id, serialized)
+    const res = await this.db.updatePayment(this.id, serialized, persist)
 
     this.logger.debug('Payment object updated')
+    return res
   }
 
   /**
@@ -290,10 +293,10 @@ class PaymentObject {
    * @throws {Error} - if payment is not initial
    * @returns {Promise<PaymentObject>}
    */
-  async cancel () {
-    await this.internalState.cancel()
+  async cancel (persist = true) {
+    const res = await this.internalState.cancel(persist)
 
-    return this
+    return res
   }
 
   /**

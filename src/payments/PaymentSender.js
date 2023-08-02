@@ -8,7 +8,6 @@ class PaymentSender {
    * Creates an instance of PaymentSender.
    * @constructor PaymentSender
    * @param {PaymentOrder} paymentOrder
-   * @param {DB} db
    * @param {PluginManager} pluginManager
    * @param {Function} entryPointForPlugin - callback to be called by plugin
    */

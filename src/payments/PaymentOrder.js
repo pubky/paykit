@@ -135,7 +135,6 @@ class PaymentOrder {
   async init () {
     this.logger.info('Initializing payment order')
     this.id = PaymentOrder.generateId()
-    // TODO: after db integration check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
 
     this.frequency === 0 ? this.createPaymentObjects(1) : this.createPaymentForRecurringOrder()
@@ -283,15 +282,25 @@ class PaymentOrder {
     this.logger.debug('Cancelling payment order')
     if (this.state === ORDER_STATE.COMPLETED) throw new Error(ERRORS.ORDER_COMPLETED)
 
-    // TODO: after db integration wrap into db transaction
-    await this.payments
-      .filter((payment) => !payment.isFinal())
-      .forEach(async (payment) => {
-        await payment.cancel()
-      })
+    try {
+      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
 
-    this.state = ORDER_STATE.CANCELLED
-    await this.update()
+      this.state = ORDER_STATE.CANCELLED
+      const { statement, params } = await this.update(false)
+      await this.db.executeStatement(statement, params, 'run')
+
+      await this.payments
+        .filter((payment) => !payment.isFinal())
+        .forEach(async (payment) => {
+          const { statement, params } = await payment.cancel(false)
+          await this.db.executeStatement(statement, params, 'run')
+        })
+
+      await this.db.executeStatement('COMMIT', [], 'exec')
+    } catch (e) {
+      await this.db.executeStatement('ROLLBACK', [], 'exec')
+      throw e
+    }
   }
 
   /**
@@ -331,7 +340,6 @@ class PaymentOrder {
     this.logger.debug('Saving payment order')
     const orderObject = this.serialize()
 
-    // TODO: after db integration wrap into db transaction
     await this.db.saveOrder(orderObject)
     await Promise.all(this.payments.map(async (payment) => {
       await payment.save()
@@ -342,13 +350,13 @@ class PaymentOrder {
    * @method update - Update order in db
    * @returns {Promise<void>}
    */
-  async update () {
+  async update (persist = true) {
     this.logger.debug('Updating payment order')
 
     const serialized = this.serialize()
     PaymentOrder.validateInput(serialized)
 
-    await this.db.updateOrder(this.id, serialized)
+    return await this.db.updateOrder(this.id, serialized, persist)
   }
 
   /**

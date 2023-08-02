@@ -76,7 +76,7 @@ class DB {
     this.ready = true
   }
 
-  async savePayment (payment) {
+  async savePayment (payment, execute = true) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
     const params = {
@@ -138,7 +138,8 @@ class DB {
         $executeAt
       )`
 
-    return await this.executeStatement(statement, params)
+    if (execute) return await this.executeStatement(statement, params)
+    return { statement, params }
   }
 
   async getPayment (id, opts = { removed: false }) {
@@ -157,7 +158,7 @@ class DB {
     return this.deserializePayment(payment)
   }
 
-  async updatePayment (id, update) {
+  async updatePayment (id, update, execute = true) {
     let statement = 'UPDATE payments SET '
     const params = { $id: id }
 
@@ -172,7 +173,8 @@ class DB {
 
     statement += ' WHERE id = $id'
 
-    return this.executeStatement(statement, params)
+    if (execute) return await this.executeStatement(statement, params)
+    return { statement, params }
   }
 
   // XXX: super naive
@@ -197,7 +199,7 @@ class DB {
     return payments.map(this.deserializePayment)
   }
 
-  async saveOrder (order) {
+  async saveOrder (order, execute = true) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
     const params = {
@@ -247,7 +249,8 @@ class DB {
         $lastPaymentAt
       )`
 
-    return await this.executeStatement(statement, params)
+    if (execute) return await this.executeStatement(statement, params)
+    return { statement, params }
   }
 
   async getOrder (id, opts = { removed: false }) {
@@ -266,7 +269,7 @@ class DB {
     return this.deserializeOrder(order)
   }
 
-  async updateOrder (id, update) {
+  async updateOrder (id, update, execute = true) {
     let statement = 'UPDATE orders SET '
     const params = { $id: id }
 
@@ -281,15 +284,23 @@ class DB {
 
     statement += ' WHERE id = $id'
 
-    return this.executeStatement(statement, params)
+    if (execute) return await this.executeStatement(statement, params)
+    return { statement, params }
   }
 
   async executeStatement (statement, params, method = 'get') {
     return await new Promise((resolve, reject) => {
-      this.db.sqlite[method](statement, params, (err, res) => {
-        if (err) return reject(err)
-        return resolve(res)
-      })
+      if (method === 'exec') {
+        this.db.sqlite[method](statement, (err, res) => {
+          if (err) return reject(err)
+          return resolve(res)
+        })
+      } else {
+        this.db.sqlite[method](statement, params, (err, res) => {
+          if (err) return reject(err)
+          return resolve(res)
+        })
+      }
     })
   }
 
