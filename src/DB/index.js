@@ -196,7 +196,6 @@ class DB {
     return payments.map(this.deserializePayment)
   }
 
-
   async saveOrder(order) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
@@ -248,6 +247,40 @@ class DB {
       )`
 
     return await this.executeStatement(statement, params)
+  }
+
+  async getOrder(id, opts = { removed: false }) {
+    const params = { $id: id }
+    let statement = `SELECT * FROM orders WHERE id = $id`
+
+    if (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') {
+      statement += ' AND removed = 1'
+    } else if (opts.removed === false || opts.removed === 'false' || opts.removed === 0 || opts.removed === '0') {
+      statement += ' AND removed = 0'
+    } 
+
+    statement += ' LIMIT 1'
+
+    const order = await this.executeStatement(statement, params)
+    return this.deserializeOrder(order)
+  }
+
+  async updateOrder(id, update) {
+    let statement = `UPDATE orders SET `
+    const params = { $id: id }
+
+    Object.keys(update).forEach((k, i)  => {
+      if (k === 'id') return
+
+      statement += `${k} = $${k}`
+      if (i !== Object.keys(update).length - 1) statement += ', '
+
+      params[`$${k}`] = (typeof update[k] === 'object') ? JSON.stringify(update[k]) : update[k]
+    })
+
+    statement += ' WHERE id = $id'
+
+    return this.executeStatement(statement, params)
   }
 
   async executeStatement(statement, params, method = 'get') {

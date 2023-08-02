@@ -279,3 +279,47 @@ test('db.saveOrder', async (t) => {
     await dropTables(db)
   })
 })
+
+test('db.getOrder', async (t) => {
+  const order1 = createOrder()
+  const order2 = createOrder()
+
+  const db = new DB({ name: 'test', path: './test_db' })
+  await db.init()
+
+  await db.saveOrder(order1)
+  await db.saveOrder(order2)
+
+  const res1 = await db.getOrder(order1.id)
+  const res2 = await db.getOrder(order2.id)
+
+  compareOrders(t, res1, order1)
+  compareOrders(t, res2, order2)
+
+  await t.teardown(async () => {
+    await dropTables(db)
+  })
+})
+
+test('db.updateOrder', async (t) => {
+  const order = createOrder()
+
+  const db = new DB({ name: 'test', path: './test_db' })
+  await db.init()
+  await db.saveOrder(order)
+
+  const res = await db.getOrder(order.id)
+
+  compareOrders(t, res, order)
+
+  await db.updateOrder(order.id, { state: 'completed' })
+
+  const updated = await db.getOrder(order.id)
+
+  t.is(updated.state, 'completed')
+  t.is(updated.id, order.id)
+
+  await t.teardown(async () => {
+    await dropTables(db)
+  })
+})
