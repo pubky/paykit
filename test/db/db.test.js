@@ -3,99 +3,6 @@ const { v4: uuidv4 } = require('uuid')
 
 const { DB, ERROR } = require('../../src/DB/index.js')
 
-async function dropTables (db) {
-  const statement = `DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;`
-  return new Promise((resolve, reject) => {
-    db.db.sqlite.exec(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  })
-}
-
-function createPayment () {
-  return {
-    id: uuidv4(),
-    orderId: uuidv4(),
-    clientOrderId: uuidv4(),
-    counterpartyURL: 'slash:XXXXXXX',
-    memo: 'test memo',
-    sendingPriority: [ 'p2sh', 'p2tr' ],
-    createdAt: Date.now() - 100000,
-    executeAt: Date.now() + 100000,
-    direction: 'OUT',
-    amount: '100',
-    currency: 'BTC',
-    denomination: 'BASE',
-    internalState: 'pending',
-    pendingPlugins: [ 'p2sh' ],
-    triedPlugins: [
-      {
-        name: 'p2tr',
-        startAt: Date.now() - 1000,
-        state: 'failed',
-        endAt: Date.now() - 100
-      }
-    ],
-    currentPlugin: {},
-    completedByPlugin: {}
-  }
-}
-
-function createOrder () {
-  return {
-    id: uuidv4(),
-    clientOrderId: uuidv4(),
-    state: 'initialized',
-    frequency: 1,
-    counterpartyURL: 'slash:kx7uuapc1gshfprg1hkethco8fuz7gue19u3od1i5xbhs84mhiho',
-    memo: '',
-    sendingPriority: [ 'p2sh', 'p2tr' ],
-    amount: '1',
-    currency: 'BTC',
-    denomination: 'BASE',
-    createdAt: Date.now() - 100000,
-    firstPaymentAt: Date.now() + 100000,
-  }
-}
-
-function comparePayments (t, a, b) {
-  t.is(a.id, b.id)
-  t.is(a.orderId, b.orderId)
-  t.is(a.clientOrderId, b.clientOrderId)
-  t.is(a.counterpartyURL, b.counterpartyURL)
-  t.is(a.memo, b.memo)
-  t.is(a.amount, b.amount)
-  t.is(a.denomination, b.denomination)
-  t.is(a.currency, b.currency)
-  t.is(a.internalState, b.internalState)
-  t.is(a.direction, b.direction)
-  t.is(a.createdAt, b.createdAt)
-  t.is(a.executeAt, b.executeAt)
-
-  t.alike(a.sendingPriority,  b.sendingPriority)
-  t.alike(a.pendingPlugins, b.pendingPlugins)
-  t.alike(a.triedPlugins, b.triedPlugins)
-  t.alike(a.currentPlugin, b.currentPlugin)
-  t.alike(a.completedByPlugin, b.completedByPlugin)
-}
-
-function compareOrders (t, a, b) {
-  t.is(a.id, b.id)
-  t.is(a.clientOrderId, b.clientOrderId)
-  t.is(a.counterpartyURL, b.counterpartyURL)
-  t.is(a.memo, b.memo)
-  t.is(a.amount, b.amount)
-  t.is(a.denomination, b.denomination)
-  t.is(a.currency, b.currency)
-  t.is(a.state, b.state)
-  t.is(a.createdAt, b.createdAt)
-  t.is(a.firstPaymentAt, b.firstPaymentAt)
-  if (a.lastPaymentAt || b.lastPaymentAt) t.is(a.lastPaymentAt, b.lastPaymentAt)
-
-  t.alike(a.sendingPriority,  b.sendingPriority)
-}
-
 test('cosntructor', async (t) => {
   const db = new DB({ name: 'test', path: './test_db' })
 
@@ -323,3 +230,102 @@ test('db.updateOrder', async (t) => {
     await dropTables(db)
   })
 })
+
+
+async function dropTables (db) {
+  const statement = `DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;`
+  return new Promise((resolve, reject) => {
+    db.db.sqlite.exec(statement, (err, res) => {
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  })
+}
+
+function createPayment () {
+  return {
+    id: uuidv4(),
+    orderId: uuidv4(),
+    clientOrderId: uuidv4(),
+    counterpartyURL: 'slash:XXXXXXX',
+    memo: 'test memo',
+    sendingPriority: [ 'p2sh', 'p2tr' ],
+    createdAt: Date.now() - 100000,
+    executeAt: Date.now() + 100000,
+    direction: 'OUT',
+    amount: '100',
+    currency: 'BTC',
+    denomination: 'BASE',
+    internalState: 'pending',
+    pendingPlugins: [ 'p2sh' ],
+    triedPlugins: [
+      {
+        name: 'p2tr',
+        startAt: Date.now() - 1000,
+        state: 'failed',
+        endAt: Date.now() - 100
+      }
+    ],
+    currentPlugin: {},
+    completedByPlugin: {}
+  }
+}
+
+function createOrder () {
+  return {
+    id: uuidv4(),
+    clientOrderId: uuidv4(),
+    state: 'initialized',
+    frequency: 1,
+    counterpartyURL: 'slash:kx7uuapc1gshfprg1hkethco8fuz7gue19u3od1i5xbhs84mhiho',
+    memo: '',
+    sendingPriority: [ 'p2sh', 'p2tr' ],
+    amount: '1',
+    currency: 'BTC',
+    denomination: 'BASE',
+    createdAt: Date.now() - 100000,
+    firstPaymentAt: Date.now() + 100000,
+  }
+}
+
+function comparePayments (t, a, b) {
+  if (!a || !b) t.fail('missing payment')
+
+  t.is(a.id, b.id)
+  t.is(a.orderId, b.orderId)
+  t.is(a.clientOrderId, b.clientOrderId)
+  t.is(a.counterpartyURL, b.counterpartyURL)
+  t.is(a.memo, b.memo)
+  t.is(a.amount, b.amount)
+  t.is(a.denomination, b.denomination)
+  t.is(a.currency, b.currency)
+  t.is(a.internalState, b.internalState)
+  t.is(a.direction, b.direction)
+  t.is(a.createdAt, b.createdAt)
+  t.is(a.executeAt, b.executeAt)
+
+  t.alike(a.sendingPriority,  b.sendingPriority)
+  t.alike(a.pendingPlugins, b.pendingPlugins)
+  t.alike(a.triedPlugins, b.triedPlugins)
+  t.alike(a.currentPlugin, b.currentPlugin)
+  t.alike(a.completedByPlugin, b.completedByPlugin)
+}
+
+function compareOrders (t, a, b) {
+  if (!a || !b) t.fail('missing order')
+
+  t.is(a.id, b.id)
+  t.is(a.clientOrderId, b.clientOrderId)
+  t.is(a.counterpartyURL, b.counterpartyURL)
+  t.is(a.memo, b.memo)
+  t.is(a.amount, b.amount)
+  t.is(a.denomination, b.denomination)
+  t.is(a.currency, b.currency)
+  t.is(a.state, b.state)
+  t.is(a.createdAt, b.createdAt)
+  t.is(a.firstPaymentAt, b.firstPaymentAt)
+  if (a.lastPaymentAt || b.lastPaymentAt) t.is(a.lastPaymentAt, b.lastPaymentAt)
+
+  t.alike(a.sendingPriority,  b.sendingPriority)
+  t.alike(a.payments || [],  b.payments || [])
+}

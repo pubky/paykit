@@ -249,7 +249,7 @@ class DB {
     return await this.executeStatement(statement, params)
   }
 
-  async getOrder(id, opts = { removed: false }) {
+  async getOrder(id, opts = { removed: 'false' }) {
     const params = { $id: id }
     let statement = `SELECT * FROM orders WHERE id = $id`
 
@@ -262,7 +262,11 @@ class DB {
     statement += ' LIMIT 1'
 
     const order = await this.executeStatement(statement, params)
-    return this.deserializeOrder(order)
+    const res = this.deserializeOrder(order)
+
+    if (res) res.payments = await this.getPayments({ orderId: res.id, ...opts })
+
+    return res
   }
 
   async updateOrder(id, update) {
@@ -315,6 +319,7 @@ class DB {
     const res = {
       ...order,
       sendingPriority: JSON.parse(order.sendingPriority || '[]'),
+      payments: [],
     }
 
     delete res.removed
