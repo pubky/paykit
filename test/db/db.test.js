@@ -46,27 +46,16 @@ function createOrder () {
   return {
     id: uuidv4(),
     clientOrderId: uuidv4(),
-    counterpartyURL: 'slash:XXXXXXX',
+    state: 'initialized',
     frequency: 1,
-    memo: 'test memo',
+    counterpartyURL: 'slash:kx7uuapc1gshfprg1hkethco8fuz7gue19u3od1i5xbhs84mhiho',
+    memo: '',
     sendingPriority: [ 'p2sh', 'p2tr' ],
-    createdAt: Date.now() - 100000,
-    finishedAt: Date.now() + 100000,
-    amount: '100',
+    amount: '1',
     currency: 'BTC',
     denomination: 'BASE',
-    internalState: 'pending',
-    pendingPlugins: [ 'p2sh' ],
-    triedPlugins: [
-      {
-        name: 'p2tr',
-        startAt: Date.now() - 1000,
-        state: 'failed',
-        endAt: Date.now() - 100
-      }
-    ],
-    currentPlugin: {},
-    completedByPlugin: {}
+    createdAt: Date.now() - 100000,
+    firstPaymentAt: Date.now() + 100000,
   }
 }
 
@@ -89,6 +78,22 @@ function comparePayments (t, a, b) {
   t.alike(a.triedPlugins, b.triedPlugins)
   t.alike(a.currentPlugin, b.currentPlugin)
   t.alike(a.completedByPlugin, b.completedByPlugin)
+}
+
+function compareOrders (t, a, b) {
+  t.is(a.id, b.id)
+  t.is(a.clientOrderId, b.clientOrderId)
+  t.is(a.counterpartyURL, b.counterpartyURL)
+  t.is(a.memo, b.memo)
+  t.is(a.amount, b.amount)
+  t.is(a.denomination, b.denomination)
+  t.is(a.currency, b.currency)
+  t.is(a.state, b.state)
+  t.is(a.createdAt, b.createdAt)
+  t.is(a.firstPaymentAt, b.firstPaymentAt)
+  if (a.lastPaymentAt || b.lastPaymentAt) t.is(a.lastPaymentAt, b.lastPaymentAt)
+
+  t.alike(a.sendingPriority,  b.sendingPriority)
 }
 
 test('cosntructor', async (t) => {
@@ -241,6 +246,34 @@ test('db.getPayments', async (t) => {
   t.is(res.length, 2)
   t.is(res.find((r) => r.id === payment1.id).id, payment1.id)
   t.is(res.find((r) => r.id === payment3.id).id, payment3.id)
+
+  await t.teardown(async () => {
+    await dropTables(db)
+  })
+})
+
+test('db.saveOrder', async (t) => {
+  const order = createOrder()
+
+  const db = new DB({ name: 'test', path: './test_db' })
+
+  await db.init()
+
+  await db.saveOrder(order)
+
+  const statement = `SELECT * FROM orders;`
+
+  let res = await (new Promise((resolve, reject) => {
+    db.db.sqlite.all(statement, (err, res) => {
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  }))
+
+  t.is(res.length, 1)
+  const savedOrder = db.deserializeOrder(res[0])
+
+  compareOrders(t, savedOrder, order)
 
   await t.teardown(async () => {
     await dropTables(db)

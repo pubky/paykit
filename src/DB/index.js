@@ -11,30 +11,8 @@ class DB {
   }
 
   async init () {
-      // amount:
-      //  - amount TEXT NOT NULL
-      //  - currency TEXT NOT NULL
-      //  - denomination TEXT NOT NULL
-      // internalState
-      //   - internalState TEXT NOT NULL
-      //   - pendingPlugins TEXT NOT NULL
-      //   - *triedPlugins TEXT NOT NULL
-      //     - name text not null
-      //     - startat text not null
-      //     - state text not null
-      //     - endat text not null
-      //   - *currentPlugin
-      //     - name TEXT NOT NULL
-      //     - startAt TEXT NOT NULL
-      //     - state TEXT NOT NULL
-      //     - endAt TEXT NOT NULL
-      //   - *completedByPlugin
-      //     - name TEXT NOT NULL
-      //     - startAt TEXT NOT NULL
-      //     - state TEXT NOT NULL
-      //     - endAt TEXT NOT NULL
-
     await this.db.start()
+
     const createPaymentsStatement = `
       CREATE TABLE IF NOT EXISTS payments (
         id TEXT NOT NULL PRIMARY KEY,
@@ -64,7 +42,6 @@ class DB {
       })
     })
 
-    // XXX it may be good idea to store timestamps as well
     const createOrdersStatement = `
       CREATE TABLE IF NOT EXISTS orders (
         id TEXT NOT NULL PRIMARY KEY,
@@ -73,10 +50,17 @@ class DB {
         frequency INTEGER NOT NULL,
 
         amount TEXT NOT NULL,
+        denomination TEXT NOT NULL,
+        currency TEXT NOT NULL,
 
         counterpartyURL TEXT NOT NULL,
         memo TEXT NOT NULL,
         sendingPriority TEXT NOT NULL,
+
+        createdAt INTEGER NOT NULL,
+        firstPaymentAt INTEGER NOT NULL,
+        lastPaymentAt INTEGER DEFAULT NULL,
+
         removed INTEGER NOT NULL DEFAULT 0
       )`
 
@@ -226,9 +210,9 @@ class DB {
       $currency: order.currency,
       $counterpartyURL: order.counterpartyURL,
       $memo: order.memo,
-      $sendingPriority: JSON.stringify(order.sendingPriority)
-      $createdAt: order.createdAt
-      $finishedAt: order.finishedAt
+      $sendingPriority: JSON.stringify(order.sendingPriority),
+      $createdAt: order.createdAt,
+      $firstPaymentAt: order.firstPaymentAt,
       $lastPaymentAt: order.lastPaymentAt
     }
 
@@ -245,7 +229,7 @@ class DB {
         memo,
         sendingPriority,
         createdAt,
-        finishedAt,
+        firstPaymentAt,
         lastPaymentAt
       ) VALUES (
         $id,
@@ -259,7 +243,7 @@ class DB {
         $memo,
         $sendingPriority,
         $createdAt,
-        $finishedAt,
+        $firstPaymentAt,
         $lastPaymentAt
       )`
 
@@ -291,51 +275,19 @@ class DB {
 
     return res
   }
-//
-//  async save (payment) {
-//    if (!this.ready) throw new Error(ERROR.NOT_READY)
-//
-//    this.db[payment.id] = {
-//      ...payment,
-//      removed: false
-//    }
-//  }
-//
-//  async update (id, update) {
-//    if (!this.ready) throw new Error(ERROR.NOT_READY)
-//
-//    this.db[id] = {
-//      ...this.db[id],
-//      ...update
-//    }
-//  }
-//
-//  async delete (id) {
-//    if (!this.ready) throw new Error(ERROR.NOT_READY)
-//
-//    delete this.db[id]
-//  }
-//
-//  async get (id, options = { removed: false }) {
-//    if (!this.ready) throw new Error(ERROR.NOT_READY)
-//
-//    const res = this.db[id]
-//    if (!res) return null
-//
-//    const copy = { ...res }
-//    delete copy.removed
-//
-//    if (options.removed === '*') return copy
-//    if (options.removed === true) return res.removed === true ? copy : null
-//    if (options.removed === false) return res.removed === false ? copy : null
-//  }
-//
-//  async getPayments (orderId) {
-//    if (!this.ready) throw new Error(ERROR.NOT_READY)
-//
-//    const payments = Object.values(this.db).filter(payment => payment.orderId === orderId)
-//    return payments
-//  }
+
+  deserializeOrder(order) {
+    if (!order) return null
+
+    const res = {
+      ...order,
+      sendingPriority: JSON.parse(order.sendingPriority || '[]'),
+    }
+
+    delete res.removed
+
+    return res
+  }
 }
 
 
