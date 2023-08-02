@@ -48,15 +48,15 @@ function comparePayments (t, a, b) {
   t.is(a.clientOrderId, b.clientOrderId)
   t.is(a.counterpartyURL, b.counterpartyURL)
   t.is(a.memo, b.memo)
-  t.is(a.sendingPriority, JSON.stringify(b.sendingPriority))
+  t.is(a.sendingPriority, typeof b.sendingPriority === 'object' ? JSON.stringify(b.sendingPriority) : b.sendingPriority)
   t.is(a.amount, b.amount)
   t.is(a.denomination, b.denomination)
   t.is(a.currency, b.currency)
   t.is(a.internalState, b.internalState)
-  t.is(a.pendingPlugins, JSON.stringify(b.pendingPlugins))
-  t.is(a.triedPlugins, JSON.stringify(b.triedPlugins))
-  t.is(a.currentPlugin, JSON.stringify(b.currentPlugin))
-  t.is(a.completedByPlugin, JSON.stringify(b.completedByPlugin))
+  t.is(a.pendingPlugins, typeof b.pendingPlugins === 'object' ? JSON.stringify(b.pendingPlugins) : b.pendingPlugins)
+  t.is(a.triedPlugins, typeof b.triedPlugins === 'object' ? JSON.stringify(b.triedPlugins) : b.triedPlugins)
+  t.is(a.currentPlugin, typeof b.currentPlugin === 'object' ? JSON.stringify(b.currentPlugin) : b.currentPlugin)
+  t.is(a.completedByPlugin, typeof b.completedByPlugin === 'object' ? JSON.stringify(b.completedByPlugin) : b.completedByPlugin)
   t.is(a.direction, b.direction)
   t.is(a.createdAt, b.createdAt)
   t.is(a.executeAt, b.executeAt)
@@ -166,6 +166,36 @@ test('db.updatePayment', async (t) => {
   })
 })
 
+test('db.getPayment - removed', async (t) => {
+  const payment1 = createPayment()
+  const payment2 = createPayment()
+
+  const db = new DB({ name: 'test', path: './test_db' })
+  await db.init()
+
+  await db.savePayment(payment1)
+  await db.savePayment(payment2)
+
+  await db.updatePayment(payment1.id, { removed: true })
+
+  const res1 = await db.getPayment(payment1.id)
+  const res2 = await db.getPayment(payment2.id)
+
+  t.absent(res1, undefined)
+  comparePayments(t, res2, payment2)
+
+  const resA = await db.getPayment(payment1.id, { removed: '*' })
+  const resR = await db.getPayment(payment1.id, { removed: true })
+
+  t.ok(resA.removed)
+
+  comparePayments(t, resA, resR)
+
+  await t.teardown(async () => {
+    await dropTables(db)
+  })
+})
+
 test('db.getPayments', async (t) => {
   const payment1 = createPayment()
   const payment2 = createPayment()
@@ -178,8 +208,8 @@ test('db.getPayments', async (t) => {
   await db.savePayment(payment2)
   await db.savePayment(payment3)
 
-  await db.updatePayment(payment2.id, { internalState: 'completed' })
-  const res = await db.getPayments({ internalState: 'pending' })
+  await db.updatePayment(payment2.id, { internalState: 'completed', direction: 'incomming' })
+  const res = await db.getPayments({ internalState: 'pending', memo: 'test memo' })
 
   t.is(res.length, 2)
   t.is(res.find((r) => r.id === payment1.id).id, payment1.id)

@@ -157,9 +157,17 @@ class DB {
     return await this.executeStatement(statement, params)
   }
 
-  async getPayment(id, opts = {}) {
-    const statement = `SELECT * FROM payments WHERE id = $id AND removed = $removed LIMIT 1`
-    const params = { $id: id, $removed: !!opts.removed ? 1 : 0 }
+  async getPayment(id, opts = { removed: false }) {
+    const params = { $id: id }
+    let statement = `SELECT * FROM payments WHERE id = $id`
+
+    if (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') {
+      statement += ' AND removed = 1'
+    } else if (opts.removed === false || opts.removed === 'false' || opts.removed === 0 || opts.removed === '0') {
+      statement += ' AND removed = 0'
+    } 
+
+    statement += ' LIMIT 1'
 
     return this.executeStatement(statement, params)
   }
@@ -184,21 +192,23 @@ class DB {
 
   // XXX: super naive
   // TODO: add pagination
-  // TODO: add sorting
   // ...
-  async getPayments(update) {
+  async getPayments(opts) {
     const params = {}
     let statement = `SELECT * FROM payments WHERE`
-    Object.keys(update).forEach((k, i)  => {
+    Object.keys(opts).forEach((k, i)  => {
       statement += ` ${k} = $${k}`
-      if (i !== Object.keys(update).length - 1) statement += ', '
+      if (i !== Object.keys(opts).length - 1) statement += ' AND '
 
-      params[`$${k}`] = (typeof update[k] === 'object') ? JSON.stringify(update[k]) : update[k]
+      if (typeof opts[k] !== 'string') throw new Error(`Only string params are supported`)
+
+      params[`$${k}`] = opts[k]
     })
+
+    statement += ' ORDER BY createdAt DESC'
 
     return this.executeStatement(statement, params, 'all')
   }
-
 
   async executeStatement(statement, params, method = 'get') {
     return await new Promise((resolve, reject) => {
