@@ -13,17 +13,7 @@ const { PaymentOrder, ORDER_STATE, ERRORS } = require('../../src/payments/Paymen
 const createTestnet = require('@hyperswarm/testnet')
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
 
-const { getOneTimePaymentOrderEntities, sleep } = require('../helpers')
-
-async function dropTables (db) {
-  const statement = `DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;`
-  return new Promise((resolve, reject) => {
-    db.db.sqlite.exec(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  })
-}
+const { getOneTimePaymentOrderEntities, sleep, dropTables } = require('../helpers')
 
 test('PaymentOrder - new (default one time)', async t => {
   const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
@@ -85,7 +75,7 @@ test('PaymentOrder.init', async t => {
     denomination: 'BASE',
     createdAt: paymentOrder.createdAt,
     firstPaymentAt: paymentOrder.firstPaymentAt,
-    lastPaymentAt: paymentOrder.lastPaymentAt,
+    lastPaymentAt: paymentOrder.lastPaymentAt
   })
 
   t.is(paymentOrder.payments.length, 1)
@@ -163,7 +153,7 @@ test('PaymentOrder.save', async t => {
     denomination: 'BASE',
     createdAt: paymentOrder.createdAt,
     firstPaymentAt: paymentOrder.firstPaymentAt,
-    lastPaymentAt: paymentOrder.lastPaymentAt,
+    lastPaymentAt: paymentOrder.lastPaymentAt
   })
 
   const gotPayment = await paymentOrder.db.getPayment(paymentOrder.payments[0].id)
@@ -184,7 +174,7 @@ test('PaymentOrder.save', async t => {
     currentPlugin: {},
     completedByPlugin: {},
     createdAt: paymentOrder.payments[0].createdAt,
-    executeAt: paymentOrder.payments[0].executeAt,
+    executeAt: paymentOrder.payments[0].executeAt
   })
 
   t.teardown(async () => {

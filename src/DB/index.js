@@ -76,7 +76,7 @@ class DB {
     this.ready = true
   }
 
-  async savePayment(payment) {
+  async savePayment (payment) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
     const params = {
@@ -141,15 +141,15 @@ class DB {
     return await this.executeStatement(statement, params)
   }
 
-  async getPayment(id, opts = { removed: false }) {
+  async getPayment (id, opts = { removed: false }) {
     const params = { $id: id }
-    let statement = `SELECT * FROM payments WHERE id = $id`
+    let statement = 'SELECT * FROM payments WHERE id = $id'
 
     if (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') {
       statement += ' AND removed = 1'
     } else if (opts.removed === false || opts.removed === 'false' || opts.removed === 0 || opts.removed === '0') {
       statement += ' AND removed = 0'
-    } 
+    }
 
     statement += ' LIMIT 1'
 
@@ -157,11 +157,11 @@ class DB {
     return this.deserializePayment(payment)
   }
 
-  async updatePayment(id, update) {
-    let statement = `UPDATE payments SET `
+  async updatePayment (id, update) {
+    let statement = 'UPDATE payments SET '
     const params = { $id: id }
 
-    Object.keys(update).forEach((k, i)  => {
+    Object.keys(update).forEach((k, i) => {
       if (k === 'id') return
 
       statement += `${k} = $${k}`
@@ -178,14 +178,15 @@ class DB {
   // XXX: super naive
   // TODO: add pagination
   // ...
-  async getPayments(opts) {
+  async getPayments (opts = {}) {
     const params = {}
-    let statement = `SELECT * FROM payments WHERE`
-    Object.keys(opts).forEach((k, i)  => {
+    let statement = 'SELECT * FROM payments'
+    if (Object.keys(opts).length > 0) statement += ' WHERE '
+    Object.keys(opts).forEach((k, i) => {
       statement += ` ${k} = $${k}`
       if (i !== Object.keys(opts).length - 1) statement += ' AND '
 
-      if (typeof opts[k] !== 'string') throw new Error(`Only string params are supported`)
+      if (typeof opts[k] !== 'string') throw new Error('Only string params are supported')
 
       params[`$${k}`] = opts[k]
     })
@@ -196,7 +197,7 @@ class DB {
     return payments.map(this.deserializePayment)
   }
 
-  async saveOrder(order) {
+  async saveOrder (order) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
 
     const params = {
@@ -249,15 +250,15 @@ class DB {
     return await this.executeStatement(statement, params)
   }
 
-  async getOrder(id, opts = { removed: false }) {
+  async getOrder (id, opts = { removed: false }) {
     const params = { $id: id }
-    let statement = `SELECT * FROM orders WHERE id = $id`
+    let statement = 'SELECT * FROM orders WHERE id = $id'
 
     if (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') {
       statement += ' AND removed = 1'
     } else if (opts.removed === false || opts.removed === 'false' || opts.removed === 0 || opts.removed === '0') {
       statement += ' AND removed = 0'
-    } 
+    }
 
     statement += ' LIMIT 1'
 
@@ -265,11 +266,11 @@ class DB {
     return this.deserializeOrder(order)
   }
 
-  async updateOrder(id, update) {
-    let statement = `UPDATE orders SET `
+  async updateOrder (id, update) {
+    let statement = 'UPDATE orders SET '
     const params = { $id: id }
 
-    Object.keys(update).forEach((k, i)  => {
+    Object.keys(update).forEach((k, i) => {
       if (k === 'id') return
 
       statement += `${k} = $${k}`
@@ -283,7 +284,7 @@ class DB {
     return this.executeStatement(statement, params)
   }
 
-  async executeStatement(statement, params, method = 'get') {
+  async executeStatement (statement, params, method = 'get') {
     return await new Promise((resolve, reject) => {
       this.db.sqlite[method](statement, params, (err, res) => {
         if (err) return reject(err)
@@ -292,7 +293,7 @@ class DB {
     })
   }
 
-  deserializePayment(payment) {
+  deserializePayment (payment) {
     if (!payment) return null
 
     const res = {
@@ -309,12 +310,12 @@ class DB {
     return res
   }
 
-  deserializeOrder(order) {
+  deserializeOrder (order) {
     if (!order) return null
 
     const res = {
       ...order,
-      sendingPriority: JSON.parse(order.sendingPriority || '[]'),
+      sendingPriority: JSON.parse(order.sendingPriority || '[]')
     }
 
     delete res.removed
@@ -322,6 +323,5 @@ class DB {
     return res
   }
 }
-
 
 module.exports = { DB, ERROR }

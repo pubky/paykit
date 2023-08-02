@@ -9,7 +9,7 @@ const { PAYMENT_STATE, PLUGIN_STATE } = require('../../src/payments/PaymentObjec
 const { PaymentManager } = require('../../src/payments/PaymentManager')
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
-const { getOneTimePaymentOrderEntities } = require('../helpers')
+const { getOneTimePaymentOrderEntities, dropTables } = require('../helpers')
 
 test('PaymentManager.constructor', async t => {
   const { sender, receiver, db } = await getOneTimePaymentOrderEntities(t, false, false)
@@ -24,6 +24,7 @@ test('PaymentManager.constructor', async t => {
   t.teardown(async () => {
     await sender.close()
     await receiver.close()
+    await dropTables(db)
   })
 })
 
@@ -43,6 +44,7 @@ test('PaymentManager.init', async t => {
   t.teardown(async () => {
     await sender.close()
     await receiver.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -58,12 +60,13 @@ test('PaymentManager.createPaymentOrder', async t => {
     counterpartyURL: sender.getUrl()
   })
 
-  const got = await db.get(paymentOrder.id)
+  const got = await db.getOrder(paymentOrder.id)
   t.alike(got, paymentOrder)
 
   t.teardown(async () => {
     await receiver.close()
     await sender.close()
+    await dropTables(db)
   })
 })
 
@@ -84,6 +87,7 @@ test('PaymentManager.sendPayment', async t => {
   t.teardown(async () => {
     await receiver.close()
     await sender.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -106,6 +110,7 @@ test('PaymentManager.receivePayments', async t => {
   t.teardown(async () => {
     await receiver.close()
     await sender.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -123,18 +128,23 @@ test('PaymentManager.handleNewPayment', async t => {
     sinon.fake(PaymentReceiver.prototype.handleNewPayment)
   )
 
+  const prePayments = await db.getPayments()
+  t.is(prePayments.length, 0)
   await paymentManager.handleNewPayment({
     amount: '1000',
     pluginName: 'p2sh',
-    clientOrderId: 'network-id'
+    clientOrderId: 'network-id',
+    amountWasSpecified: false
   })
 
   t.is(stub.calledOnce, true)
   t.is(receiverHandler.calledOnce, true)
 
-  // HACK
-  const paymentId = Object.keys(db.db)[0]
-  const got = await db.get(paymentId)
+  const postPayments = await db.getPayments()
+  t.is(postPayments.length, 1)
+  const paymentId = postPayments[0].id
+
+  const got = await db.getPayment(paymentId)
   t.is(got.id, paymentId)
   t.ok(got.orderId)
   t.is(got.clientOrderId, 'network-id')
@@ -156,6 +166,7 @@ test('PaymentManager.handleNewPayment', async t => {
   t.teardown(async () => {
     await receiver.close()
     await sender.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -182,6 +193,7 @@ test('PaymentManager.handlePaymentUpdate', async t => {
   t.teardown(async () => {
     await receiver.close()
     await sender.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -201,6 +213,7 @@ test('PaymentManager.entryPointForUser', async t => {
   t.teardown(async () => {
     await receiver.close()
     await sender.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -230,6 +243,7 @@ test('PaymentManager.entryPointForPlugin waiting for client', async t => {
   t.teardown(async () => {
     await receiver.close()
     await sender.close()
+    await dropTables(db)
     sinon.restore()
   })
 })

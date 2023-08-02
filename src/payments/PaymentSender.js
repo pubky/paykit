@@ -74,7 +74,7 @@ class PaymentSender {
    */
   async getCurrentPlugin (payment) {
     const currentPlugin = payment.getCurrentPlugin()
-    
+
     if (!currentPlugin) throw new Error(ERRORS.NO_PLUGINS_AVAILABLE)
 
     const loaded = this.pluginManager.plugins[currentPlugin.name]

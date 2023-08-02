@@ -10,16 +10,7 @@ const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 const { ERRORS: STATE_ERRORS } = require('../../src/payments/PaymentState')
 const createTestnet = require('@hyperswarm/testnet')
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
-
-async function dropTables (db) {
-  const statement = `DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;`
-  return new Promise((resolve, reject) => {
-    db.db.sqlite.exec(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  })
-}
+const { dropTables } = require('../helpers')
 
 async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
   const db = new DB({ name: 'test', path: './test_db' })

@@ -364,7 +364,7 @@ class PaymentOrder {
     if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
 
     const paymentOrder = new PaymentOrder(orderParams, db)
-    paymentOrder.payments = (await db.getPayments(id)).map(p => new PaymentObject(p, db, slashtags))
+    paymentOrder.payments = (await db.getPayments({ orderId: id })).map(p => new PaymentObject(p, db, slashtags))
 
     return paymentOrder
   }

@@ -1,10 +1,10 @@
 const { test } = require('brittle')
 const { v4: uuidv4 } = require('uuid')
 
-const { DB, ERROR } = require('../../src/DB/index.js')
+const { DB } = require('../../src/DB/index.js')
 
 async function dropTables (db) {
-  const statement = `DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;`
+  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
   return new Promise((resolve, reject) => {
     db.db.sqlite.exec(statement, (err, res) => {
       if (err) return reject(err)
@@ -20,7 +20,7 @@ function createPayment () {
     clientOrderId: uuidv4(),
     counterpartyURL: 'slash:XXXXXXX',
     memo: 'test memo',
-    sendingPriority: [ 'p2sh', 'p2tr' ],
+    sendingPriority: ['p2sh', 'p2tr'],
     createdAt: Date.now() - 100000,
     executeAt: Date.now() + 100000,
     direction: 'OUT',
@@ -28,7 +28,7 @@ function createPayment () {
     currency: 'BTC',
     denomination: 'BASE',
     internalState: 'pending',
-    pendingPlugins: [ 'p2sh' ],
+    pendingPlugins: ['p2sh'],
     triedPlugins: [
       {
         name: 'p2tr',
@@ -50,12 +50,12 @@ function createOrder () {
     frequency: 1,
     counterpartyURL: 'slash:kx7uuapc1gshfprg1hkethco8fuz7gue19u3od1i5xbhs84mhiho',
     memo: '',
-    sendingPriority: [ 'p2sh', 'p2tr' ],
+    sendingPriority: ['p2sh', 'p2tr'],
     amount: '1',
     currency: 'BTC',
     denomination: 'BASE',
     createdAt: Date.now() - 100000,
-    firstPaymentAt: Date.now() + 100000,
+    firstPaymentAt: Date.now() + 100000
   }
 }
 
@@ -73,7 +73,7 @@ function comparePayments (t, a, b) {
   t.is(a.createdAt, b.createdAt)
   t.is(a.executeAt, b.executeAt)
 
-  t.alike(a.sendingPriority,  b.sendingPriority)
+  t.alike(a.sendingPriority, b.sendingPriority)
   t.alike(a.pendingPlugins, b.pendingPlugins)
   t.alike(a.triedPlugins, b.triedPlugins)
   t.alike(a.currentPlugin, b.currentPlugin)
@@ -93,7 +93,7 @@ function compareOrders (t, a, b) {
   t.is(a.firstPaymentAt, b.firstPaymentAt)
   if (a.lastPaymentAt || b.lastPaymentAt) t.is(a.lastPaymentAt, b.lastPaymentAt)
 
-  t.alike(a.sendingPriority,  b.sendingPriority)
+  t.alike(a.sendingPriority, b.sendingPriority)
 }
 
 test('cosntructor', async (t) => {
@@ -109,7 +109,7 @@ test('init', async (t) => {
   await db.init()
 
   t.is(db.ready, true)
-  const statement = `SELECT * FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';`
+  const statement = 'SELECT * FROM sqlite_schema WHERE type =\'table\' AND name NOT LIKE \'sqlite_%\';'
 
   const res = await (new Promise((resolve, reject) => {
     db.db.sqlite.all(statement, (err, res) => {
@@ -127,7 +127,6 @@ test('init', async (t) => {
   })
 })
 
-
 test('db.savePayment', async (t) => {
   const payment = createPayment()
 
@@ -137,9 +136,9 @@ test('db.savePayment', async (t) => {
 
   await db.savePayment(payment)
 
-  const statement = `SELECT * FROM payments;`
+  const statement = 'SELECT * FROM payments;'
 
-  let res = await (new Promise((resolve, reject) => {
+  const res = await (new Promise((resolve, reject) => {
     db.db.sqlite.all(statement, (err, res) => {
       if (err) return reject(err)
       return resolve(res)
@@ -261,9 +260,9 @@ test('db.saveOrder', async (t) => {
 
   await db.saveOrder(order)
 
-  const statement = `SELECT * FROM orders;`
+  const statement = 'SELECT * FROM orders;'
 
-  let res = await (new Promise((resolve, reject) => {
+  const res = await (new Promise((resolve, reject) => {
     db.db.sqlite.all(statement, (err, res) => {
       if (err) return reject(err)
       return resolve(res)
