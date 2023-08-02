@@ -316,7 +316,11 @@ class PaymentOrder {
       counterpartyURL: this.counterpartyURL,
       memo: this.memo,
       sendingPriority: this.sendingPriority,
-      ...this.amount.serialize()
+      ...this.amount.serialize(),
+
+      createdAt: this.createdAt,
+      firstPaymentAt: this.firstPaymentAt,
+      lastPaymentAt: this.lastPaymentAt
     }
   }
 
@@ -329,8 +333,7 @@ class PaymentOrder {
     const orderObject = this.serialize()
 
     // TODO: after db integration wrap into db transaction
-    // FIXME: saveOrder
-    await this.db.save(orderObject)
+    await this.db.saveOrder(orderObject)
     await Promise.all(this.payments.map(async (payment) => {
       await payment.save()
     }))
@@ -346,8 +349,7 @@ class PaymentOrder {
     const serialized = this.serialize()
     PaymentOrder.validateInput(serialized)
 
-    // FIXME: updateOrder
-    await this.db.update(this.id, serialized)
+    await this.db.updateOrder(this.id, serialized)
   }
 
   /**
@@ -358,12 +360,10 @@ class PaymentOrder {
    * @returns {Promise<PaymentOrder>}
    */
   static async find (id, db, slashtags) {
-    // FIXME: getOrder
-    const orderParams = await db.get(id)
+    const orderParams = await db.getOrder(id)
     if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
 
     const paymentOrder = new PaymentOrder(orderParams, db)
-    // FIXME: flexible query interface
     paymentOrder.payments = (await db.getPayments(id)).map(p => new PaymentObject(p, db, slashtags))
 
     return paymentOrder

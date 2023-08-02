@@ -8,7 +8,7 @@ const { SlashtagsConnector, SLASHPAY_PATH } = require('../src/slashtags')
 
 module.exports = {
   getOneTimePaymentOrderEntities: async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, createOrder = true, opts = {}) {
-    const db = new DB()
+    const db = new DB({ name: 'test', path: './test_db' })
     await db.init()
 
     const testnet = await createTestnet(3, t)
