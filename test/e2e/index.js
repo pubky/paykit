@@ -1,9 +1,9 @@
 const { test } = require('brittle')
 const createTestnet = require('@hyperswarm/testnet')
 
-const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
+const { SlashtagsConnector } = require('../../src/slashtags')
 const { PaymentManager } = require('../../src/payments/PaymentManager')
-const { DB } = require('../../src/DB') // mocked
+const { DB } = require('../../src/DB')
 
 test('e2e', async (t) => {
   const testnet = await createTestnet(3, t)
@@ -35,7 +35,7 @@ test('e2e', async (t) => {
   const slashtagsConnectorA = new SlashtagsConnector(testnet)
   await slashtagsConnectorA.init()
 
-  const dbA = new DB()
+  const dbA = new DB({ name: 'test', path: './test_dba' })
   await dbA.init()
   const paymentManagerA = new PaymentManager(
     configA,
@@ -75,7 +75,7 @@ test('e2e', async (t) => {
   const slashtagsConnectorB = new SlashtagsConnector(testnet)
   await slashtagsConnectorB.init()
 
-  const dbB = new DB()
+  const dbB = new DB({ name: 'test', path: './test_dbb' })
   await dbB.init()
 
   const paymentManagerB = new PaymentManager(
@@ -92,7 +92,7 @@ test('e2e', async (t) => {
     amount: '1000',
     sendingPriority: [
       'bolt11',
-      'onchain',
+      'onchain'
     ],
     counterpartyURL: url
   })

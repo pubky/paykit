@@ -22,10 +22,16 @@ Watch for notification in both stdouts. One for successfully processing of payme
 
 ```javasript
 module.exports = {
-  CERT: './tls.cert',
-  MACAROON: './admin.macaroon',
-  SOCKET: '127.0.0.1:10007',
-  SUPPORTED_METHODS: ['bolt11', 'p2wpkh'],
-  URL_PREFIX: 'slashpay:'
+  plugin: {
+    CERT: './tls.cert',
+    MACAROON: './admin.macaroon',
+    SOCKET: '127.0.0.1:10007',
+    SUPPORTED_METHODS: ['bolt11', 'p2wpkh'],
+    URL_PREFIX: 'slashpay:'
+  },
+  db: {
+    name: 'db_name',
+    path: './db_path'
+  }
 }
 ```

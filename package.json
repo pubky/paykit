@@ -36,6 +36,7 @@
     "@synonymdev/slashtags-url": "^1.0.0-alpha.3",
     "b4a": "^1.6.4",
     "slashtags-logger": "github:slashtags/slashtags-logger",
+    "sqlite3": "^5.1.6",
     "uuid": "^9.0.0"
   }
 }

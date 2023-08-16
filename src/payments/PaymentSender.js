@@ -8,7 +8,6 @@ class PaymentSender {
    * Creates an instance of PaymentSender.
    * @constructor PaymentSender
    * @param {PaymentOrder} paymentOrder
-   * @param {DB} db
    * @param {PluginManager} pluginManager
    * @param {Function} entryPointForPlugin - callback to be called by plugin
    */
@@ -74,7 +73,7 @@ class PaymentSender {
    */
   async getCurrentPlugin (payment) {
     const currentPlugin = payment.getCurrentPlugin()
-    
+
     if (!currentPlugin) throw new Error(ERRORS.NO_PLUGINS_AVAILABLE)
 
     const loaded = this.pluginManager.plugins[currentPlugin.name]

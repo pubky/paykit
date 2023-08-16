@@ -49,24 +49,24 @@ export class PluginManager {
     plugins: {};
     config: any;
     /**
+     * Load a plugin with runtime by path to the entry point
+     * @param {string} pluginEntryPoint - path to plugins main
+     * @param {[any]} pluginConfig - plugin config
+     * @returns {Promise<Plugin>} - plugin instance
+     * @throws {Error} - if plugin is already loaded
+     */
+    loadPlugin(pluginEntryPoint: string, pluginConfig?: [any]): Promise<Plugin>;
+    /**
      * Inject plugin into the manager
      * @param {any} module - plugin module object
-     * @param {storage} storage - instance with CRUD interface for receiving payments
+     * @param {object} pluginConfig - plugin config object
      * @returns {Promise<Plugin>} - plugin instance
      * @throws {Error} - if plugin is already loaded
      * @throws {Error} - if plugin is not valid
      * @throws {Error} - if plugin failed to initialize
      * @throws {Error} - if plugin failed to get manifest
      */
-    injectPlugin(module: any, storage: any): Promise<Plugin>;
-    /**
-     * Load a plugin with runtime by path to the entry point
-     * @param {string} pluginEntryPoint - path to plugins main
-     * @param {[Storage]} storage - instance with CRUD interface for receiving payments
-     * @returns {Promise<Plugin>} - plugin instance
-     * @throws {Error} - if plugin is already loaded
-     */
-    loadPlugin(pluginEntryPoint: string, storage: [Storage]): Promise<Plugin>;
+    injectPlugin(module: any, pluginConfig: object): Promise<Plugin>;
     /**
      * Disable a plugin by calling its "stop" method
      * @param {string} name - name of the plugin

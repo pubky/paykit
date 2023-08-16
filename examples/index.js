@@ -1,9 +1,6 @@
 const readline = require('readline')
 
-const { test } = require('brittle')
-const createTestnet = require('@hyperswarm/testnet')
-
-const { SlashtagsConnector, SLASHPAY_PATH } = require('../src/slashtags')
+const { SlashtagsConnector } = require('../src/slashtags')
 const { PaymentManager } = require('../src/payments/PaymentManager')
 const { DB } = require('../src/DB') // mocked
 
@@ -18,18 +15,18 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
 ;(async () => {
   const pluginConfig = require(process.argv[2])
   const slashpayConfig = {
-    sendingPriority: [ 'bolt11', 'onchain' ],
+    sendingPriority: ['bolt11', 'onchain'],
     plugins: {
       bolt11,
       onchain
     },
-    bolt11: pluginConfig,
-    onchain: pluginConfig
+    bolt11: pluginConfig.plugin,
+    onchain: pluginConfig.plugin
   }
 
   const slashtagsConnector = new SlashtagsConnector()
   await slashtagsConnector.init()
-  const db = new DB()
+  const db = new DB(pluginConfig.db)
   await db.init()
 
   const paymentManager = new PaymentManager(
@@ -47,14 +44,13 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   console.log('to send payments paste <slashpayURL> <amount>')
 
   rl.on('line', async (line) => {
-
     const [url, amount] = line.split(' ')
     const paymentOrder = await paymentManager.createPaymentOrder({
       clientOrderId: Date.now(),
       amount,
       sendingPriority: [
         'bolt11',
-        'onchain',
+        'onchain'
       ],
       counterpartyURL: url
     })
@@ -68,5 +64,4 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
     // XXX: stop plugins shutting down the subscriptions to addresses and invoices
     process.exit(0)
   })
-
 })()

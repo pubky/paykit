@@ -31,7 +31,6 @@ const CONFIG = {
 
 class PaymentOrder {
   static generateId () {
-    // TODO: remove after db integration
     return uuidv4()
   }
 
@@ -136,7 +135,6 @@ class PaymentOrder {
   async init () {
     this.logger.info('Initializing payment order')
     this.id = PaymentOrder.generateId()
-    // TODO: after db integration check if order with this.clientOrderId already exists
     this.state = ORDER_STATE.INITIALIZED
 
     this.frequency === 0 ? this.createPaymentObjects(1) : this.createPaymentForRecurringOrder()
@@ -284,15 +282,25 @@ class PaymentOrder {
     this.logger.debug('Cancelling payment order')
     if (this.state === ORDER_STATE.COMPLETED) throw new Error(ERRORS.ORDER_COMPLETED)
 
-    // TODO: after db integration wrap into db transaction
-    await this.payments
-      .filter((payment) => !payment.isFinal())
-      .forEach(async (payment) => {
-        await payment.cancel()
-      })
+    try {
+      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
 
-    this.state = ORDER_STATE.CANCELLED
-    await this.update()
+      this.state = ORDER_STATE.CANCELLED
+      const { statement, params } = await this.update(false)
+      await this.db.executeStatement(statement, params, 'run')
+
+      await this.payments
+        .filter((payment) => !payment.isFinal())
+        .forEach(async (payment) => {
+          const { statement, params } = await payment.cancel(false)
+          await this.db.executeStatement(statement, params, 'run')
+        })
+
+      await this.db.executeStatement('COMMIT', [], 'exec')
+    } catch (e) {
+      await this.db.executeStatement('ROLLBACK', [], 'exec')
+      throw e
+    }
   }
 
   /**
@@ -316,7 +324,11 @@ class PaymentOrder {
       counterpartyURL: this.counterpartyURL,
       memo: this.memo,
       sendingPriority: this.sendingPriority,
-      ...this.amount.serialize()
+      ...this.amount.serialize(),
+
+      createdAt: this.createdAt,
+      firstPaymentAt: this.firstPaymentAt,
+      lastPaymentAt: this.lastPaymentAt
     }
   }
 
@@ -328,24 +340,36 @@ class PaymentOrder {
     this.logger.debug('Saving payment order')
     const orderObject = this.serialize()
 
-    // TODO: after db integration wrap into db transaction
-    await this.db.save(orderObject)
-    await Promise.all(this.payments.map(async (payment) => {
-      await payment.save()
-    }))
+    try {
+      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
+
+      const { statement, params } = await this.db.saveOrder(orderObject, false)
+      await this.db.executeStatement(statement, params, 'run')
+
+      for (const payment of this.payments) {
+        const { statement, params } = await payment.save(false)
+        await this.db.executeStatement(statement, params, 'run')
+      }
+
+      await this.db.executeStatement('COMMIT', [], 'exec')
+    } catch (e) {
+      await this.db.executeStatement('ROLLBACK', [], 'exec')
+      throw e
+    }
   }
 
   /**
-   * @method update - Update order in db
-   * @returns {Promise<void>}
+   * @method update - Update order in db if persist is true, order will be saved to db,
+   * if persist is false, it will return { statement,  params }
+   * @returns {Promise<Database| { statement: string, params: object }>}
    */
-  async update () {
+  async update (persist = true) {
     this.logger.debug('Updating payment order')
 
     const serialized = this.serialize()
     PaymentOrder.validateInput(serialized)
 
-    await this.db.update(this.id, serialized)
+    return await this.db.updateOrder(this.id, serialized, persist)
   }
 
   /**
@@ -356,11 +380,11 @@ class PaymentOrder {
    * @returns {Promise<PaymentOrder>}
    */
   static async find (id, db, slashtags) {
-    const orderParams = await db.get(id)
+    const orderParams = await db.getOrder(id)
     if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
 
     const paymentOrder = new PaymentOrder(orderParams, db)
-    paymentOrder.payments = (await db.getPayments(id)).map(p => new PaymentObject(p, db, slashtags))
+    paymentOrder.payments = (await db.getPayments({ orderId: id })).map(p => new PaymentObject(p, db, slashtags))
 
     return paymentOrder
   }

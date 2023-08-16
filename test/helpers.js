@@ -8,7 +8,7 @@ const { SlashtagsConnector, SLASHPAY_PATH } = require('../src/slashtags')
 
 module.exports = {
   getOneTimePaymentOrderEntities: async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, createOrder = true, opts = {}) {
-    const db = new DB()
+    const db = new DB({ name: 'test', path: './test_db' })
     await db.init()
 
     const testnet = await createTestnet(3, t)
@@ -50,5 +50,15 @@ module.exports = {
 
   sleep: async function sleep (ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
+  },
+
+  dropTables: async function dropTables (db) {
+    const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
+    return new Promise((resolve, reject) => {
+      db.db.sqlite.exec(statement, (err, res) => {
+        if (err) return reject(err)
+        return resolve(res)
+      })
+    })
   }
 }

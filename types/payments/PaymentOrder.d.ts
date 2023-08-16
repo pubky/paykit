@@ -7,7 +7,7 @@ export type ORDER_STATE = {
 };
 export type ERRROS = Obejct;
 export class PaymentOrder {
-    static generateId(): string;
+    static generateId(): any;
     /**
      * @method validateInput - Validate order params
      * @param {object} orderParams - Order params
@@ -131,10 +131,14 @@ export class PaymentOrder {
      */
     save(): Promise<void>;
     /**
-     * @method update - Update order in db
-     * @returns {Promise<void>}
+     * @method update - Update order in db if persist is true, order will be saved to db,
+     * if persist is false, it will return { statement,  params }
+     * @returns {Promise<Database| { statement: string, params: object }>}
      */
-    update(): Promise<void>;
+    update(persist?: boolean): Promise<Database | {
+        statement: string;
+        params: object;
+    }>;
 }
 export namespace ORDER_STATE {
     const CREATED: string;

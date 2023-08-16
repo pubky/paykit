@@ -13,10 +13,12 @@ const { pluginConfig } = require('../fixtures/config.js')
 
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
+const { dropTables } = require('../helpers')
+
 async function createStorageEntities (t) {
   const testnet = await createTestnet(3, t)
 
-  const db = new DB()
+  const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
 
   const receiver = new SlashtagsConnector(testnet)
@@ -41,6 +43,7 @@ test('PaymentReceiver', async t => {
 
   t.teardown(async () => {
     await receiver.close()
+    await dropTables(db)
   })
 })
 
@@ -71,6 +74,7 @@ test('PaymentReceiver.init', async t => {
 
   t.teardown(async () => {
     await receiver.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -85,15 +89,19 @@ test('PaymentReceiver.handleNewPayment', async t => {
   const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
   const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, notificationCallback)
 
+  const prePayments = await db.getPayments()
+  t.is(prePayments.length, 0)
   await paymentReceiver.handleNewPayment({
     amount: '1000',
     pluginName: 'p2sh',
     clientOrderId: 'network-id'
   })
 
-  // HACK
-  const paymentId = Object.keys(db.db)[0]
-  const payment = await db.get(paymentId)
+  const postPayments = await db.getPayments()
+  t.is(postPayments.length, 1)
+  const paymentId = postPayments[0].id
+
+  const payment = await db.getPayment(paymentId)
   t.is(payment.id, paymentId)
   t.ok(payment.orderId)
   t.is(payment.clientOrderId, 'network-id')
@@ -120,6 +128,7 @@ test('PaymentReceiver.handleNewPayment', async t => {
 
   t.teardown(async () => {
     await receiver.close()
+    await dropTables(db)
     sinon.restore()
   })
 })
@@ -143,6 +152,7 @@ test('PaymentReceiver.generateSlashpayContent - no amount', async t => {
 
   t.teardown(async () => {
     await receiver.close()
+    await dropTables(db)
   })
 })
 
@@ -165,6 +175,7 @@ test('PaymentReceiver.generateSlashpayContent - with amount', async t => {
 
   t.teardown(async () => {
     await receiver.close()
+    await dropTables(db)
   })
 })
 
@@ -181,5 +192,6 @@ test('PaymentReceiver.getListOfSupportedPaymentMethods', async t => {
 
   t.teardown(async () => {
     await receiver.close()
+    await dropTables(db)
   })
 })

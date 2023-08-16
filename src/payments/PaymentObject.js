@@ -211,23 +211,26 @@ class PaymentObject {
    */
 
   /**
-   * Save payment object to db
-   * @returns {Promise<void>}
+   * Save payment object to db - if persist is true, payment will be saved to db,
+   * otherwise it will return { statement, params } query object
+   * @returns {Promise<Database| { statement: string, params: object }>}
    * @throws {Error} - if payment object is not valid
    */
-  async save () {
+  async save (persist = true) {
     this.logger.info('Saving payment object')
     if (!this.id) {
       this.id = PaymentObject.generateId()
     }
 
-    const paymentObject = await this.db.get(this.id, { removed: '*' })
+    const paymentObject = await this.db.getPayment(this.id, { removed: '*' })
     if (paymentObject) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
-    await this.db.save(serialized)
+    const res = await this.db.savePayment(serialized, persist)
     this.logger.debug('Payment object saved')
+
+    return res
   }
 
   /**
@@ -241,23 +244,25 @@ class PaymentObject {
       this.logger.info('Force deleting payment object')
       throw new Error(ERRORS.NOT_ALLOWED)
     }
-    await this.db.update(this.id, { removed: true })
+    await this.db.updatePayment(this.id, { removed: true })
     this.logger.debug('Payment object deleted')
   }
 
   /**
-   * Update payment in db
-   * @returns {Promise<void>}
+   * Update payment in db - if persist is true, payment will be updated in db,
+   * otherwise it will return { statement, params } query object
+   * @returns {Promise<Database| { statement: string, params: object }>}
    * @throws {Error} - if payment is not valid
    */
-  async update () {
+  async update (persist = true) {
     this.logger.info('Updating payment object')
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
-    await this.db.update(this.id, serialized)
+    const res = await this.db.updatePayment(this.id, serialized, persist)
 
     this.logger.debug('Payment object updated')
+    return res
   }
 
   /**
@@ -286,14 +291,16 @@ class PaymentObject {
   }
 
   /**
-   * Cancel payment by setting internalState to CANCELED
+   * Cancel payment by setting internalState to CANCELED, if persist is true, payment will be updated in db,
+   * otherwise it will return { statement, params } query object
+   *
    * @throws {Error} - if payment is not initial
-   * @returns {Promise<PaymentObject>}
+   * @returns {Promise<Database| { statement: string, params: object }>}
    */
-  async cancel () {
-    await this.internalState.cancel()
+  async cancel (persist = true) {
+    const res = await this.internalState.cancel(persist)
 
-    return this
+    return res
   }
 
   /**

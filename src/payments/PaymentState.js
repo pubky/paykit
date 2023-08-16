@@ -155,10 +155,12 @@ class PaymentState {
   isFinal = () => this.isCompleted() || this.isFailed() || this.isCancelled()
 
   /**
-   * Cancel payment - sets internal state to cancelled and updates payment in db
+   * Cancel payment - sets internal state to cancelled and updates payment in db, if persist is true
+   * if persist is false, returns { statement, params } for update
+   * @returns {Promise<Database| { statement: string, params: object }>}
    * @throws {Error} - if current state is not initial
    */
-  async cancel () {
+  async cancel (persist = true) {
     this.logger.info('Cancelling payment')
     if (!this.isInitial()) throw new Error(ERRORS.INVALID_STATE(this.internalState))
     if (!isEmptyObject(this.currentPlugin)) {
@@ -168,8 +170,10 @@ class PaymentState {
     }
 
     this.internalState = PAYMENT_STATE.CANCELLED
-    await this.payment.update()
+    const res = await this.payment.update(persist)
     this.logger.debug('Cancelled payment')
+
+    return res
   }
 
   /**

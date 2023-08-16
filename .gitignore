@@ -4,4 +4,6 @@ coverage/
 plugins/**/node_modules/
 examples/**/.*.js
 examples/config.js
-
+test_db/*
+test_dba/*
+test_dbb/*
