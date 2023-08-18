@@ -1,5 +1,6 @@
 const { test } = require('brittle')
 const sinon = require('sinon')
+const { Relay } = require('@synonymdev/web-relay')
 
 const { DB } = require('../../src/DB')
 
@@ -8,22 +9,28 @@ const { paymentParams } = require('../fixtures/paymentParams')
 const { PaymentObject, PAYMENT_STATE, PLUGIN_STATE, ERRORS } = require('../../src/payments/PaymentObject')
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 const { ERRORS: STATE_ERRORS } = require('../../src/payments/PaymentState')
-const createTestnet = require('@hyperswarm/testnet')
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
-const { dropTables } = require('../helpers')
+const { dropTables, tmpdir, sleep } = require('../helpers')
 
 async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
   const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
 
-  const testnet = await createTestnet(3, t.teardown)
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
-  const sender = new SlashtagsConnector(testnet)
-  await sender.init()
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
+
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+  const sender = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+
   const params = {
     ...paymentParams,
-    counterpartyURL: opts.direction === 'IN' ? sender.getUrl() : receiver.getUrl(),
+    counterpartyURL: opts.direction === 'IN' ? await sender.getUrl() : await receiver.getUrl(),
     ...opts
   }
 
@@ -34,11 +41,13 @@ async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
         p2tr: '/public/p2tr.json'
       }
     })
+
+    await sleep(100)
   }
 
   const paymentObject = new PaymentObject(params, db, sender)
 
-  return { sender, receiver, paymentObject, db }
+  return { sender, receiver, paymentObject, db, relay }
 }
 
 test('PaymentObject.generateId', t => {
@@ -124,7 +133,7 @@ test('PaymentObject.validateDirection', t => {
 })
 
 test('PaymentObject - new', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t)
+  const { receiver, paymentObject, db, relay } = await createPaymentEntities(t)
 
   t.is(paymentObject.id, null)
   t.alike(paymentObject.internalState.serialize(), {
@@ -134,7 +143,7 @@ test('PaymentObject - new', async t => {
     currentPlugin: {},
     completedByPlugin: {}
   })
-  t.is(paymentObject.counterpartyURL, receiver.getUrl())
+  t.is(paymentObject.counterpartyURL, await receiver.getUrl())
   t.ok(paymentObject.clientOrderId, 'clientOrderId')
   t.alike(paymentObject.amount, new PaymentAmount({
     amount: '100',
@@ -147,14 +156,13 @@ test('PaymentObject - new', async t => {
   t.ok(paymentObject.executeAt <= Date.now())
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject - new (incomming)', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false, {
+  const { sender, paymentObject, db, relay } = await createPaymentEntities(t, false, {
     direction: 'IN',
     completedByPlugin: {
       name: 'test',
@@ -165,7 +173,7 @@ test('PaymentObject - new (incomming)', async t => {
   })
 
   t.is(paymentObject.id, null)
-  t.is(paymentObject.counterpartyURL, sender.getUrl())
+  t.is(paymentObject.counterpartyURL, await sender.getUrl())
   t.is(paymentObject.clientOrderId, 'clientOrderId')
   t.alike(paymentObject.amount, new PaymentAmount({
     amount: '100',
@@ -190,51 +198,47 @@ test('PaymentObject - new (incomming)', async t => {
   t.ok(internalState.completedByPlugin.endAt <= Date.now())
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.init - paymentObject file not found', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false)
+  const { paymentObject, db, relay } = await createPaymentEntities(t, false)
 
   await t.exception(async () => await paymentObject.init(), ERRORS.PAYMENT_FILE_NOT_FOUND)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.init - no matching plugins', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false)
+  const { receiver, paymentObject, db, relay } = await createPaymentEntities(t, false)
   await receiver.create(SLASHPAY_PATH, { paymentEndpoints: { paypal: '/public/paypal.json' } })
 
   await t.exception(async () => await paymentObject.init(), ERRORS.NO_MATCHING_PLUGINS)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.init - selected priority', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t)
+  const { paymentObject, db, relay } = await createPaymentEntities(t)
   await paymentObject.init()
   t.alike(paymentObject.sendingPriority, ['p2sh', 'p2tr'])
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.serialize', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false)
+  const { receiver, paymentObject, db, relay } = await createPaymentEntities(t, false)
 
   const serialized = paymentObject.serialize()
   t.alike(serialized, {
@@ -242,7 +246,7 @@ test('PaymentObject.serialize', async t => {
     orderId: paymentObject.orderId,
     clientOrderId: paymentObject.clientOrderId,
     internalState: PAYMENT_STATE.INITIAL,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     memo: '',
     amount: '100',
     currency: 'BTC',
@@ -258,14 +262,13 @@ test('PaymentObject.serialize', async t => {
   })
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.save - iff entry is new', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false)
+  const { paymentObject, db, relay } = await createPaymentEntities(t, false)
 
   await paymentObject.save()
 
@@ -275,14 +278,13 @@ test('PaymentObject.save - iff entry is new', async t => {
   await t.exception(async () => await paymentObject.save(), ERRORS.ALREADY_EXISTS(paymentObject.id))
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.delete', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false)
+  const { paymentObject, db, relay } = await createPaymentEntities(t, false)
 
   await paymentObject.save()
   const { id } = paymentObject
@@ -295,14 +297,13 @@ test('PaymentObject.delete', async t => {
   t.alike(got, paymentObject.serialize())
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.save - fails if entry is removed', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false)
+  const { paymentObject, db, relay } = await createPaymentEntities(t, false)
 
   await paymentObject.save()
   const { id } = paymentObject
@@ -311,14 +312,13 @@ test('PaymentObject.save - fails if entry is removed', async t => {
   await t.exception(async () => await paymentObject.save(), ERRORS.ALREADY_EXISTS(id))
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.update', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, false)
+  const { paymentObject, db, relay } = await createPaymentEntities(t, false)
 
   await paymentObject.save()
   const { id } = paymentObject
@@ -331,14 +331,13 @@ test('PaymentObject.update', async t => {
   t.is(got.currency, 'BTC')
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentObject.process', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
   const update = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
@@ -462,15 +461,14 @@ test('PaymentObject.process', async t => {
   t.is(update.callCount, 6)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentObject.complete', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
   const update = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
@@ -539,15 +537,14 @@ test('PaymentObject.complete', async t => {
   t.is(update.callCount, 3)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentObject.cancel', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
   const update = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
@@ -568,15 +565,14 @@ test('PaymentObject.cancel', async t => {
   t.is(cancel.callCount, 2)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentObject.getCurrentPlugin', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
   paymentObject.internalState.currentPlugin = 'test'
@@ -585,15 +581,14 @@ test('PaymentObject.getCurrentPlugin', async t => {
   t.is(res, 'test')
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentObject.isInProgress', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
   await paymentObject.init()
@@ -603,15 +598,14 @@ test('PaymentObject.isInProgress', async t => {
   t.is(paymentObject.isInProgress(), true)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentObject.failCurrentPlugin', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { relay, paymentObject, db } = await createPaymentEntities(t, true, {
     id: 'test',
     executeAt: new Date(Date.now() + 100000),
     pendingPlugins: paymentParams.sendingPriority
@@ -634,15 +628,14 @@ test('PaymentObject.failCurrentPlugin', async t => {
   t.is(fail.callCount, 1)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentObject.isFinal', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     id: 'test',
     executeAt: new Date(Date.now() + 100000),
     pendingPlugins: paymentParams.sendingPriority
@@ -667,15 +660,14 @@ test('PaymentObject.isFinal', async t => {
   t.is(isFinal.callCount, 3)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentObject.isFailed', async t => {
-  const { sender, receiver, paymentObject, db } = await createPaymentEntities(t, true, {
+  const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     id: 'test',
     executeAt: new Date(Date.now() + 100000),
     pendingPlugins: paymentParams.sendingPriority
@@ -709,8 +701,7 @@ test('PaymentObject.isFailed', async t => {
   t.is(isFailed.callCount, 4)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
     sinon.restore()
   })

@@ -12,7 +12,7 @@ const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 const { getOneTimePaymentOrderEntities, dropTables } = require('../helpers')
 
 test('PaymentManager.constructor', async t => {
-  const { sender, receiver, db } = await getOneTimePaymentOrderEntities(t, false, false)
+  const { sender, db, relay } = await getOneTimePaymentOrderEntities(t, false, false)
 
   const paymentManager = new PaymentManager(config, db, sender)
 
@@ -22,14 +22,13 @@ test('PaymentManager.constructor', async t => {
   t.is(paymentManager.ready, false)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentManager.init', async t => {
-  const { sender, receiver, db } = await getOneTimePaymentOrderEntities(t)
+  const { sender, db, relay } = await getOneTimePaymentOrderEntities(t)
   const paymentManager = new PaymentManager(config, db, sender)
 
   const dbInit = sinon.stub(db, 'init').resolves()
@@ -42,36 +41,34 @@ test('PaymentManager.init', async t => {
   t.is(stInit.calledOnce, true)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentManager.createPaymentOrder', async t => {
-  const { sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true, false)
+  const { sender, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, sender)
   await paymentManager.init()
 
   const paymentOrder = await paymentManager.createPaymentOrder({
     ...paymentParams,
-    counterpartyURL: sender.getUrl()
+    counterpartyURL: await sender.getUrl()
   })
 
   const got = await db.getOrder(paymentOrder.id)
   t.alike(got, paymentOrder)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentManager.sendPayment', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, sender, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const p2shStub = require('../fixtures/p2sh/main.js')
@@ -85,15 +82,14 @@ test('PaymentManager.sendPayment', async t => {
   t.ok(p2shStub.init.getCall(0).returnValue.pay.calledOnce)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentManager.receivePayments', async t => {
-  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, false, false)
+  const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, false, false)
 
   const validConfig = { ...config }
   validConfig.plugins = {
@@ -105,18 +101,17 @@ test('PaymentManager.receivePayments', async t => {
   await paymentManager.init()
   const url = await paymentManager.receivePayments()
 
-  t.ok(url.includes(receiver.getUrl()))
+  t.ok(url.includes(await receiver.getUrl()))
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentManager.handleNewPayment', async t => {
-  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
+  const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, receiver, console.log)
   await paymentManager.init()
@@ -149,7 +144,7 @@ test('PaymentManager.handleNewPayment', async t => {
   t.ok(got.orderId)
   t.is(got.clientOrderId, 'network-id')
   t.is(got.internalState, PAYMENT_STATE.COMPLETED)
-  t.is(got.counterpartyURL, receiver.getUrl())
+  t.is(got.counterpartyURL, await receiver.getUrl())
   t.is(got.memo, '')
   t.is(got.amount, '1000')
   t.is(got.currency, 'BTC')
@@ -164,15 +159,14 @@ test('PaymentManager.handleNewPayment', async t => {
   t.ok(got.completedByPlugin.endAt)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentManager.handlePaymentUpdate', async t => {
-  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
+  const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, receiver, console.log)
   await paymentManager.init()
@@ -181,7 +175,7 @@ test('PaymentManager.handlePaymentUpdate', async t => {
 
   const paymentOrder = await paymentManager.createPaymentOrder({
     ...paymentParams,
-    counterpartyURL: receiver.getUrl()
+    counterpartyURL: await receiver.getUrl()
   })
   await paymentManager.sendPayment(paymentOrder.id)
 
@@ -194,22 +188,21 @@ test('PaymentManager.handlePaymentUpdate', async t => {
   t.is(stub.callCount, 2)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentManager.entryPointForUser', async t => {
-  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
+  const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, receiver)
   await paymentManager.init()
 
   const paymentOrder = await paymentManager.createPaymentOrder({
     ...paymentParams,
-    counterpartyURL: receiver.getUrl()
+    counterpartyURL: await receiver.getUrl()
   })
   await paymentManager.sendPayment(paymentOrder.id)
 
@@ -217,15 +210,14 @@ test('PaymentManager.entryPointForUser', async t => {
   await paymentManager.entryPointForUser(data)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentManager.entryPointForPlugin waiting for client', async t => {
-  const { receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true, false)
+  const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager(config, db, receiver)
   await paymentManager.init()
@@ -246,9 +238,8 @@ test('PaymentManager.entryPointForPlugin waiting for client', async t => {
   t.is(handlePaymentUpdateStub.calledOnce, true)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })

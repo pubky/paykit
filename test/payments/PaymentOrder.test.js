@@ -1,5 +1,6 @@
 const { test } = require('brittle')
 const sinon = require('sinon')
+const { Relay } = require('@synonymdev/web-relay')
 
 const { DB } = require('../../src/DB')
 
@@ -10,17 +11,16 @@ const { PaymentObject } = require('../../src/payments/PaymentObject')
 const { orderParams } = require('../fixtures/paymentParams')
 
 const { PaymentOrder, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
-const createTestnet = require('@hyperswarm/testnet')
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
 
-const { getOneTimePaymentOrderEntities, sleep, dropTables } = require('../helpers')
+const { getOneTimePaymentOrderEntities, sleep, dropTables, tmpdir } = require('../helpers')
 
 test('PaymentOrder - new (default one time)', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, receiver, db, relay } = await getOneTimePaymentOrderEntities(t)
 
   t.alike(paymentOrder.orderParams, {
     ...orderParams,
-    counterpartyURL: receiver.getUrl()
+    counterpartyURL: await receiver.getUrl()
   })
   t.is(paymentOrder.clientOrderId, orderParams.clientOrderId)
   t.alike(paymentOrder.payments, [])
@@ -30,12 +30,11 @@ test('PaymentOrder - new (default one time)', async t => {
   t.is(paymentOrder.state, ORDER_STATE.CREATED)
 
   t.alike(paymentOrder.amount, new PaymentAmount(orderParams))
-  t.is(paymentOrder.counterpartyURL, receiver.getUrl())
+  t.is(paymentOrder.counterpartyURL, await receiver.getUrl())
   t.is(paymentOrder.memo, orderParams.memo || '')
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
@@ -54,7 +53,7 @@ test('PaymentOrder - new (invalid frequency)', async t => {
 })
 
 test('PaymentOrder.init', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, receiver, db, relay } = await getOneTimePaymentOrderEntities(t)
   t.absent(paymentOrder.id)
   await paymentOrder.init()
 
@@ -67,7 +66,7 @@ test('PaymentOrder.init', async t => {
     clientOrderId: orderParams.clientOrderId,
     state: ORDER_STATE.INITIALIZED,
     frequency: 0,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
@@ -84,7 +83,7 @@ test('PaymentOrder.init', async t => {
     id: paymentOrder.payments[0].id,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     direction: 'OUT',
     memo: '',
     sendingPriority: orderParams.sendingPriority,
@@ -101,14 +100,13 @@ test('PaymentOrder.init', async t => {
   })
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.serialize', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, receiver, db, relay } = await getOneTimePaymentOrderEntities(t)
 
   const serialized = paymentOrder.serialize()
   t.alike(serialized, {
@@ -116,7 +114,7 @@ test('PaymentOrder.serialize', async t => {
     clientOrderId: orderParams.clientOrderId,
     state: ORDER_STATE.CREATED,
     frequency: 0,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
@@ -128,14 +126,13 @@ test('PaymentOrder.serialize', async t => {
   })
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.save', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, receiver, db, relay } = await getOneTimePaymentOrderEntities(t)
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
@@ -145,7 +142,7 @@ test('PaymentOrder.save', async t => {
     clientOrderId: orderParams.clientOrderId,
     state: ORDER_STATE.INITIALIZED,
     frequency: 0,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
@@ -161,7 +158,7 @@ test('PaymentOrder.save', async t => {
     id: paymentOrder.payments[0].id,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     memo: '',
     sendingPriority: orderParams.sendingPriority,
     amount: orderParams.amount,
@@ -178,14 +175,13 @@ test('PaymentOrder.save', async t => {
   })
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.update', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t)
   await paymentOrder.init()
   let got
 
@@ -202,14 +198,13 @@ test('PaymentOrder.update', async t => {
   t.is(got.amount, '101')
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.getFirstOutstandingPayment', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t)
   const createRecurringPaymentSpy = sinon.spy(paymentOrder, 'createPaymentForRecurringOrder')
   let outstandingPayment
 
@@ -222,14 +217,13 @@ test('PaymentOrder.getFirstOutstandingPayment', async t => {
   t.alike(outstandingPayment, paymentOrder.payments[0])
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.getPaymentInProgress', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   t.absent(paymentOrder.getPaymentInProgress())
 
   await paymentOrder.init()
@@ -239,14 +233,13 @@ test('PaymentOrder.getPaymentInProgress', async t => {
   t.alike(paymentOrder.getPaymentInProgress(), payment)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.canProcess', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t)
 
   t.not(paymentOrder.canProcess())
 
@@ -254,14 +247,13 @@ test('PaymentOrder.canProcess', async t => {
   t.ok(paymentOrder.canProcess())
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.canProcess - failed payment', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t)
   await paymentOrder.init()
 
   const payment = paymentOrder.payments[0]
@@ -274,14 +266,13 @@ test('PaymentOrder.canProcess - failed payment', async t => {
   t.absent(paymentOrder.canProcess())
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.processPayment', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, receiver, sender, db, relay } = await getOneTimePaymentOrderEntities(t, true)
 
   paymentOrder.id = '1234'
   await paymentOrder.init()
@@ -293,7 +284,7 @@ test('PaymentOrder.processPayment', async t => {
     id: payment.id,
     orderId: paymentOrder.id,
     clientOrderId: orderParams.clientOrderId,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     memo: '',
     direction: 'OUT',
     sendingPriority: orderParams.sendingPriority,
@@ -323,14 +314,13 @@ test('PaymentOrder.processPayment', async t => {
   t.is(serialized.currentPlugin.name, 'p2sh')
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.complete', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   t.is(paymentOrder.state, ORDER_STATE.INITIALIZED)
@@ -361,14 +351,13 @@ test('PaymentOrder.complete', async t => {
   t.is(paymentOrder.state, ORDER_STATE.COMPLETED)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.process', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
   let payment
   let serialized
@@ -381,7 +370,7 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.id, payment.id)
   t.is(serialized.orderId, paymentOrder.id)
   t.is(serialized.clientOrderId, orderParams.clientOrderId)
-  t.is(serialized.counterpartyURL, receiver.getUrl())
+  t.is(serialized.counterpartyURL, await receiver.getUrl())
   t.is(serialized.memo, '')
   t.alike(serialized.sendingPriority, orderParams.sendingPriority)
   t.is(serialized.amount, orderParams.amount)
@@ -407,7 +396,7 @@ test('PaymentOrder.process', async t => {
   t.is(serialized.id, payment.id)
   t.is(serialized.orderId, paymentOrder.id)
   t.is(serialized.clientOrderId, orderParams.clientOrderId)
-  t.is(serialized.counterpartyURL, receiver.getUrl())
+  t.is(serialized.counterpartyURL, await receiver.getUrl())
   t.is(serialized.memo, '')
   t.alike(serialized.sendingPriority, orderParams.sendingPriority)
   t.is(serialized.amount, orderParams.amount)
@@ -444,14 +433,13 @@ test('PaymentOrder.process', async t => {
   t.ok(serialized.completedByPlugin.endAt <= Date.now())
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.cancel', async t => {
-  const { paymentOrder, receiver, sender, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t)
   await paymentOrder.init()
 
   t.ok(paymentOrder.id)
@@ -462,14 +450,13 @@ test('PaymentOrder.cancel', async t => {
   t.is(paymentOrder.payments[0].serialize().internalState, PAYMENT_STATE.CANCELLED)
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
 
 test('PaymentOrder.find', async t => {
-  const { paymentOrder, db, receiver, sender } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, db, sender, relay } = await getOneTimePaymentOrderEntities(t)
   await paymentOrder.init()
   const id = paymentOrder.id
 
@@ -477,8 +464,7 @@ test('PaymentOrder.find', async t => {
   t.alike(got.serialize(), paymentOrder.serialize())
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
+    await relay.close()
     await dropTables(db)
   })
 })
@@ -486,10 +472,14 @@ test('PaymentOrder.find', async t => {
 test('PaymentOrder - recurring order (finite)', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
 
-  const testnet = await createTestnet(3, t.teardown)
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+
   await receiver.create(SLASHPAY_PATH, {
     paymentEndpoints: {
       p2sh: '/public/p2sh.json',
@@ -497,14 +487,16 @@ test('PaymentOrder - recurring order (finite)', async t => {
     }
   })
 
-  const sender = new SlashtagsConnector(testnet)
-  await sender.init()
+  const sender = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
 
   const params = {
     ...orderParams,
     frequency: 1, // 1 ms
     lastPaymentAt: Date.now() + 3,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     amount: '1'
   }
 
@@ -530,9 +522,8 @@ test('PaymentOrder - recurring order (finite)', async t => {
   }
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    await relay.close()
   })
 })
 
@@ -540,9 +531,13 @@ test('PaymentOrder - recurring order (infinite)', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
 
-  const testnet = await createTestnet(3, t.teardown)
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
+
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
   await receiver.create(SLASHPAY_PATH, {
     paymentEndpoints: {
       p2sh: '/public/p2sh.json',
@@ -550,13 +545,16 @@ test('PaymentOrder - recurring order (infinite)', async t => {
     }
   })
 
-  const sender = new SlashtagsConnector(testnet)
-  await sender.init()
+  const sender = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+
   const params = {
     ...orderParams,
     frequency: 1, // 1 ms
     amount: '1',
-    counterpartyURL: receiver.getUrl()
+    counterpartyURL: await receiver.getUrl()
   }
 
   const paymentOrder = new PaymentOrder(params, db, sender)
@@ -588,8 +586,7 @@ test('PaymentOrder - recurring order (infinite)', async t => {
   }
 
   t.teardown(async () => {
-    await receiver.close()
-    await sender.close()
     await dropTables(db)
+    await relay.close()
   })
 })
