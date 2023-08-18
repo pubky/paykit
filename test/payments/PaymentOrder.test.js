@@ -509,11 +509,6 @@ test('PaymentOrder - recurring order (finite)', async t => {
   t.ok(paymentOrder.payments.length >= 2)
 
   for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
-
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
     const res = await paymentOrder.process()
     t.is(res.internalState.internalState, PAYMENT_STATE.IN_PROGRESS)
     await res.complete()
@@ -564,11 +559,6 @@ test('PaymentOrder - recurring order (infinite)', async t => {
   t.is(paymentOrder.payments.length, 100)
 
   for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
-
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
     const res = await paymentOrder.process()
     t.is(res.internalState.internalState, PAYMENT_STATE.IN_PROGRESS)
     await res.complete()
@@ -576,14 +566,8 @@ test('PaymentOrder - recurring order (infinite)', async t => {
     await sleep(1)
   }
 
-  try {
-    // TODO: remove when id is generated
-    await paymentOrder.process()
-  } catch (err) {
-    // needs an ID generator
-  } finally {
-    t.is(paymentOrder.payments.length, 200)
-  }
+  await paymentOrder.process()
+  t.is(paymentOrder.payments.length, 200)
 
   t.teardown(async () => {
     await dropTables(db)

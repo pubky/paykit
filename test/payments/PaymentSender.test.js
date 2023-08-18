@@ -323,11 +323,6 @@ test('PaymentSender - recurring payment all success', async t => {
   const paymentOrder = new PaymentOrder(params, db, sender)
   await paymentOrder.init()
 
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
-
   const pluginManager = new PluginManager(pluginConfig)
 
   const entryPointForPlugin = sinon.spy()
@@ -401,11 +396,6 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
 
   const paymentOrder = new PaymentOrder(params, db, sender)
   await paymentOrder.init()
-
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
 
   const pluginManager = new PluginManager(pluginConfig)
 
@@ -497,11 +487,6 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
 
   const paymentOrder = new PaymentOrder(params, db, sender)
   await paymentOrder.init()
-
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
 
   const pluginManager = new PluginManager(pluginConfig)
 
