@@ -156,7 +156,6 @@ class PaymentObject {
    */
   async init () {
     this.logger.info('Initializing payment')
-    await this.slashtagsConnector.init()
 
     this.logger.debug('Retrieving payment file')
     const paymentFile = await this.slashtagsConnector.readRemote(this.counterpartyURL)

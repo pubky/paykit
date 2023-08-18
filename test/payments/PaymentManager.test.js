@@ -32,13 +32,11 @@ test('PaymentManager.init', async t => {
   const paymentManager = new PaymentManager(config, db, sender)
 
   const dbInit = sinon.stub(db, 'init').resolves()
-  const stInit = sinon.stub(sender, 'init').resolves()
 
   await paymentManager.init()
 
   t.is(paymentManager.ready, true)
   t.is(dbInit.calledOnce, true)
-  t.is(stInit.calledOnce, true)
 
   t.teardown(async () => {
     await dropTables(db)

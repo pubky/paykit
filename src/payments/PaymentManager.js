@@ -39,7 +39,6 @@ class PaymentManager {
    */
   async init () {
     await this.db.init()
-    await this.slashtagsConnector.init()
     this.ready = true
   }
 

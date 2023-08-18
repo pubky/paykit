@@ -47,7 +47,6 @@ export class SlashtagsConnector {
      * Initialize SlashtagsConnector
      * @returns {Promise<void>}
      */
-    init(): Promise<void>;
     /**
      * Read a file from local drive
      * @param {string} path - path to the file

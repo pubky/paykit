@@ -51,8 +51,6 @@ class SlashtagsConnector {
    * Initialize SlashtagsConnector
    * @returns {Promise<void>}
    */
-  async init () {
-  }
 
   /**
    * Read a file from local drive
