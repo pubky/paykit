@@ -8,68 +8,9 @@ const { SlashtagsConnector, SLASHPAY_PATH } = require('../src/slashtags')
 const { Relay } = require('@synonymdev/web-relay')
 
 module.exports = {
-  getOneTimePaymentOrderEntities: async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, createOrder = true, opts = {}) {
-    const db = new DB({ name: 'test', path: './test_db' })
-    await db.init()
-
-    const relay = new Relay(tmpdir())
-    await relay.listen(3000)
-
-    const receiver = new SlashtagsConnector({
-      storage: tmpdir(),
-      relay: 'http://localhost:3000'
-    })
-    const sender = new SlashtagsConnector({
-      storage: tmpdir(),
-      relay: 'http://localhost:3000'
-    })
-
-    const params = {
-      ...orderParams,
-      counterpartyURL: await receiver.getUrl(),
-      ...opts
-    }
-
-    if (initializeReceiver) {
-      await receiver.create(SLASHPAY_PATH, {
-        paymentEndpoints: {
-          p2sh: '/public/p2sh.json',
-          p2tr: '/public/p2tr.json'
-        }
-      })
-
-      await receiver.create('/public/p2sh.json', { p2sh: 'test.p2sh' })
-      await receiver.create('/public/p2tr.json', { p2tr: 'test.p2tr' })
-
-      await sleep(100)
-    }
-
-    let paymentOrder
-    if (createOrder) {
-      paymentOrder = new PaymentOrder(params, db, sender)
-    }
-
-    return {
-      db,
-      paymentOrder,
-      receiver,
-      sender,
-      relay
-    }
-  },
-
+  getOneTimePaymentOrderEntities,
   sleep,
-
-  dropTables: async function dropTables (db) {
-    const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
-    return new Promise((resolve, reject) => {
-      db.db.sqlite.exec(statement, (err, res) => {
-        if (err) return reject(err)
-        return resolve(res)
-      })
-    })
-  },
-
+  dropTables,
   tmpdir
 }
 
@@ -79,4 +20,64 @@ function tmpdir () {
 
 async function sleep (ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, createOrder = true, opts = {}) {
+  const db = new DB({ name: 'test', path: './test_db' })
+  await db.init()
+
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
+
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+  const sender = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+
+  const params = {
+    ...orderParams,
+    counterpartyURL: await receiver.getUrl(),
+    ...opts
+  }
+
+  if (initializeReceiver) {
+    await receiver.create(SLASHPAY_PATH, {
+      paymentEndpoints: {
+        p2sh: '/public/p2sh.json',
+        p2tr: '/public/p2tr.json'
+      }
+    })
+
+    await receiver.create('/public/p2sh.json', { p2sh: 'test.p2sh' })
+    await receiver.create('/public/p2tr.json', { p2tr: 'test.p2tr' })
+
+    await sleep(100)
+  }
+
+  let paymentOrder
+  if (createOrder) {
+    paymentOrder = new PaymentOrder(params, db, sender)
+  }
+
+  return {
+    db,
+    paymentOrder,
+    receiver,
+    sender,
+    relay
+  }
+}
+
+async function dropTables (db) {
+  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
+  return new Promise((resolve, reject) => {
+    db.db.sqlite.exec(statement, (err, res) => {
+      if (err) return reject(err)
+      return resolve(res)
+    })
+  })
 }
