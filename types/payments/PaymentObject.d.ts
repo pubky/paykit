@@ -158,7 +158,10 @@ export class PaymentObject {
         internalState: {
             INITIAL: string;
             IN_PROGRESS: string;
-            COMPLETED: string;
+            COMPLETED: string; /**
+             * checks if payment is in final state
+             * @returns {boolean}
+             */
             FAILED: string;
             CANCELLED: string;
         };

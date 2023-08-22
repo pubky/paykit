@@ -69,7 +69,7 @@ class PaymentReceiver {
       direction: PAYMENT_DIRECTION.IN,
       internalState: PAYMENT_STATE.COMPLETED,
 
-      counterpartyURL: this.storage.getUrl(), // we cant really know this so it may always be receiver
+      counterpartyURL: await this.storage.getUrl(), // we cant really know this so it may always be receiver
 
       completedByPlugin: {
         name: payload.pluginName,

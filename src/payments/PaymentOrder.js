@@ -216,6 +216,7 @@ class PaymentOrder {
     if (payment.executeAt > Date.now()) return payment
 
     await payment.init()
+    if (!payment.id) await payment.save()
     await payment.update()
 
     if (this.state !== ORDER_STATE.PROCESSING) {

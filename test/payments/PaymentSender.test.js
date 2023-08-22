@@ -1,6 +1,6 @@
 const sinon = require('sinon')
 const { test } = require('brittle')
-const createTestnet = require('@hyperswarm/testnet')
+const { Relay } = require('@synonymdev/web-relay')
 
 const { DB } = require('../../src/DB')
 
@@ -14,7 +14,7 @@ const { PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentSender, PLUGIN_STATES } = require('../../src/payments/PaymentSender')
 const { PaymentOrder, ORDER_STATE, ERRORS: ORDER_ERRORS } = require('../../src/payments/PaymentOrder')
 
-const { getOneTimePaymentOrderEntities, sleep, dropTables } = require('../helpers')
+const { getOneTimePaymentOrderEntities, sleep, dropTables, tmpdir } = require('../helpers')
 
 test('PaymentSender.constructor', async t => {
   const p2shStub = require('../fixtures/p2sh/main.js')
@@ -22,7 +22,7 @@ test('PaymentSender.constructor', async t => {
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -32,8 +32,7 @@ test('PaymentSender.constructor', async t => {
   t.alike(paymentSender.entryPointForPlugin.toString(), '() => {}')
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
+    await relay.close()
     await dropTables(db)
 
     sinon.restore()
@@ -49,7 +48,7 @@ test('PaymentSender.submit', async t => {
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -77,9 +76,8 @@ test('PaymentSender.submit', async t => {
   t.is(typeof target.p2sh, 'string')
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
     await dropTables(db)
+    relay.close()
 
     sinon.restore()
 
@@ -89,7 +87,7 @@ test('PaymentSender.submit', async t => {
 })
 
 test('PaymentSender.stateUpdateCallback (success)', async t => {
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -110,16 +108,15 @@ test('PaymentSender.stateUpdateCallback (success)', async t => {
   t.is(got.internalState, PAYMENT_STATE.COMPLETED)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
     await dropTables(db)
 
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -152,8 +149,7 @@ test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
   t.is(got.internalState, PAYMENT_STATE.COMPLETED)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
+    await relay.close()
     await dropTables(db)
 
     sinon.restore()
@@ -161,7 +157,7 @@ test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
 })
 
 test('PaymentSender.stateUpdateCallback (intermediate state)', async t => {
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -189,8 +185,7 @@ test('PaymentSender.stateUpdateCallback (intermediate state)', async t => {
   t.alike(got.completedByPlugin, {})
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
+    await relay.close()
     await dropTables(db)
 
     sinon.restore()
@@ -198,7 +193,7 @@ test('PaymentSender.stateUpdateCallback (intermediate state)', async t => {
 })
 
 test('PaymentSender.stateUpdateCallback (failure, failure)', async t => {
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -234,8 +229,7 @@ test('PaymentSender.stateUpdateCallback (failure, failure)', async t => {
   t.alike(got.completedByPlugin, {})
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
+    await relay.close()
     await dropTables(db)
 
     sinon.restore()
@@ -243,7 +237,7 @@ test('PaymentSender.stateUpdateCallback (failure, failure)', async t => {
 })
 
 test('PaymentSender.updatePayment', async t => {
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -259,16 +253,15 @@ test('PaymentSender.updatePayment', async t => {
   t.is(plugin.updatePayment.callCount, 1)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
     await dropTables(db)
 
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentSender.getCurrentPlugin', async t => {
-  const { paymentOrder, sender, receiver, db } = await getOneTimePaymentOrderEntities(t, true)
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()
 
   const pluginManager = new PluginManager(pluginConfig)
@@ -285,26 +278,28 @@ test('PaymentSender.getCurrentPlugin', async t => {
   t.ok(plugin.manifest)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
     await dropTables(db)
 
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentSender - recurring payment all success', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
 
   const p2shStub = require('../fixtures/p2sh/main.js')
   p2shStub.resetAll()
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const testnet = await createTestnet(3, t.teardown)
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
   await receiver.create(SLASHPAY_PATH, {
     paymentEndpoints: {
       p2sh: '/public/p2sh.json',
@@ -312,24 +307,21 @@ test('PaymentSender - recurring payment all success', async t => {
     }
   })
 
-  const sender = new SlashtagsConnector(testnet)
-  await sender.init()
+  const sender = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
 
   const params = {
     ...orderParams,
     frequency: 1, // 1 ms
     lastPaymentAt: Date.now() + 3,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     amount: '1'
   }
 
   const paymentOrder = new PaymentOrder(params, db, sender)
   await paymentOrder.init()
-
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
 
   const pluginManager = new PluginManager(pluginConfig)
 
@@ -356,8 +348,7 @@ test('PaymentSender - recurring payment all success', async t => {
   t.is(paymentSender.paymentOrder.state, ORDER_STATE.COMPLETED)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
+    await relay.close()
     await dropTables(db)
 
     sinon.restore()
@@ -371,14 +362,18 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
 
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
+
   const p2shStub = require('../fixtures/p2sh/main.js')
   p2shStub.resetAll()
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const testnet = await createTestnet(3, t.teardown)
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
   await receiver.create(SLASHPAY_PATH, {
     paymentEndpoints: {
       p2sh: '/public/p2sh.json',
@@ -386,24 +381,21 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
     }
   })
 
-  const sender = new SlashtagsConnector(testnet)
-  await sender.init()
+  const sender = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
 
   const params = {
     ...orderParams,
     frequency: 1, // 1 ms
     lastPaymentAt: Date.now() + 3,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     amount: '1'
   }
 
   const paymentOrder = new PaymentOrder(params, db, sender)
   await paymentOrder.init()
-
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
 
   const pluginManager = new PluginManager(pluginConfig)
 
@@ -447,8 +439,7 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
   await t.exception(async () => { await paymentSender.submit() }, ORDER_ERRORS.CANNONT_PROCESS_ORDER)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
+    await relay.close()
     await dropTables(db)
 
     sinon.restore()
@@ -462,14 +453,18 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
   const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
 
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
+
   const p2shStub = require('../fixtures/p2sh/main.js')
   p2shStub.resetAll()
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const testnet = await createTestnet(3, t.teardown)
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
   await receiver.create(SLASHPAY_PATH, {
     paymentEndpoints: {
       p2sh: '/public/p2sh.json',
@@ -477,24 +472,21 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
     }
   })
 
-  const sender = new SlashtagsConnector(testnet)
-  await sender.init()
+  const sender = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
 
   const params = {
     ...orderParams,
     frequency: 1, // 1 ms
     lastPaymentAt: Date.now() + 3,
-    counterpartyURL: receiver.getUrl(),
+    counterpartyURL: await receiver.getUrl(),
     amount: '1'
   }
 
   const paymentOrder = new PaymentOrder(params, db, sender)
   await paymentOrder.init()
-
-  for (let i = 0; i < paymentOrder.payments.length; i++) {
-    // TODO: remove when id is generated
-    paymentOrder.payments[i].id = paymentOrder.payments[i].id + i
-  }
 
   const pluginManager = new PluginManager(pluginConfig)
 
@@ -548,8 +540,7 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
   t.is(paymentSender.paymentOrder.state, ORDER_STATE.COMPLETED)
 
   t.teardown(async () => {
-    await sender.close()
-    await receiver.close()
+    await relay.close()
     await dropTables(db)
 
     sinon.restore()

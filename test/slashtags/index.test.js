@@ -1,29 +1,10 @@
 const { test } = require('brittle')
-const createTestnet = require('@hyperswarm/testnet')
 
 const { SlashtagsConnector, ERRORS, SLASHPAY_PATH } = require('../../src/slashtags/index.js')
 
-test('SlashtagsConnector - constructor', async t => {
-  const testnet = await createTestnet(3, t.teardown)
+const { tmpdir, sleep } = require('../helpers')
 
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-  t.ok(slashtagsConnector.coreData)
-  t.absent(slashtagsConnector.ready)
-
-  t.teardown(async () => await slashtagsConnector.close())
-})
-
-test('SlashtagsConnector.init', async t => {
-  const testnet = await createTestnet(3, t.teardown)
-
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-  t.ok(slashtagsConnector.coreData)
-
-  await slashtagsConnector.init()
-  t.ok(slashtagsConnector.ready)
-
-  t.teardown(async () => await slashtagsConnector.close())
-})
+const { Relay } = require('@synonymdev/web-relay')
 
 test('SlashtagsConnector.validate', async t => {
   t.exception(() => SlashtagsConnector.validate(), ERRORS.INVALID_JSON)
@@ -40,43 +21,30 @@ test('SlashtagsConnector.validate', async t => {
 })
 
 test('SlashtagsConnector.getUrl', async t => {
-  const testnet = await createTestnet(3, t.teardown)
+  const slashtagsConnector = new SlashtagsConnector()
+  const url = await slashtagsConnector.getUrl()
 
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-
-  await t.exception(async () => await slashtagsConnector.create(), ERRORS.NOT_READY)
-  await slashtagsConnector.init()
-
-  t.is(slashtagsConnector.getUrl(), slashtagsConnector.coreData.url)
+  t.ok(url.startsWith('slash'))
 
   t.teardown(async () => await slashtagsConnector.close())
 })
 
 test('SlashtagsConnector.create', async t => {
-  const testnet = await createTestnet(3, t.teardown)
-
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-
-  await t.exception(async () => await slashtagsConnector.create(), ERRORS.NOT_READY)
-  await slashtagsConnector.init()
+  const slashtagsConnector = new SlashtagsConnector()
 
   await t.exception(async () => await slashtagsConnector.create(), ERRORS.INVALID_JSON)
 
   const path = '/public/foo.json'
   const url = await slashtagsConnector.create(path, { test: 'test' })
 
-  t.is(url, `${slashtagsConnector.coreData.url}${path}`)
+  // WHY '#' ????
+  t.ok(url.startsWith('slash') && url.endsWith('/public/foo.json#'))
 
   t.teardown(async () => await slashtagsConnector.close())
 })
 
 test('SlashtagsConnector.readLocal - default path', async t => {
-  const testnet = await createTestnet(3, t.teardown)
-
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-
-  await t.exception(async () => await slashtagsConnector.readLocal(), ERRORS.NOT_READY)
-  await slashtagsConnector.init()
+  const slashtagsConnector = new SlashtagsConnector()
 
   const path = SLASHPAY_PATH
   const stored = { test: 'test' }
@@ -89,14 +57,9 @@ test('SlashtagsConnector.readLocal - default path', async t => {
 })
 
 test('SlashtagsConnector.readLocal - non-default path', async t => {
-  const testnet = await createTestnet(3, t.teardown)
-
-  const slashtagsConnector = new SlashtagsConnector(testnet)
+  const slashtagsConnector = new SlashtagsConnector()
 
   const path = '/foo.json'
-
-  await t.exception(async () => await slashtagsConnector.readLocal(path), ERRORS.NOT_READY)
-  await slashtagsConnector.init()
 
   const stored = { test: 'test' }
   await slashtagsConnector.create(path, stored)
@@ -108,61 +71,60 @@ test('SlashtagsConnector.readLocal - non-default path', async t => {
 })
 
 test('SlashtagsConnector.readRemote - default path', async t => {
-  const testnet = await createTestnet(3, t.teardown)
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
 
-  const slashtagsConnectorReader = new SlashtagsConnector(testnet)
-  await t.exception(async () => await slashtagsConnectorReader.readRemote(), ERRORS.NOT_READY)
-  await slashtagsConnectorReader.init()
-
-  const slashtagsConnectorWriter = new SlashtagsConnector(testnet)
-  await t.exception(async () => await slashtagsConnectorWriter.readRemote(), ERRORS.NOT_READY)
-  await slashtagsConnectorWriter.init()
+  const slashtagsConnectorReader = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+  const slashtagsConnectorWriter = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
 
   await t.exception(async () => await slashtagsConnectorReader.readRemote(), ERRORS.INVALID_URL)
 
   const stored = { test: 'test' }
-  await slashtagsConnectorWriter.create(SLASHPAY_PATH, stored)
-  const url = slashtagsConnectorWriter.getUrl()
+  const source = await slashtagsConnectorWriter.create(SLASHPAY_PATH, stored)
 
-  const read = await slashtagsConnectorReader.readRemote(url)
+  const read = await slashtagsConnectorReader.readRemote(source)
   t.alike(read, stored)
 
   t.teardown(async () => {
-    await slashtagsConnectorReader.close()
-    await slashtagsConnectorWriter.close()
+    await relay.close()
   })
 })
 
 test('SlashtagsConnector.readRemote - non-default public path', async t => {
-  const testnet = await createTestnet(3, t.teardown)
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
 
-  const slashtagsConnectorReader = new SlashtagsConnector(testnet)
-  await t.exception(async () => await slashtagsConnectorReader.readRemote(), ERRORS.NOT_READY)
-  await slashtagsConnectorReader.init()
-
-  const slashtagsConnectorWriter = new SlashtagsConnector(testnet)
-  await t.exception(async () => await slashtagsConnectorWriter.readRemote(), ERRORS.NOT_READY)
-  await slashtagsConnectorWriter.init()
+  const slashtagsConnectorReader = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+  const slashtagsConnectorWriter = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
 
   const path = '/public/foo.json'
   const stored = { test: 'test' }
   const urlPath = await slashtagsConnectorWriter.create(path, stored)
 
+  await sleep(100)
+
   const read = await slashtagsConnectorReader.readRemote(urlPath)
   t.alike(read, stored)
 
   t.teardown(async () => {
-    await slashtagsConnectorReader.close()
-    await slashtagsConnectorWriter.close()
+    await relay.close()
   })
 })
 
 test('SlashtagsConnector.update', async t => {
-  const testnet = await createTestnet(3, t.teardown)
-
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-  await t.exception(async () => await slashtagsConnector.readLocal(), ERRORS.NOT_READY)
-  await slashtagsConnector.init()
+  const slashtagsConnector = new SlashtagsConnector()
 
   const path = '/public/foo.json'
   const stored = { test: 'test' }
@@ -181,11 +143,7 @@ test('SlashtagsConnector.update', async t => {
 })
 
 test('SlashtagsConnector.delete - index', async t => {
-  const testnet = await createTestnet(3, t.teardown)
-
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-  await t.exception(async () => await slashtagsConnector.readLocal(), ERRORS.NOT_READY)
-  await slashtagsConnector.init()
+  const slashtagsConnector = new SlashtagsConnector()
 
   const indexPath = SLASHPAY_PATH
   const paymentPath = '/public/test.json'
@@ -216,11 +174,7 @@ test('SlashtagsConnector.delete - index', async t => {
 })
 
 test('SlashtagsConnector.delete - payment file', async t => {
-  const testnet = await createTestnet(3, t.teardown)
-
-  const slashtagsConnector = new SlashtagsConnector(testnet)
-  await t.exception(async () => await slashtagsConnector.readLocal(), ERRORS.NOT_READY)
-  await slashtagsConnector.init()
+  const slashtagsConnector = new SlashtagsConnector()
 
   let readIndex
   const indexPath = SLASHPAY_PATH

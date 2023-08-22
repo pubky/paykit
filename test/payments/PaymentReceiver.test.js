@@ -1,3 +1,4 @@
+const { Relay } = require('@synonymdev/web-relay')
 const sinon = require('sinon')
 const { test } = require('brittle')
 
@@ -5,7 +6,6 @@ const { DB } = require('../../src/DB')
 const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
-const createTestnet = require('@hyperswarm/testnet')
 
 const { PluginManager } = require('../../src/plugins/PluginManager')
 
@@ -13,22 +13,25 @@ const { pluginConfig } = require('../fixtures/config.js')
 
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
-const { dropTables } = require('../helpers')
+const { dropTables, tmpdir } = require('../helpers')
 
 async function createStorageEntities (t) {
-  const testnet = await createTestnet(3, t)
-
   const db = new DB({ name: 'test', path: './test_db' })
   await db.init()
 
-  const receiver = new SlashtagsConnector(testnet)
-  await receiver.init()
+  const relay = new Relay(tmpdir())
+  await relay.listen(3000)
 
-  return { db, receiver }
+  const receiver = new SlashtagsConnector({
+    storage: tmpdir(),
+    relay: 'http://localhost:3000'
+  })
+
+  return { db, receiver, relay }
 }
 
 test('PaymentReceiver', async t => {
-  const { db, receiver } = await createStorageEntities(t)
+  const { db, receiver, relay } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
   await pluginManager.loadPlugin('p2sh')
@@ -42,13 +45,13 @@ test('PaymentReceiver', async t => {
   t.alike(paymentReceiver.notificationCallback.toString(), notificationCallback.toString())
 
   t.teardown(async () => {
-    await receiver.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentReceiver.init', async t => {
-  const { db, receiver } = await createStorageEntities(t)
+  const { db, receiver, relay } = await createStorageEntities(t)
 
   const receiverCreate = sinon.replace(receiver, 'create', sinon.fake(receiver.create))
   const generateSlashpayContent = sinon.replace(
@@ -73,14 +76,14 @@ test('PaymentReceiver.init', async t => {
   t.is(generateSlashpayContent.callCount, 1)
 
   t.teardown(async () => {
-    await receiver.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentReceiver.handleNewPayment', async t => {
-  const { db, receiver } = await createStorageEntities(t)
+  const { db, receiver, relay } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
   await pluginManager.loadPlugin('p2sh')
@@ -106,7 +109,7 @@ test('PaymentReceiver.handleNewPayment', async t => {
   t.ok(payment.orderId)
   t.is(payment.clientOrderId, 'network-id')
   t.is(payment.internalState, PAYMENT_STATE.COMPLETED)
-  t.is(payment.counterpartyURL, receiver.getUrl())
+  t.is(payment.counterpartyURL, await receiver.getUrl())
   t.is(payment.memo, '')
   t.is(payment.amount, '1000')
   t.is(payment.currency, 'BTC')
@@ -127,14 +130,14 @@ test('PaymentReceiver.handleNewPayment', async t => {
   t.is(pluginDispatch.callCount, 1)
 
   t.teardown(async () => {
-    await receiver.close()
     await dropTables(db)
     sinon.restore()
+    relay.close()
   })
 })
 
 test('PaymentReceiver.generateSlashpayContent - no amount', async t => {
-  const { db, receiver } = await createStorageEntities(t)
+  const { db, receiver, relay } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
   await pluginManager.loadPlugin('p2sh')
@@ -151,13 +154,13 @@ test('PaymentReceiver.generateSlashpayContent - no amount', async t => {
   })
 
   t.teardown(async () => {
-    await receiver.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentReceiver.generateSlashpayContent - with amount', async t => {
-  const { db, receiver } = await createStorageEntities(t)
+  const { db, receiver, relay } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
   await pluginManager.loadPlugin('p2sh')
@@ -174,13 +177,13 @@ test('PaymentReceiver.generateSlashpayContent - with amount', async t => {
   })
 
   t.teardown(async () => {
-    await receiver.close()
     await dropTables(db)
+    relay.close()
   })
 })
 
 test('PaymentReceiver.getListOfSupportedPaymentMethods', async t => {
-  const { db, receiver } = await createStorageEntities(t)
+  const { db, receiver, relay } = await createStorageEntities(t)
 
   const pluginManager = new PluginManager(pluginConfig)
   await pluginManager.loadPlugin('p2sh')
@@ -191,7 +194,7 @@ test('PaymentReceiver.getListOfSupportedPaymentMethods', async t => {
   t.alike(supportedPaymentMethods, ['p2sh'])
 
   t.teardown(async () => {
-    await receiver.close()
     await dropTables(db)
+    relay.close()
   })
 })

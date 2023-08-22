@@ -1,9 +1,5 @@
 export type Error = {
     /**
-     * - SlashtagsConnector is not ready
-     */
-    NOT_READY: string;
-    /**
      * - Invalid JSON
      */
     INVALID_JSON: string;
@@ -35,8 +31,7 @@ export type Error = {
  * @property {string | object} [params.storage] storage path or Random Access Storage instance
  * @property {Array<{host: string, port: number}>} [params.bootstrap] bootstrapping nodes for HyperDHT
  * @property {Uint8Array} [params.seedersTopic] topic for seeders discovery
- * @property {CoreData} coreData - core data instance
- * @property {boolean} ready - is SlashtagsConnector ready
+ * @property {client} client - core data instance
  */
 export class SlashtagsConnector {
     /**
@@ -47,18 +42,15 @@ export class SlashtagsConnector {
      */
     static validate(data: any | string): void;
     constructor(params: any);
-    coreData: any;
-    ready: boolean;
+    client: any;
     /**
      * Initialize SlashtagsConnector
      * @returns {Promise<void>}
      */
-    init(): Promise<void>;
     /**
      * Read a file from local drive
      * @param {string} path - path to the file
      * @returns {Promise<Object|null>} - content of the file or null
-     * @throws {Error} - if SlashtagsConnector is not ready
      * @throws {Error} - if path is not valid
      */
     readLocal(path?: string): Promise<any | null>;
@@ -67,7 +59,6 @@ export class SlashtagsConnector {
      * @param {string} url - url to the file
      * @param {Object} opts
      * @returns {Promise<Object|null>} - content of the file or null
-     * @throws {Error} - if SlashtagsConnector is not ready
      * @throws {Error} - if url is not valid
      */
     readRemote(url: string, opts?: any): Promise<any | null>;
@@ -77,14 +68,12 @@ export class SlashtagsConnector {
      * @param {Object} value - object to be stored
      * @param {Object} opts
      * @returns {Promise<string>} - url to the file
-     * @throws {Error} - if SlashtagsConnector is not ready
      * @throws {Error} - if value is not valid JSON
      */
     create(key: string, value: any, opts?: any): Promise<string>;
     /**
      * Get url to a drive
      * @returns {string}
-     * @throws {Error} - if SlashtagsConnector is not ready
      */
     getUrl(): string;
     /**
@@ -93,7 +82,6 @@ export class SlashtagsConnector {
      * @param {Object} value - new value
      * @param {Object} opts
      * @returns {Promise<void>}
-     * @throws {Error} - if SlashtagsConnector is not ready
      * @throws {Error} - if value is not valid JSON
      */
     update(key: string, value: any, opts?: any): Promise<void>;
@@ -102,7 +90,6 @@ export class SlashtagsConnector {
      * @param {string} key - path to file
      * @param {Object} opts
      * @returns {Promise<void>}
-     * @throws {Error} - if SlashtagsConnector is not ready
      * @throws {Error} - if index is not found
      * @throws {Error} - if file is not referenced in index
      */
@@ -114,7 +101,6 @@ export class SlashtagsConnector {
     close(): Promise<void>;
 }
 export namespace ERRORS {
-    const NOT_READY: string;
     const INVALID_JSON: string;
     const INVALID_URL: string;
     const INDEX_NOT_FOUND: string;
