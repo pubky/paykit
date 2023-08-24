@@ -2,7 +2,7 @@ const readline = require('readline')
 
 const { SlashtagsConnector } = require('../src/slashtags')
 const { PaymentManager } = require('../src/payments/PaymentManager')
-const { DB } = require('../src/DB') // mocked
+const { DB } = require('../src/DB')
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -24,8 +24,7 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
     onchain: pluginConfig.plugin
   }
 
-  const slashtagsConnector = new SlashtagsConnector()
-  await slashtagsConnector.init()
+  const slashtagsConnector = new SlashtagsConnector({ relay: 'http://localhost:3000' })
   const db = new DB(pluginConfig.db)
   await db.init()
 

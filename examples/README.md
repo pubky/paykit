@@ -1,8 +1,10 @@
 # Basic slashpay example:
 
+Start slashtags relay:
+`node relay.js`
+
 For the first counterparty run
 `node index.js <path to config>`
-
 
 In separate session run with different config file, ideally connected to different lnd node.
 
