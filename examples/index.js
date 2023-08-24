@@ -28,12 +28,14 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   const db = new DB(pluginConfig.db)
   await db.init()
 
-  const paymentManager = new PaymentManager(
-    slashpayConfig,
-    db,
-    slashtagsConnector,
-    (p) => console.log('--- nofication: ', p)
-  )
+  const paymentManager = new PaymentManager({
+    config: {
+      slashpay: slashpayConfig,
+      db: pluginConfig.db,
+      slashtags: { relay: 'http://localhost:3000' }
+    },
+    notificationCallback: (p) => console.log('--- nofication: ', p)
+  })
 
   await paymentManager.init() // receiver
   const myUrl = await paymentManager.receivePayments()

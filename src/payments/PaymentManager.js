@@ -3,6 +3,8 @@ const { PluginManager } = require('../plugins/PluginManager')
 const { PaymentOrder } = require('./PaymentOrder')
 const { PaymentSender } = require('./PaymentSender')
 const { PaymentReceiver } = require('./PaymentReceiver')
+const { DB } = require('../DB')
+const { SlashtagsConnector } = require('../slashtags')
 
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
@@ -23,11 +25,15 @@ class PaymentManager {
    * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
    * @param {Function} notificationCallback - callback function for user notifications
    */
-  // TODO: change config, instantiate db and slashtagsConnector inside the constructor if not passed
-  constructor (config, db, slashtagsConnector, notificationCallback) {
-    this.config = config
-    this.db = db
-    this.slashtagsConnector = slashtagsConnector
+  constructor ({ config, db, slashtagsConnector, notificationCallback }) {
+    if (!config) throw new Error('')
+    if (!db && !config.db) throw new Error('')
+    if (!slashtagsConnector && !config.slashtags) throw new Error('')
+
+    this.config = config.slashpay || config
+
+    this.db = db || new DB(config.db)
+    this.slashtagsConnector = slashtagsConnector || new SlashtagsConnector(config.slashtags)
     this.pluginManager = new PluginManager(this.config)
     this.notificationCallback = notificationCallback
 
