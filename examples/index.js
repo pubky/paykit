@@ -1,8 +1,6 @@
 const readline = require('readline')
 
-const { SlashtagsConnector } = require('../src/slashtags')
 const { PaymentManager } = require('../src/payments/PaymentManager')
-const { DB } = require('../src/DB')
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -23,10 +21,6 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
     bolt11: pluginConfig.plugin,
     onchain: pluginConfig.plugin
   }
-
-  const slashtagsConnector = new SlashtagsConnector({ relay: 'http://localhost:3000' })
-  const db = new DB(pluginConfig.db)
-  await db.init()
 
   const paymentManager = new PaymentManager({
     config: {
@@ -61,7 +55,6 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
 
   rl.on('close', async () => {
     console.log('bye')
-    await slashtagsConnector.close()
     // XXX: stop plugins shutting down the subscriptions to addresses and invoices
     process.exit(0)
   })
