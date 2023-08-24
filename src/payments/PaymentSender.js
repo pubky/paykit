@@ -99,7 +99,6 @@ class PaymentSender {
     // XXX: this should never happen
     if (!payment) throw new Error('No payment in process')
 
-    // TODO: implement properly but first decide what "properly" means
     payment.pluginUpdate = update
     await payment.update()
     await this.handlePluginState(payment)
@@ -131,6 +130,7 @@ class PaymentSender {
    */
   async handleFailure (payment) {
     await payment.failCurrentPlugin()
+    await this.entryPointForPlugin(payment.pluginUpdate) // report failed payment to user
     try {
       await this.submit() // retry with next plugin
     } catch (e) {
@@ -153,21 +153,12 @@ class PaymentSender {
 
     try {
       await this.paymentOrder.complete()
-
-      // XXX: this is probably not needed as we expect plugin to do this call
-      // leaving it here for now as plugins are not implemented yet
-      await this.entryPointForPlugin({
-        type: 'payment_order_complete', // TODO: make this a constant
-        data: this.paymentOrder
-      })
       return
     } catch (e) {
-      if (ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
+      if (e.message === ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
         // RECURRING PAYMENT territory
         await this.submit()
 
-        // XXX: this is probably not needed as we expect plugin to do this call
-        // leaving it here for now as plugins are not implemented yet
         await this.entryPointForPlugin({
           type: 'payment_order_partially_complete', // TODO: make this a constant
           data: this.paymentOrder
