@@ -118,10 +118,7 @@ class PaymentManager {
     } else if (payload.type === PAYLOAD_TYPE.PAYMENT_ORDER_COMPLETED) {
       await this.userNotificationEndpoint(payload)
     } else if (payload.type === PAYLOAD_TYPE.READY_TO_RECEIVE) {
-      // TODO: move to helper
-      // FIXME: if amount was passed path will be private
-      const path = `public/slashpay/${payload.pluginName}/slashpay.json`
-      await this.slashtagsConnector.create(path, payload.data)
+      await this.createPaymentFile(payload)
     } else {
       await this.userNotificationEndpoint(payload)
     }
@@ -188,6 +185,16 @@ class PaymentManager {
    */
   async userNotificationEndpoint (payload) {
     this.notificationCallback(payload)
+  }
+
+  /**
+   * Create payment file
+   * @param {Object} payload - data to be written to the payment file
+   */
+  async createPaymentFile (payload) {
+    const subPath = payload.amountWasSpecified ? payload.pluginName : payload.id
+    const path = `public/slashpay/${subPath}/slashpay.json`
+    await this.slashtagsConnector.create(path, payload.data)
   }
 }
 
