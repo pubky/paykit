@@ -23,6 +23,7 @@ class PaymentManager {
    * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
    * @param {Function} notificationCallback - callback function for user notifications
    */
+  // TODO: change config, instantiate db and slashtagsConnector inside the constructor if not passed
   constructor (config, db, slashtagsConnector, notificationCallback) {
     this.config = config
     this.db = db
@@ -114,12 +115,7 @@ class PaymentManager {
       // TODO: move to helper
       // FIXME: if amount was passed path will be private
       const path = `public/slashpay/${payload.pluginName}/slashpay.json`
-      try {
-        await this.slashtagsConnector.create(path, payload.data)
-      } catch (e) {
-        // FIXME: error check
-        await this.slashtagsConnector.update(path, payload.data)
-      }
+      await this.slashtagsConnector.create(path, payload.data)
     } else {
       await this.userNotificationEndpoint(payload)
     }
