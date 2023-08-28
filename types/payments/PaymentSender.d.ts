@@ -4,6 +4,7 @@ export type PLUGIN_STATES = {
 };
 export type ERRORS = {
     NO_PLUGINS_AVAILABLE: string;
+    PAYMENT_TARGET_NOT_FOUND: string;
 };
 /**
  * PaymentSender - class for processing outgoing payment orders
@@ -77,4 +78,5 @@ export namespace PLUGIN_STATES {
 }
 export namespace ERRORS {
     const NO_PLUGINS_AVAILABLE: string;
+    const PAYMENT_TARGET_NOT_FOUND: string;
 }

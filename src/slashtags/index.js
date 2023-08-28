@@ -85,7 +85,20 @@ class SlashtagsConnector {
   }
 
   /**
-   * Read a file
+   * Update url
+   * @param {string} url - url to the file
+   * @param {Object} update - update to be applied
+   * @returns {string} - updated url
+   * @throws {Error} - if url is not valid
+   */
+  updateUrl (url, update = {}) {
+    const parsed = SlashtagsURL.parse(url)
+    Object.assign(parsed, update)
+    return SlashtagsURL.format(parsed.key, parsed)
+  }
+
+  /**
+   * Write a file
    * @param {string} key - path to file
    * @param {Object} value - object to be stored
    * @param {Object} opts

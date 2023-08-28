@@ -38,15 +38,13 @@ class PaymentSender {
       denomination: serialized.denomination
     }
 
-    const read = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
-    const pluginURL = payment.counterpartyURL.split('/')[0] + read.paymentEndpoints[name]
-    // Payments with specified amount are done to the full path to slashpay.json
-    // which must also include encryption key to the payee private drive
-
-    const pluginData = await payment.slashtagsConnector.readRemote(pluginURL)
+    const { paymentEndpoints } = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
+    const paymentUrl = payment.slashtagsConnector.updateUrl(payment.counterpartyURL, { path: paymentEndpoints[name] })
+    const target = await payment.slashtagsConnector.readRemote(paymentUrl)
+    if (!target) throw new Error(ERRORS.PAYMENT_TARGET_NOT_FOUND)
 
     await plugin.pay({
-      target: pluginData,
+      target,
       payload,
       notificationCallback: this.stateUpdateCallback.bind(this)
     })
@@ -173,9 +171,11 @@ class PaymentSender {
 /**
  * @typedef {Object} ERRORS
  * @property {String} NO_PLUGINS_AVAILABLE
+ * @property {String} PAYMENT_TARGET_NOT_FOUND
  */
 const ERRORS = {
-  NO_PLUGINS_AVAILABLE: 'No plugins available for making payment'
+  NO_PLUGINS_AVAILABLE: 'No plugins available for making payment',
+  PAYMENT_TARGET_NOT_FOUND: 'Payment target not found'
 }
 
 /**

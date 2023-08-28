@@ -26,9 +26,9 @@ class PaymentManager {
    * @param {Function} notificationCallback - callback function for user notifications
    */
   constructor ({ config, db, slashtagsConnector, notificationCallback }) {
-    if (!config) throw new Error('')
-    if (!db && !config.db) throw new Error('')
-    if (!slashtagsConnector && !config.slashtags) throw new Error('')
+    if (!config) throw new Error(ERRORS.MISSING_CONFIG)
+    if (!db && !config.db) throw new Error(ERRORS.MISSING_DB)
+    if (!slashtagsConnector && !config.slashtags) throw new Error(ERRORS.MISSING_SLASHTAGS_CONNECTOR)
 
     this.config = config.slashpay || config
 
@@ -192,7 +192,7 @@ class PaymentManager {
    * @param {Object} payload - data to be written to the payment file
    */
   async createPaymentFile (payload) {
-    const subPath = payload.amountWasSpecified ? payload.pluginName : payload.id
+    const subPath = payload.amountWasSpecified ? payload.id : payload.pluginName
     const path = `public/slashpay/${subPath}/slashpay.json`
     await this.slashtagsConnector.create(path, payload.data)
   }
@@ -212,7 +212,20 @@ const PAYLOAD_TYPE = {
   READY_TO_RECEIVE: 'ready_to_receive'
 }
 
+/**
+ * @typedef {Object} Errors
+ * @property {String} MISSING_CONFIG - Missing config
+ * @property {String} MISSING_DB - Missing db
+ * @property {String} MISSING_SLASHTAGS_CONNECTOR - Missing slashtagsConnector
+ */
+const ERRORS = {
+  MISSING_CONFIG: 'Missing config',
+  MISSING_DB: 'Missing db',
+  MISSING_SLASHTAGS_CONNECTOR: 'Missing slashtagsConnector'
+}
+
 module.exports = {
   PaymentManager,
-  PAYLOAD_TYPE
+  PAYLOAD_TYPE,
+  ERRORS
 }
