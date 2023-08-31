@@ -38,15 +38,13 @@ class PaymentSender {
       denomination: serialized.denomination
     }
 
-    const read = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
-    const pluginURL = payment.counterpartyURL.split('/')[0] + read.paymentEndpoints[name]
-    // Payments with specified amount are done to the full path to slashpay.json
-    // which must also include encryption key to the payee private drive
-
-    const pluginData = await payment.slashtagsConnector.readRemote(pluginURL)
+    const { paymentEndpoints } = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
+    const paymentUrl = payment.slashtagsConnector.updateUrl(payment.counterpartyURL, { path: paymentEndpoints[name] })
+    const target = await payment.slashtagsConnector.readRemote(paymentUrl)
+    if (!target) throw new Error(ERRORS.PAYMENT_TARGET_NOT_FOUND)
 
     await plugin.pay({
-      target: pluginData,
+      target,
       payload,
       notificationCallback: this.stateUpdateCallback.bind(this)
     })
@@ -99,7 +97,6 @@ class PaymentSender {
     // XXX: this should never happen
     if (!payment) throw new Error('No payment in process')
 
-    // TODO: implement properly but first decide what "properly" means
     payment.pluginUpdate = update
     await payment.update()
     await this.handlePluginState(payment)
@@ -131,6 +128,7 @@ class PaymentSender {
    */
   async handleFailure (payment) {
     await payment.failCurrentPlugin()
+    await this.entryPointForPlugin(payment.pluginUpdate) // report failed payment to user
     try {
       await this.submit() // retry with next plugin
     } catch (e) {
@@ -153,21 +151,12 @@ class PaymentSender {
 
     try {
       await this.paymentOrder.complete()
-
-      // XXX: this is probably not needed as we expect plugin to do this call
-      // leaving it here for now as plugins are not implemented yet
-      await this.entryPointForPlugin({
-        type: 'payment_order_complete', // TODO: make this a constant
-        data: this.paymentOrder
-      })
       return
     } catch (e) {
-      if (ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
+      if (e.message === ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
         // RECURRING PAYMENT territory
         await this.submit()
 
-        // XXX: this is probably not needed as we expect plugin to do this call
-        // leaving it here for now as plugins are not implemented yet
         await this.entryPointForPlugin({
           type: 'payment_order_partially_complete', // TODO: make this a constant
           data: this.paymentOrder
@@ -182,9 +171,11 @@ class PaymentSender {
 /**
  * @typedef {Object} ERRORS
  * @property {String} NO_PLUGINS_AVAILABLE
+ * @property {String} PAYMENT_TARGET_NOT_FOUND
  */
 const ERRORS = {
-  NO_PLUGINS_AVAILABLE: 'No plugins available for making payment'
+  NO_PLUGINS_AVAILABLE: 'No plugins available for making payment',
+  PAYMENT_TARGET_NOT_FOUND: 'Payment target not found'
 }
 
 /**

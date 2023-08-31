@@ -306,6 +306,8 @@ test('PaymentSender - recurring payment all success', async t => {
       p2tr: '/public/p2tr.json'
     }
   })
+  await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' })
+  await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),
@@ -380,6 +382,8 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
       p2tr: '/public/p2tr.json'
     }
   })
+  await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' })
+  await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),
@@ -471,6 +475,8 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
       p2tr: '/public/p2tr.json'
     }
   })
+  await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' })
+  await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),

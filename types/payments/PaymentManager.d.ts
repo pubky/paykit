@@ -16,6 +16,20 @@ export type PayloadType = {
      */
     READY_TO_RECEIVE: string;
 };
+export type Errors = {
+    /**
+     * - Missing config
+     */
+    MISSING_CONFIG: string;
+    /**
+     * - Missing db
+     */
+    MISSING_DB: string;
+    /**
+     * - Missing slashtagsConnector
+     */
+    MISSING_SLASHTAGS_CONNECTOR: string;
+};
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
  * with payments. It an implementation of a Facade Pattern. It hides all the complexity of the payment process.
@@ -35,12 +49,12 @@ export class PaymentManager {
      * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
      * @param {Function} notificationCallback - callback function for user notifications
      */
-    constructor(config: any, db: any, slashtagsConnector: SlashtagsConnector, notificationCallback: Function);
+    constructor({ config, db, slashtagsConnector, notificationCallback }: any);
     config: any;
     db: any;
-    slashtagsConnector: SlashtagsConnector;
+    slashtagsConnector: any;
     pluginManager: PluginManager;
-    notificationCallback: Function;
+    notificationCallback: any;
     ready: boolean;
     /**
      * Initialize the payment manager
@@ -107,12 +121,22 @@ export class PaymentManager {
      * @returns {Promise<void>}
      */
     userNotificationEndpoint(payload: any): Promise<void>;
+    /**
+     * Create payment file
+     * @param {Object} payload - data to be written to the payment file
+     */
+    createPaymentFile(payload: any): Promise<void>;
 }
 export namespace PAYLOAD_TYPE {
     const PAYMENT_NEW: string;
     const PAYMENT_UPDATE: string;
     const PAYMENT_ORDER_COMPLETED: string;
     const READY_TO_RECEIVE: string;
+}
+export namespace ERRORS {
+    const MISSING_CONFIG: string;
+    const MISSING_DB: string;
+    const MISSING_SLASHTAGS_CONNECTOR: string;
 }
 import { PluginManager } from "../plugins/PluginManager";
 import { PaymentOrder } from "./PaymentOrder";

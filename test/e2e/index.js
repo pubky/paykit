@@ -1,90 +1,63 @@
 const { test } = require('brittle')
-const createTestnet = require('@hyperswarm/testnet')
 
-const { SlashtagsConnector } = require('../../src/slashtags')
 const { PaymentManager } = require('../../src/payments/PaymentManager')
-const { DB } = require('../../src/DB')
+
+const { tmpdir } = require('../helpers')
+
+const { Relay } = require('@synonymdev/web-relay')
+
+const bolt11 = require('../../plugins/btc-l1-l2-lnd/bolt11.js')
+const onchain = require('../../plugins/btc-l1-l2-lnd/onchain.js')
 
 test('e2e', async (t) => {
-  const testnet = await createTestnet(3, t)
+  const relay = new Relay(tmpdir())
+  relay.listen(3000)
 
-  const configAlice = {
-    CERT: '/Users/dz/.polar/networks/1/volumes/lnd/alice/tls.cert',
-    MACAROON: '/Users/dz/.polar/networks/1/volumes/lnd/alice/data/chain/bitcoin/regtest/admin.macaroon',
-    SOCKET: '127.0.0.1:10007',
-    SUPPORTED_METHODS: ['bolt11', 'p2wpkh'],
-    URL_PREFIX: 'slashpay:'
-  }
-
-  const bolt11Alice = require('../../plugins/btc-l1-l2-lnd/bolt11.js')
-  const onchainAlice = require('../../plugins/btc-l1-l2-lnd/onchain.js')
+  const configAlice = require('../../examples/.configA.js')
 
   const configA = {
-    sendingPriority: [
-      'bolt11',
-      'onchain'
-    ],
-    plugins: {
-      bolt11: bolt11Alice,
-      onchain: onchainAlice
-    },
-    bolt11: configAlice,
-    onchain: configAlice
+    sendingPriority: ['bolt11', 'onchain'],
+    plugins: { bolt11, onchain },
+    bolt11: configAlice.plugin,
+    onchain: configAlice.plugin
   }
 
-  const slashtagsConnectorA = new SlashtagsConnector(testnet)
-  await slashtagsConnectorA.init()
-
-  const dbA = new DB({ name: 'test', path: './test_dba' })
-  await dbA.init()
-  const paymentManagerA = new PaymentManager(
-    configA,
-    dbA,
-    slashtagsConnectorA,
-    (p) => console.log('Receiver:', p)
-  )
+  const paymentManagerA = new PaymentManager({
+    config: {
+      slashpay: configA,
+      db: { name: 'test', path: './test_dba' },
+      slashtags: {
+        storage: tmpdir(),
+        relay: 'http://localhost:3000'
+      }
+    },
+    notificationCallback: (p) => console.log('Receiver:', p)
+  })
 
   await paymentManagerA.init() // receiver
   const url = await paymentManagerA.receivePayments()
 
   // ---------------------------------------------------------------------------------
-  const configBob = {
-    CERT: '/Users/dz/.polar/networks/1/volumes/lnd/bob/tls.cert',
-    MACAROON: '/Users/dz/.polar/networks/1/volumes/lnd/bob/data/chain/bitcoin/regtest/admin.macaroon',
-    SOCKET: '127.0.0.1:10010',
-    SUPPORTED_METHODS: ['bolt11', 'p2wpkh'],
-    URL_PREFIX: 'slashpay:'
-  }
-
-  const bolt11Bob = require('../../plugins/btc-l1-l2-lnd/bolt11.js')
-  const onchainBob = require('../../plugins/btc-l1-l2-lnd/onchain.js')
+  const configBob = require('../../examples/.configB.js')
 
   const configB = {
-    sendingPriority: [
-      'bolt11',
-      'onchain'
-    ],
-    plugins: {
-      bolt11: bolt11Bob,
-      onchain: onchainBob
-    },
-    bolt11: configBob,
-    onchain: configBob
+    sendingPriority: ['bolt11', 'onchain'],
+    plugins: { bolt11, onchain },
+    bolt11: configBob.plugin,
+    onchain: configBob.plugin
   }
 
-  const slashtagsConnectorB = new SlashtagsConnector(testnet)
-  await slashtagsConnectorB.init()
-
-  const dbB = new DB({ name: 'test', path: './test_dbb' })
-  await dbB.init()
-
-  const paymentManagerB = new PaymentManager(
-    configB,
-    dbB,
-    slashtagsConnectorB,
-    (p) => console.log('Sender:', p)
-  )
-
+  const paymentManagerB = new PaymentManager({
+    config: {
+      slashpay: configB,
+      db: { name: 'test', path: './test_dbb' },
+      slashtags: {
+        storage: tmpdir(),
+        relay: 'http://localhost:3000'
+      }
+    },
+    notificationCallback: (p) => console.log('Sender:', p)
+  })
   await paymentManagerB.init() // sender
 
   const paymentOrder = await paymentManagerB.createPaymentOrder({
@@ -100,8 +73,6 @@ test('e2e', async (t) => {
   await paymentManagerB.sendPayment(paymentOrder.id)
 
   t.teardown(async () => {
-    // XXX: stop plugins shutting down the subscriptions to addresses and invoices
-    await slashtagsConnectorA.close()
-    await slashtagsConnectorB.close()
+    await relay.close()
   })
 })

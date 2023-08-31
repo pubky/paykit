@@ -3,6 +3,8 @@ const { PluginManager } = require('../plugins/PluginManager')
 const { PaymentOrder } = require('./PaymentOrder')
 const { PaymentSender } = require('./PaymentSender')
 const { PaymentReceiver } = require('./PaymentReceiver')
+const { DB } = require('../DB')
+const { SlashtagsConnector } = require('../slashtags')
 
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
@@ -23,10 +25,15 @@ class PaymentManager {
    * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
    * @param {Function} notificationCallback - callback function for user notifications
    */
-  constructor (config, db, slashtagsConnector, notificationCallback) {
-    this.config = config
-    this.db = db
-    this.slashtagsConnector = slashtagsConnector
+  constructor ({ config, db, slashtagsConnector, notificationCallback }) {
+    if (!config) throw new Error(ERRORS.MISSING_CONFIG)
+    if (!db && !config.db) throw new Error(ERRORS.MISSING_DB)
+    if (!slashtagsConnector && !config.slashtags) throw new Error(ERRORS.MISSING_SLASHTAGS_CONNECTOR)
+
+    this.config = config.slashpay || config
+
+    this.db = db || new DB(config.db)
+    this.slashtagsConnector = slashtagsConnector || new SlashtagsConnector(config.slashtags)
     this.pluginManager = new PluginManager(this.config)
     this.notificationCallback = notificationCallback
 
@@ -111,15 +118,7 @@ class PaymentManager {
     } else if (payload.type === PAYLOAD_TYPE.PAYMENT_ORDER_COMPLETED) {
       await this.userNotificationEndpoint(payload)
     } else if (payload.type === PAYLOAD_TYPE.READY_TO_RECEIVE) {
-      // TODO: move to helper
-      // FIXME: if amount was passed path will be private
-      const path = `public/slashpay/${payload.pluginName}/slashpay.json`
-      try {
-        await this.slashtagsConnector.create(path, payload.data)
-      } catch (e) {
-        // FIXME: error check
-        await this.slashtagsConnector.update(path, payload.data)
-      }
+      await this.createPaymentFile(payload)
     } else {
       await this.userNotificationEndpoint(payload)
     }
@@ -187,6 +186,16 @@ class PaymentManager {
   async userNotificationEndpoint (payload) {
     this.notificationCallback(payload)
   }
+
+  /**
+   * Create payment file
+   * @param {Object} payload - data to be written to the payment file
+   */
+  async createPaymentFile (payload) {
+    const subPath = payload.amountWasSpecified ? payload.id : payload.pluginName
+    const path = `public/slashpay/${subPath}/slashpay.json`
+    await this.slashtagsConnector.create(path, payload.data)
+  }
 }
 
 /**
@@ -203,7 +212,20 @@ const PAYLOAD_TYPE = {
   READY_TO_RECEIVE: 'ready_to_receive'
 }
 
+/**
+ * @typedef {Object} Errors
+ * @property {String} MISSING_CONFIG - Missing config
+ * @property {String} MISSING_DB - Missing db
+ * @property {String} MISSING_SLASHTAGS_CONNECTOR - Missing slashtagsConnector
+ */
+const ERRORS = {
+  MISSING_CONFIG: 'Missing config',
+  MISSING_DB: 'Missing db',
+  MISSING_SLASHTAGS_CONNECTOR: 'Missing slashtagsConnector'
+}
+
 module.exports = {
   PaymentManager,
-  PAYLOAD_TYPE
+  PAYLOAD_TYPE,
+  ERRORS
 }
