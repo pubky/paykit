@@ -30,16 +30,12 @@ class PaymentReceiver {
    * @param {PaymentAmount} [amount] - amount of money to receive
    * @returns {Promise<String>} - url to local drive where slashpay.json file is located
    */
-  async init (amount) {
+  async init () {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const { id, slashpayFile } = this.generateSlashpayContent(paymentPluginNames, amount)
+    const { id, slashpayFile } = this.generateSlashpayContent(paymentPluginNames)
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
     const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
-
-    if (amount) {
-      payload.amount = amount.serialize()
-    }
 
     await this.pluginManager.dispatchEvent('receivePayment', payload)
 
@@ -53,6 +49,38 @@ class PaymentReceiver {
     // })
 
     this.ready = true
+
+    return url
+  }
+
+  /**
+   * Initialize, get ready to receive payments at returned URL
+   * @param {string} id - invoice id
+   * @param {PaymentAmount} amount - amount of money to receive
+   * @returns {Promise<String>} - url to local drive where slashpay.json file is located
+   */
+  async createInvoice (id, amount) {
+    if (!this.ready) throw new Error(ERRORS.PAYMENT_RECEIVER_NOT_READY)
+
+    const paymentPluginNames = this.getListOfSupportedPaymentMethods()
+    const slashpayFile = this.updateSlashpayContent(paymentPluginNames, id)
+    // FIXME: decryption key
+    const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
+
+    const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
+    payload.amount = amount.serialize()
+
+    await this.pluginManager.dispatchEvent('receivePayment', payload)
+
+    // XXX what if some plugins failed to initialize?
+    // we need some kind of a mechanism to track their readiness
+    // this can be done via tracking list of plugins which were included into
+    // slashpay.json file and return list as a result of this method
+    // then each plugin should report its readiness via RPC notification endpoint
+    // paymentPluginNames.forEach((name) => {
+    //   this.pluginManager.plugins[name].readyToReceivePayments = false
+    // })
+
 
     return url
   }
@@ -100,20 +128,33 @@ class PaymentReceiver {
    * @param {PaymentAmount} [amount] - amount of money to receive
    * @returns {Object} - content of slashpay.json file
    */
-  generateSlashpayContent (paymentPluginNames, amount) {
+  generateSlashpayContent (paymentPluginNames) {
     const slashpayFile = { paymentEndpoints: {} }
     const id = uuidv4()
 
     paymentPluginNames.forEach((name) => {
-      slashpayFile.paymentEndpoints[name] = amount
-        ? path.join('/', id, 'slashpay', name, 'slashpay.json')
-        : path.join('/public/slashpay', name, 'slashpay.json')
+      slashpayFile.paymentEndpoints[name] = path.join('/public/slashpay', name, 'slashpay.json')
     })
 
     return {
       slashpayFile,
       id
     }
+  }
+
+  /**
+   * @method updateSlashpayContent
+   * @param {String} id - invoice id
+   */
+  updateSlashpayContent(paymentPluginNames, id) {
+    // TODO: read current content of slashpay.json
+    const slashpayFile = { paymentEndpoints: {} }
+
+    paymentPluginNames.forEach((name) => {
+      slashpayFile.paymentEndpoints[name] = path.join('/', id, 'slashpay', name, 'slashpay.json')
+    })
+
+    return slashpayFile
   }
 
   /**

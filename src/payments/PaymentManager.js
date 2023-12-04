@@ -81,12 +81,31 @@ class PaymentManager {
    * Receive payments
    * @returns {Promise<string>}
    */
-  // TODO: enable handling of multiple drives. First guess is to to create one receiver per drive
   async receivePayments () {
     await Promise.all(Object.keys(this.config.plugins).map(async (name) => {
       return await this.pluginManager.loadPlugin(name, this.slashtagsConnector)
     }))
 
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      this.pluginManager,
+      this.slashtagsConnector,
+      this.entryPointForPlugin.bind(this)
+    )
+    return await paymentReceiver.init()
+  }
+
+  /**
+   * Create an invoice
+   * FIXME: verify that it makes sense
+   * @returns {Promise<{
+   *  url: string
+   *  amount: PaymentAmount
+   *  id: string
+   *  decrytionKey: string
+   * }>} - invoice url
+   */
+  async createInvoice (id, amount) {
     const paymentReceiver = new PaymentReceiver(
       this.db,
       this.pluginManager,
