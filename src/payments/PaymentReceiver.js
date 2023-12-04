@@ -105,25 +105,6 @@ class PaymentReceiver {
     const id = uuidv4()
 
     paymentPluginNames.forEach((name) => {
-      // FIXME: this implementation allows only one private payment at time
-      // change structure of slashpay.json to allow multiple private payments
-      // Something like this will do:
-      /*
-        {
-          "paymentEndpoints": {
-            "public": {
-              "bolt11":"/public/slashpay/bolt11/slashpay.json",
-              "onchain":"/public/slashpay/onchain/slashpay.json"
-            },
-            "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF": {
-              "paymentEndpoints": {
-                  "bolt11":"/FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF/slashpay/bolt11/slashpay.json",
-                  "onchain":"/FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF/slashpay/onchain/slashpay.json"
-              }
-            }
-          }
-        }
-      */
       slashpayFile.paymentEndpoints[name] = amount
         ? path.join('/', id, 'slashpay', name, 'slashpay.json')
         : path.join('/public/slashpay', name, 'slashpay.json')
