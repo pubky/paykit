@@ -135,8 +135,8 @@ class SlashtagsConnector {
    * Get url to a drive
    * @returns {string}
    */
-  async getUrl () {
-    return await this.client.createURL(SLASHPAY_PATH)
+  async getUrl (path = SLASHPAY_PATH) {
+    return await this.client.createURL(path)
   }
 
   /**

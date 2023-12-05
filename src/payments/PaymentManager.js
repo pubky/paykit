@@ -112,7 +112,10 @@ class PaymentManager {
       this.slashtagsConnector,
       this.entryPointForPlugin.bind(this)
     )
-    return await paymentReceiver.init()
+    // XXX: there is a problem:
+    // even with key provided to the slashtag, the content's decryption key is dependent on path,
+    // thefore, in current design each pluging specific file will have uniq decryption key
+    return await paymentReceiver.createInvoice(id, amount)
   }
 
   /*

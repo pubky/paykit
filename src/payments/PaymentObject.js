@@ -167,6 +167,9 @@ class PaymentObject {
       return Object.keys(paymentFile.paymentEndpoints).includes(p)
     })
 
+    console.log('sending priority', this.sendingPriority)
+    console.log('payment file', paymentFile)
+
     if (!pendingPlugins.length) throw new Error(ERRORS.NO_MATCHING_PLUGINS)
     this.internalState.assignPendingPlugins(pendingPlugins)
   }

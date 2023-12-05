@@ -39,7 +39,7 @@ class PaymentSender {
     }
 
     const { paymentEndpoints } = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
-    const paymentUrl = payment.slashtagsConnector.updateUrl(payment.counterpartyURL, { path: paymentEndpoints[name] })
+    const paymentUrl = paymentEndpoints[name]
     const target = await payment.slashtagsConnector.readRemote(paymentUrl)
     if (!target) throw new Error(ERRORS.PAYMENT_TARGET_NOT_FOUND)
 

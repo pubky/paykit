@@ -32,7 +32,7 @@ class PaymentReceiver {
    */
   async init () {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const { id, slashpayFile } = this.generateSlashpayContent(paymentPluginNames)
+    const { id, slashpayFile } = await this.generateSlashpayContent(paymentPluginNames)
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
     const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
@@ -58,12 +58,12 @@ class PaymentReceiver {
    * @param {string} id - invoice id
    * @param {PaymentAmount} amount - amount of money to receive
    * @returns {Promise<String>} - url to local drive where slashpay.json file is located
-   */
+  */
   async createInvoice (id, amount) {
     if (!this.ready) throw new Error(ERRORS.PAYMENT_RECEIVER_NOT_READY)
 
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const slashpayFile = this.updateSlashpayContent(paymentPluginNames, id)
+    const slashpayFile = await this.updateSlashpayContent(paymentPluginNames, id)
     // FIXME: decryption key
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
@@ -128,13 +128,13 @@ class PaymentReceiver {
    * @param {PaymentAmount} [amount] - amount of money to receive
    * @returns {Object} - content of slashpay.json file
    */
-  generateSlashpayContent (paymentPluginNames) {
+  async generateSlashpayContent (paymentPluginNames) {
     const slashpayFile = { paymentEndpoints: {} }
     const id = uuidv4()
 
-    paymentPluginNames.forEach((name) => {
-      slashpayFile.paymentEndpoints[name] = path.join('/public/slashpay', name, 'slashpay.json')
-    })
+    for (let name of paymentPluginNames) {
+      slashpayFile.paymentEndpoints[name] = await this.storage.getUrl(path.join('/public/slashpay', name, 'slashpay.json'))
+    }
 
     return {
       slashpayFile,
@@ -146,15 +146,18 @@ class PaymentReceiver {
    * @method updateSlashpayContent
    * @param {String} id - invoice id
    */
-  updateSlashpayContent(paymentPluginNames, id) {
+  async updateSlashpayContent(paymentPluginNames, id) {
     // TODO: read current content of slashpay.json
     const slashpayFile = { paymentEndpoints: {} }
 
-    paymentPluginNames.forEach((name) => {
-      slashpayFile.paymentEndpoints[name] = path.join('/', id, 'slashpay', name, 'slashpay.json')
-    })
+    for (let name of paymentPluginNames) {
+      slashpayFile.paymentEndpoints[name] = await this.storage.getUrl(path.join('/', id, 'slashpay', name, 'slashpay.json'))
+    }
 
-    return slashpayFile
+    return {
+      slashpayFile,
+      id
+    }
   }
 
   /**
