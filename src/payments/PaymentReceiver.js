@@ -63,7 +63,7 @@ class PaymentReceiver {
     if (!this.ready) throw new Error(ERRORS.PAYMENT_RECEIVER_NOT_READY)
 
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const slashpayFile = await this.updateSlashpayContent(paymentPluginNames, id)
+    const { slashpayFile } = await this.generateSlashpayContent(paymentPluginNames, id)
     // FIXME: decryption key
     const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
 
@@ -128,9 +128,8 @@ class PaymentReceiver {
    * @param {PaymentAmount} [amount] - amount of money to receive
    * @returns {Object} - content of slashpay.json file
    */
-  async generateSlashpayContent (paymentPluginNames) {
+  async generateSlashpayContent (paymentPluginNames, id = uuidv4()) {
     const slashpayFile = { paymentEndpoints: {} }
-    const id = uuidv4()
 
     for (let name of paymentPluginNames) {
       slashpayFile.paymentEndpoints[name] = await this.storage.getUrl(path.join('/public/slashpay', name, 'slashpay.json'))

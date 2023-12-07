@@ -127,7 +127,7 @@ test('PaymentManager.handleNewPayment', async t => {
     amount: '1000',
     pluginName: 'p2sh',
     clientOrderId: 'network-id',
-    amountWasSpecified: false
+    isPersonalPayment: false
   })
 
   t.is(stub.calledOnce, true)

@@ -145,35 +145,11 @@ test('PaymentReceiver.generateSlashpayContent - no amount', async t => {
 
   const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, () => {})
 
-  const { slashpayFile } = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'])
+  const { slashpayFile } = await paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'])
+  const p2sh = await receiver.getUrl('/public/slashpay/p2sh/slashpay.json')
+  const p2tr = await receiver.getUrl('/public/slashpay/p2tr/slashpay.json')
   t.alike(slashpayFile, {
-    paymentEndpoints: {
-      p2sh: '/public/slashpay/p2sh/slashpay.json',
-      p2tr: '/public/slashpay/p2tr/slashpay.json'
-    }
-  })
-
-  t.teardown(async () => {
-    await dropTables(db)
-    relay.close()
-  })
-})
-
-test('PaymentReceiver.generateSlashpayContent - with amount', async t => {
-  const { db, receiver, relay } = await createStorageEntities(t)
-
-  const pluginManager = new PluginManager(pluginConfig)
-  await pluginManager.loadPlugin('p2sh')
-  await pluginManager.loadPlugin('p2tr')
-
-  const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, () => {})
-
-  const { id, slashpayFile } = paymentReceiver.generateSlashpayContent(['p2sh', 'p2tr'], 100)
-  t.alike(slashpayFile, {
-    paymentEndpoints: {
-      p2sh: `/${id}/slashpay/p2sh/slashpay.json`,
-      p2tr: `/${id}/slashpay/p2tr/slashpay.json`
-    }
+    paymentEndpoints: { p2sh, p2tr }
   })
 
   t.teardown(async () => {

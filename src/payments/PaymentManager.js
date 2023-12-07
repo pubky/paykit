@@ -158,7 +158,7 @@ class PaymentManager {
       this.slashtagsConnector,
       this.userNotificationEndpoint.bind(this)
     )
-    await paymentReceiver.handleNewPayment(payload, payload.amountWasSpecified)
+    await paymentReceiver.handleNewPayment(payload, payload.isPersonalPayment)
   }
 
   /**
@@ -214,7 +214,8 @@ class PaymentManager {
    * @param {Object} payload - data to be written to the payment file
    */
   async createPaymentFile (payload) {
-    const subPath = payload.amountWasSpecified ? payload.id : payload.pluginName
+    // FIXME
+    const subPath = payload.isPersonalPayment ? payload.id : payload.pluginName
     const path = `public/slashpay/${subPath}/slashpay.json`
     await this.slashtagsConnector.create(path, payload.data)
   }

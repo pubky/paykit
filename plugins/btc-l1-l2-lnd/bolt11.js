@@ -14,7 +14,7 @@ function getWatcher (config) {
         type: 'payment_new',
         rawData: receipt.data,
 
-        amountWasSpecified: !!amount,
+        isPersonalPayment: !!amount,
 
         amount: receipt.data.received.toString(),
         denomination: 'BASE',
@@ -38,7 +38,7 @@ function getWatcher (config) {
       pluginName,
       type: 'ready_to_receive',
       data: outputs,
-      amountWasSpecified: !!amount
+      isPersonalPayment: !!amount
     })
   }
 }
