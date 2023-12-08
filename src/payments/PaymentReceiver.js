@@ -37,6 +37,8 @@ class PaymentReceiver {
 
     const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
 
+    //TODO: create paymentFile after the event was dispatched and processed(!)
+    //thus make process waiting for relay to sync
     await this.pluginManager.dispatchEvent('receivePayment', payload)
 
     // XXX what if some plugins failed to initialize?
