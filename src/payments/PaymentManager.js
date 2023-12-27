@@ -191,15 +191,13 @@ class PaymentManager {
    * @param {Object} payload - data to be written to the payment file
    */
   async createPaymentFile (payload) {
-    // TODO: move to reciever
-    // FIXME (encrypt if personal payment and do not store under public path)
-    // potnetially call receiver to updated the payment file
-    if (!payload.isPersonalPayment) {
-      const path = `public/slashpay/${payload.pluginName}/slashpay.json`
-      await this.slashtagsConnector.create(path, payload.data, { awaitRelaySync: true })
-    } else {
-      throw new Error('Personal payements are not yet supported')
-    }
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      this.pluginManager,
+      this.slashtagsConnector,
+      this.entryPointForPlugin.bind(this)
+    )
+    return await paymentReceiver.createPaymentFile(payload)
   }
 
   /**

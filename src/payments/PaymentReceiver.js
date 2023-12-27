@@ -86,6 +86,19 @@ class PaymentReceiver {
   }
 
   /**
+   * Sotres payload data in to file
+   */
+  async createPaymentFile (payload) {
+    if (!payload.isPersonalPayment) {
+      const path = `public/slashpay/${payload.pluginName}/slashpay.json`
+      await this.storage.create(path, payload.data, { awaitRelaySync: true })
+    } else {
+      // FIXME (encrypt if personal payment and do not store under public path)
+      throw new Error('Personal payements are not yet supported')
+    }
+  }
+
+  /**
    * Callback which is called by plugin when payment is received
    * @param {Object} payload - payment object
    * @returns {Promise<void>}
