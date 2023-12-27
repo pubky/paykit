@@ -23,8 +23,6 @@ class PaymentReceiver {
     this.ready = false
   }
 
-  // TODO: make sure slashtags-data works with full spectrum of  private/public vs persisted/ephemeral
-
   /**
    * Initialize, get ready to receive payments at returned URL
    * @param {PaymentAmount} [amount] - amount of money to receive
@@ -33,12 +31,12 @@ class PaymentReceiver {
   async init () {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
     const { id, slashpayFile } = await this.generateSlashpayContent(paymentPluginNames)
-    const url = await this.storage.create(SLASHPAY_PATH, slashpayFile)
+    const url = await this.storage.create(SLASHPAY_PATH, slashpayFile, { awaitRelaySync: true })
 
     const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
 
     //TODO: create paymentFile after the event was dispatched and processed(!)
-    //thus make process waiting for relay to sync
+    // thus make process waiting for relay to sync
     await this.pluginManager.dispatchEvent('receivePayment', payload)
 
     // XXX what if some plugins failed to initialize?

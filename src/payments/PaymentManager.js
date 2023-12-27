@@ -95,29 +95,6 @@ class PaymentManager {
     return await paymentReceiver.init()
   }
 
-  /**
-   * Create an invoice
-   * FIXME: verify that it makes sense
-   * @returns {Promise<{
-   *  url: string
-   *  amount: PaymentAmount
-   *  id: string
-   *  decrytionKey: string
-   * }>} - invoice url
-   */
-  async createInvoice (id, amount) {
-    const paymentReceiver = new PaymentReceiver(
-      this.db,
-      this.pluginManager,
-      this.slashtagsConnector,
-      this.entryPointForPlugin.bind(this)
-    )
-    // XXX: there is a problem:
-    // even with key provided to the slashtag, the content's decryption key is dependent on path,
-    // thefore, in current design each pluging specific file will have uniq decryption key
-    return await paymentReceiver.createInvoice(id, amount)
-  }
-
   /*
    * NOTE: things below right now are implemented as callback functions
    * but may alternatively be implemented as URLs for RPC APIs
@@ -182,7 +159,7 @@ class PaymentManager {
   async entryPointForUser (data) {
     const paymentSender = await this.getPaymentSender(data.orderId)
 
-    // TOOD: consider adding requirements to the data format
+    // TODO: consider adding requirements to the data format
     await paymentSender.updatePayment(data)
   }
 
@@ -214,17 +191,37 @@ class PaymentManager {
    * @param {Object} payload - data to be written to the payment file
    */
   async createPaymentFile (payload) {
+    // TODO: move to reciever
     // FIXME (encrypt if personal payment and do not store under public path)
     // potnetially call receiver to updated the payment file
     if (!payload.isPersonalPayment) {
-      const path = `public/slashpay/${payloadPluginName}/slashpay.json`
-      await this.slashtagsConnector.create(path, payload.data)
-
+      const path = `public/slashpay/${payload.pluginName}/slashpay.json`
+      await this.slashtagsConnector.create(path, payload.data, { awaitRelaySync: true })
     } else {
-      throw new Error('Personal payements are not supported')
-
+      throw new Error('Personal payements are not yet supported')
     }
   }
+
+  /**
+   * Create an invoice
+   * FIXME: verify that it makes sense
+   * @returns {Promise<{
+   *  url: string
+   *  amount: PaymentAmount
+   *  id: string
+   *  decrytionKey: string
+   * }>} - invoice url
+   */
+  async createInvoice (id, amount) {
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      this.pluginManager,
+      this.slashtagsConnector,
+      this.entryPointForPlugin.bind(this)
+    )
+    return await paymentReceiver.createInvoice(id, amount)
+  }
+
 }
 
 /**
