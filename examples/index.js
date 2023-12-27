@@ -34,7 +34,9 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   await paymentManager.init() // receiver
   const myUrl = await paymentManager.receivePayments()
 
-  console.log('ready to receive payments at:', myUrl)
+  console.log('ready to receive payments at:')
+  console.log(myUrl, '100')
+  console.log('')
 
   console.log('to send payments paste <slashpayURL> <amount>')
 
