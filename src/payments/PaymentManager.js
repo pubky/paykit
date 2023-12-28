@@ -82,6 +82,7 @@ class PaymentManager {
    * @returns {Promise<string>}
    */
   async receivePayments () {
+    // TODO: consider not hanging if some plugins fail to load
     await Promise.all(Object.keys(this.config.plugins).map(async (name) => {
       return await this.pluginManager.loadPlugin(name, this.slashtagsConnector)
     }))
@@ -187,26 +188,11 @@ class PaymentManager {
   }
 
   /**
-   * Create payment file
-   * @param {Object} payload - data to be written to the payment file
-   */
-  async createPaymentFile (payload) {
-    const paymentReceiver = new PaymentReceiver(
-      this.db,
-      this.pluginManager,
-      this.slashtagsConnector,
-      this.entryPointForPlugin.bind(this)
-    )
-    return await paymentReceiver.createPaymentFile(payload)
-  }
-
-  /**
    * Create an invoice
-   * FIXME: verify that it makes sense
    * @returns {Promise<{
+   *  id: string
    *  url: string
    *  amount: PaymentAmount
-   *  id: string
    *  decrytionKey: string
    * }>} - invoice url
    */
@@ -218,6 +204,20 @@ class PaymentManager {
       this.entryPointForPlugin.bind(this)
     )
     return await paymentReceiver.createInvoice(id, amount)
+  }
+
+  /**
+   * Create plugin specific payment file
+   * @param {Object} payload - data to be written to the payment file
+   */
+  async createPaymentFile (payload) {
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      this.pluginManager,
+      this.slashtagsConnector,
+      this.entryPointForPlugin.bind(this)
+    )
+    return await paymentReceiver.createPaymentFile(payload)
   }
 
 }
