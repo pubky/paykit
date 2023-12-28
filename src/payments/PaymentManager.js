@@ -3,6 +3,7 @@ const { PluginManager } = require('../plugins/PluginManager')
 const { PaymentOrder } = require('./PaymentOrder')
 const { PaymentSender } = require('./PaymentSender')
 const { PaymentReceiver } = require('./PaymentReceiver')
+const { PaymentAmount } = require('./PaymentAmount')
 const { DB } = require('../DB')
 const { SlashtagsConnector } = require('../slashtags')
 
@@ -75,6 +76,22 @@ class PaymentManager {
     const paymentSender = await this.getPaymentSender(id)
 
     await paymentSender.submit()
+  }
+
+  /**
+   * Create a personalized invoice
+   * @param {string} reference - client defined invoice id
+   * @param {string} amount - amount to be paid (base denomination of the default currency)
+   * @returns {Promise<{string}>} - invoice url
+   */
+  async createInvoice (reference, amount, amountOpts = { currency: 'BTC', denomination: 'BASE' }) {
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      this.pluginManager,
+      this.slashtagsConnector,
+      this.entryPointForPlugin.bind(this)
+    )
+    return await paymentReceiver.createInvoice(reference, new PaymentAmount({ amount, ...amountOpts }))
   }
 
   /**
@@ -185,25 +202,6 @@ class PaymentManager {
    */
   async userNotificationEndpoint (payload) {
     this.notificationCallback(payload)
-  }
-
-  /**
-   * Create an invoice
-   * @returns {Promise<{
-   *  id: string
-   *  url: string
-   *  amount: PaymentAmount
-   *  decrytionKey: string
-   * }>} - invoice url
-   */
-  async createInvoice (id, amount) {
-    const paymentReceiver = new PaymentReceiver(
-      this.db,
-      this.pluginManager,
-      this.slashtagsConnector,
-      this.entryPointForPlugin.bind(this)
-    )
-    return await paymentReceiver.createInvoice(id, amount)
   }
 
   /**

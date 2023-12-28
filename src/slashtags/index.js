@@ -111,7 +111,7 @@ class SlashtagsConnector {
     if (key === SLASHPAY_PATH) {
       await this.client.put(key, encode(value), opts)
 
-      return this.client.createURL(key)
+      return this.client.createURL(key, opts)
     }
 
     let index = await this.readLocal(SLASHPAY_PATH, opts)
@@ -128,15 +128,15 @@ class SlashtagsConnector {
     paymentEndpoints[name] = key
     await this.update(SLASHPAY_PATH, index, opts)
 
-    return this.client.createURL(key)
+    return this.client.createURL(key, opts)
   }
 
   /**
    * Get url to a drive
    * @returns {string}
    */
-  async getUrl (path = SLASHPAY_PATH) {
-    return await this.client.createURL(path)
+  async getUrl (path = SLASHPAY_PATH, opts) {
+    return await this.client.createURL(path, opts)
   }
 
   /**
