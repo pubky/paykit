@@ -41,6 +41,7 @@ class PaymentSender {
     const { paymentEndpoints } = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
     const paymentUrl = paymentEndpoints[name]
     const target = await payment.slashtagsConnector.readRemote(paymentUrl)
+    // TODO: skip to next target instead
     if (!target) throw new Error(ERRORS.PAYMENT_TARGET_NOT_FOUND)
 
     await plugin.pay({
