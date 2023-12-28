@@ -20,6 +20,8 @@ function getWatcher (config) {
         denomination: 'BASE',
         currency: 'BTC',
 
+        state: !!(receipt.data.is_confirmed || receipt.data.tokens) ? 'success' : 'failed',
+
         memo: receipt.data.description,
 
         clientOrderId: receipt.data.id,

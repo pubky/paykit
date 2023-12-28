@@ -17,6 +17,15 @@ function getWatcher (config) {
         rawData: receipt.data,
         isPersonalPayment: !!amount,
 
+        // TODO: handle amount
+        // by decoding receipt.data.transaction
+        // {
+        //   block: <Block Hash Hex String>
+        //   height: <Block Best Chain Height Number>
+        //   transaction: <Raw Transaction Hex String>
+        // }
+        state: 'success', // works on confirmation but not on reorgs
+
         currency: 'BTC',
         denomination: 'BASE',
 

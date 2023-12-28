@@ -141,7 +141,8 @@ test('PaymentReceiver.handleNewPayment', async t => {
   await paymentReceiver.handleNewPayment({
     amount: '1000',
     pluginName: 'p2sh',
-    clientOrderId: 'network-id'
+    clientOrderId: 'network-id',
+    state: 'success',
   })
 
   const postPayments = await db.getPayments()

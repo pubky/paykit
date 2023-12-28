@@ -56,8 +56,8 @@ class PaymentReceiver {
 
     const payload = { id, notificationCallback: this.notificationCallback.bind(this) }
     payload.amount = amount.serialize()
-    // TODO: return id by plugin so that it is correlated to the paymentFile
 
+    // TODO: return id by plugin so that it is correlated to the paymentFile
     await this.pluginManager.dispatchEvent('receivePayment', payload)
 
     return url
@@ -83,6 +83,7 @@ class PaymentReceiver {
    * @returns {Promise<void>}
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
+    // TODO: handle partially payid payments
     const paymentObject = new PaymentObject({
       orderId: uuidv4(),
       sendingPriority: [payload.pluginName],
@@ -93,7 +94,7 @@ class PaymentReceiver {
 
       completedByPlugin: {
         name: payload.pluginName,
-        state: 'success', // XXX should I read it from plugin?
+        state: payload.state, // XXX: do I need to handle it somehow?
         startAt: Date.now(),
         endAt: Date.now()
       },
