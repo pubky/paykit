@@ -7,11 +7,14 @@ const supportedMethods = ['p2wpkh']
 function getWatcher (config) {
   const lnd = new LndConnect(config)
 
-  return async ({ amount, notificationCallback }) => {
+  return async ({ id, reference, amount, notificationCallback }) => {
     const outputs = {}
 
     const callback = async (receipt) => {
       await notificationCallback({
+        id, // slashpay id
+        reference, // optional customer generated id
+
         pluginName,
         type: 'payment_new',
         rawData: receipt.data,
@@ -43,9 +46,16 @@ function getWatcher (config) {
     }
 
     await notificationCallback({
+      id,
+      reference,
+      // TODO:
+      // networkid: address?
+
       pluginName,
+
       type: 'ready_to_receive',
       data: outputs,
+
       isPersonalPayment: !!amount
     })
   }
