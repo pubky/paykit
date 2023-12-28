@@ -2,6 +2,8 @@ const { Relay } = require('@synonymdev/web-relay')
 const sinon = require('sinon')
 const { test } = require('brittle')
 
+const SlashtagsURL = require('@synonymdev/slashtags-url')
+
 const { DB } = require('../../src/DB')
 const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 
@@ -12,6 +14,7 @@ const { PluginManager } = require('../../src/plugins/PluginManager')
 const { pluginConfig } = require('../fixtures/config.js')
 
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
+const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 
 const { dropTables, tmpdir } = require('../helpers')
 
@@ -74,6 +77,47 @@ test('PaymentReceiver.init', async t => {
   t.is(receiverCreate.callCount, 1)
   t.is(pluginDispatch.callCount, 1)
   t.is(generateSlashpayContent.callCount, 1)
+
+  t.teardown(async () => {
+    await dropTables(db)
+    sinon.restore()
+    relay.close()
+  })
+})
+
+test('PaymentReceiver.createInvoice', async t => {
+  const { db, receiver, relay } = await createStorageEntities(t)
+
+  const receiverCreate = sinon.replace(receiver, 'create', sinon.fake(receiver.create))
+  const generateSlashpayContent = sinon.replace(
+    PaymentReceiver.prototype,
+    'generateSlashpayContent',
+    sinon.fake(PaymentReceiver.prototype.generateSlashpayContent)
+  )
+
+  const pluginManager = new PluginManager(pluginConfig)
+  await pluginManager.loadPlugin('p2sh')
+
+  const pluginDispatch = sinon.replace(pluginManager, 'dispatchEvent', sinon.fake(pluginManager.dispatchEvent))
+
+  const notificationCallback = () => {}
+
+  const paymentReceiver = new PaymentReceiver(db, pluginManager, receiver, notificationCallback)
+  await paymentReceiver.init()
+  t.is(receiverCreate.callCount, 1)
+  t.is(pluginDispatch.callCount, 1)
+  t.is(generateSlashpayContent.callCount, 1)
+
+  const url = await paymentReceiver.createInvoice('invoice-id', new PaymentAmount({ amount: '1000' }))
+  const parsed = SlashtagsURL.parse(url)
+  t.ok(parsed.privateQuery.encryptionKey)
+  t.ok(parsed.path, '/slashpay/invoice-id/slashpay.json')
+
+  t.is(receiverCreate.callCount, 2)
+  t.is(pluginDispatch.callCount, 2)
+  t.is(generateSlashpayContent.callCount, 2)
+  t.alike(generateSlashpayContent.getCall(1).args[0], ['p2sh'])
+  t.is(generateSlashpayContent.getCall(1).args[1], 'invoice-id')
 
   t.teardown(async () => {
     await dropTables(db)
