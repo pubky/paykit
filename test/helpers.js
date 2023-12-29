@@ -15,7 +15,7 @@ module.exports = {
 }
 
 function tmpdir () {
-  return os.tmpdir() + Math.random().toString(16).slice(2)
+  return `./tmp/${os.tmpdir() + Math.random().toString(16).slice(2)}`
 }
 
 async function sleep (ms) {
