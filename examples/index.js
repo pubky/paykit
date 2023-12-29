@@ -14,9 +14,10 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   const pluginConfig = require(process.argv[2])
 
   const slashpayConfig = {
-    sendingPriority: ['bolt11', 'onchain'],
+    //sendingPriority: ['bolt11', 'onchain'],
+    sendingPriority: ['onchain'],
     plugins: {
-      bolt11,
+      //bolt11,
       onchain
     },
     bolt11: pluginConfig.plugin,
@@ -39,7 +40,7 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   const myUrl = await paymentManager.receivePayments()
 
   console.log('ready to receive payments at:')
-  console.log('send', myUrl, '100')
+  console.log('send', myUrl, '1000')
   console.log('')
 
   console.log('to send payments paste <slashpayURL> <amount>')

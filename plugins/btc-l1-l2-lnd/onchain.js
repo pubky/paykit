@@ -1,5 +1,6 @@
 const { LndConnect } = require('./LndConnect.js')
 
+// TODO: make sure that data params are correct, make sense and are handled accordingly
 const pluginName = 'onchain'
 
 const supportedMethods = ['p2wpkh']
@@ -7,13 +8,13 @@ const supportedMethods = ['p2wpkh']
 function getWatcher (config) {
   const lnd = new LndConnect(config)
 
-  return async ({ id, reference, amount, notificationCallback }) => {
+  return async ({ id, clientOrderId, amount, notificationCallback }) => {
     const outputs = {}
 
     const callback = async (receipt) => {
       await notificationCallback({
         id, // slashpay id
-        reference, // optional customer generated id
+        clientOrderId, // optional customer generated id
 
         pluginName,
         type: 'payment_new',
@@ -32,8 +33,8 @@ function getWatcher (config) {
         currency: 'BTC',
         denomination: 'BASE',
 
-        clientOrderId: receipt.data.transaction,
-        amount: '1000', // XXX after processing tx
+        networkId: receipt.data.transaction,
+        amount: '', // XXX after processing tx
         memo: ''
       })
     }
@@ -47,7 +48,7 @@ function getWatcher (config) {
 
     await notificationCallback({
       id,
-      reference,
+      clientOrderId,
       // TODO:
       // networkid: address?
 
@@ -64,7 +65,6 @@ function getWatcher (config) {
 function getPayer (config) {
   const lnd = new LndConnect(config)
 
-  // XXX address should be general common for all plugin names
   return async ({ target, payload, notificationCallback }) => {
     let address
     if (typeof target === 'string') {
@@ -88,7 +88,6 @@ function getPayer (config) {
       address, tokens: parseInt(payload.amount)
     })
 
-    // XXX what again do I need here?
     await notificationCallback({
       ...payload,
       pluginName,
@@ -101,7 +100,7 @@ function getPayer (config) {
 module.exports = {
   getmanifest: () => {
     return {
-      name: pluginName, // FIXME
+      name: pluginName,
       type: 'payment',
       description: 'Slashpay bitcoin l1 payments',
       rpc: ['pay'],

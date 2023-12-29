@@ -43,21 +43,22 @@ class PaymentReceiver {
 
   /**
    * Create private payment endpoints which are encrypted
-   * @param {string} reference - invoice reference
+   * @param {string} clientOrderId - invoice clientOrderId
    * @param {PaymentAmount} amount - amount of money to receive
    * @returns {Promise<String>} - url to local drive where slashpay.json file is located
   */
-  async createInvoice (reference, amount) {
+  async createInvoice (clientOrderId, amount) {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
-    const { slashpayFile, id } = await this.generateSlashpayContent(paymentPluginNames, reference)
+    const { slashpayFile, id } = await this.generateSlashpayContent(paymentPluginNames, clientOrderId)
 
-    const url = await this.storage.create(`slashpay/${reference}/slashpay.json`, slashpayFile, { encrypt: true, awaitRelaySync: true })
+    const url = await this.storage.create(`slashpay/${clientOrderId}/slashpay.json`, slashpayFile, { encrypt: true, awaitRelaySync: true })
 
-    const payload = { id, reference, notificationCallback: this.notificationCallback.bind(this) }
-    payload.amount = amount.serialize()
-
-    // TODO: return id by plugin so that it is correlated to the paymentFile
-    await this.pluginManager.dispatchEvent('receivePayment', payload)
+    await this.pluginManager.dispatchEvent('receivePayment', {
+      id,
+      clientOrderId,
+      amount: amount.serialize(),
+      notificationCallback: this.notificationCallback.bind(this)
+    })
     this.ready = true
 
     return url
@@ -71,10 +72,10 @@ class PaymentReceiver {
     const opts = { awaitRelaySync: true }
 
     if (payload.isPersonalPayment) {
-      if (!payload.reference) throw new Error(PAYLOAD_REFERENCE_IS_MISSING)
+      if (!payload.clientOrderId) throw new Error(PAYLOAD_CLIENT_ORDER_ID_IS_MISSING)
 
       opts.encrypt = true
-      path = `/slashpay/${payload.reference}/${payload.pluginName}/slashpay.json`
+      path = `/slashpay/${payload.clientOrderId}/${payload.pluginName}/slashpay.json`
     }
 
     await this.storage.create(path, payload.data, opts)
@@ -86,7 +87,7 @@ class PaymentReceiver {
    * @returns {Promise<void>}
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
-    // TODO: handle partially payid payments
+    // TODO: handle partially paid payments
     const paymentObject = new PaymentObject({
       orderId: uuidv4(),
       sendingPriority: [payload.pluginName],
@@ -97,7 +98,7 @@ class PaymentReceiver {
 
       completedByPlugin: {
         name: payload.pluginName,
-        state: payload.state, // XXX: do I need to handle it somehow?
+        state: payload.state,
         startAt: Date.now(),
         endAt: Date.now()
       },
@@ -121,18 +122,18 @@ class PaymentReceiver {
   /**
    * @method generateSlashpayContent
    * @param {Array<String>} paymentPluginNames - list of payment plugin names
-   * @param {string} [reference] - id of invoice
+   * @param {string} [clientOrderId] - id of invoice
    * @returns {Object} - content of slashpay.json file
    */
-  async generateSlashpayContent (paymentPluginNames, reference) {
+  async generateSlashpayContent (paymentPluginNames, clientOrderId) {
     const slashpayFile = { paymentEndpoints: {} }
     const opts = {}
-    if (reference) {
+    if (clientOrderId) {
       opts.encrypt = true
     }
 
     for (let name of paymentPluginNames) {
-      slashpayFile.paymentEndpoints[name] = await this.storage.getUrl(...this.getUrlParams(name, reference), opts)
+      slashpayFile.paymentEndpoints[name] = await this.storage.getUrl(...this.getUrlParams(name, clientOrderId), opts)
     }
 
     return {
@@ -155,24 +156,6 @@ class PaymentReceiver {
   }
 
   /**
-   * @method updateSlashpayContent
-   * @param {String} id - invoice id
-   */
-  async updateSlashpayContent(paymentPluginNames, id) {
-    // TODO: read current content of slashpay.json
-    const slashpayFile = { paymentEndpoints: {} }
-
-    for (let name of paymentPluginNames) {
-      slashpayFile.paymentEndpoints[name] = await this.storage.getUrl(...this.getUrlParams(name, id))
-    }
-
-    return {
-      slashpayFile,
-      id
-    }
-  }
-
-  /**
    * @method getListOfSupportedPaymentMethods
    * @returns {Array<String>} - list of payment plugin names
    */
@@ -185,7 +168,7 @@ class PaymentReceiver {
 
 const ERRORS = {
   PAYMENT_RECEIVER_NOT_READY: 'PAYMENT_RECEIVER_NOT_READY',
-  PAYLOAD_REFERENCE_IS_MISSING: 'PAYLOAD_REFERENCE_IS_MISSING', 
+  PAYLOAD_CLIENT_ORDER_ID_IS_MISSING: 'CLIENT_ORDER_ID_IS_MISSING', 
 }
 
 module.exports = {

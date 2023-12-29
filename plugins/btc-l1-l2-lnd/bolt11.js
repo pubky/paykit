@@ -1,17 +1,18 @@
 const { LndConnect } = require('./LndConnect.js')
 
+// TODO: make sure that data params are correct, make sense and are handled accordingly
 const pluginName = 'bolt11'
 
 function getWatcher (config) {
   const lnd = new LndConnect(config)
 
-  return async ({ id, reference, amount, notificationCallback }) => {
+  return async ({ id, clientOrderId, amount, notificationCallback }) => {
     const outputs = {}
 
     const callback = async (receipt) => {
       await notificationCallback({
         id, // slashpay id
-        reference, // optional customer generated id
+        clientOrderId, // optional customer generated id
 
         pluginName,
         type: 'payment_new',
@@ -27,7 +28,7 @@ function getWatcher (config) {
 
         memo: receipt.data.description,
 
-        clientOrderId: receipt.data.id,
+        networkId: receipt.data.id,
 
         createdAt: receipt.data.created_at,
         confirmedAt: receipt.data.confirmed_at
@@ -45,7 +46,7 @@ function getWatcher (config) {
 
     await notificationCallback({
       id,
-      reference,
+      clientOrderId,
 
       // TODO:
       // networkid: invice.id
@@ -75,7 +76,8 @@ function getPayer (config) {
     // }
 
     // TODO: convert amount based on denomination
-    // TODO: validate currency
+    let tokens
+
     const res = await lnd.payInvoice({ request, tokens: payload.amount })
     await notificationCallback({
       ...payload,

@@ -119,7 +119,7 @@ class PluginManager {
             await plugin.plugin[event](data)
           } catch (e) {
             ERRORS.PLUGIN.EVENT_DISPATCH(name, e.message)
-            // TODO: log error
+            logger.error.extend(event)(e.message)
           }
         })
     )

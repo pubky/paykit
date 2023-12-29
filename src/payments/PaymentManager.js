@@ -80,18 +80,18 @@ class PaymentManager {
 
   /**
    * Create a personalized invoice
-   * @param {string} reference - client defined invoice id
+   * @param {string} clientOrderId - client defined invoice id
    * @param {string} amount - amount to be paid (base denomination of the default currency)
    * @returns {Promise<{string}>} - invoice url
    */
-  async createInvoice (reference, amount, amountOpts = { currency: 'BTC', denomination: 'BASE' }) {
+  async createInvoice (clientOrderId, amount, amountOpts = { currency: 'BTC', denomination: 'BASE' }) {
     const paymentReceiver = new PaymentReceiver(
       this.db,
       this.pluginManager,
       this.slashtagsConnector,
       this.entryPointForPlugin.bind(this)
     )
-    return await paymentReceiver.createInvoice(reference, new PaymentAmount({ amount, ...amountOpts }))
+    return await paymentReceiver.createInvoice(clientOrderId, new PaymentAmount({ amount, ...amountOpts }))
   }
 
   /**

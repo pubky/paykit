@@ -70,7 +70,6 @@ class LndConnect {
    */
   async payInvoice ({ request, tokens }) {
     try {
-      // TODO some extra magic for storage
       const decoded = await lns.decodePaymentRequest({ lnd: this.lnd, request })
       let res
       if (decoded.tokens) {

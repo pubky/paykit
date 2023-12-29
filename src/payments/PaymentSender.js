@@ -110,10 +110,10 @@ class PaymentSender {
    * @returns {Promise<void>}
    */
   async handlePluginState (payment) {
-    // TODO: pluginStates should be conventional
-    if (payment.pluginUpdate.pluginState === 'failed') { // TODO: use constants
+    // TODO: use constants for plugin states
+    if (payment.pluginUpdate.pluginState === 'failed') {
       await this.handleFailure(payment)
-    } else if (payment.pluginUpdate.pluginState === 'success') { // TODO: use constants
+    } else if (payment.pluginUpdate.pluginState === 'success') {
       await this.handleSuccess(payment)
     } else {
       // XXX: intermediate state which requires action from user
