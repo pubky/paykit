@@ -148,13 +148,11 @@ class LndConnect {
       const tx = bitcoinJs.Transaction.fromHex(data.transaction)
       tx.outs.forEach((out) => {
         try {
-          if (bitcoinJs.address.fromOutputScript(out.script, bitcoinJs.networks.regtest) === address) {
-            if (!receipt.data.amount) receipt.data.amount = 0
+          if (bitcoinJs.address.fromOutputScript(out.script, bitcoinJs.networks.regtest) !== address) return
+          if (!receipt.data.amount) receipt.data.amount = 0
 
-            receipt.data.amount += out.value
-          }
-        } catch (e) {
-        }
+          receipt.data.amount += out.value
+        } catch (e) {}
       })
       callback(receipt)
       // sub.destroy() - not a function :(
