@@ -104,11 +104,11 @@ class PaymentReceiver {
       },
 
       // FROM PAYLOAD
+      clientOrderId: payload.clientOrderId || uuidv4(),
       amount: payload.amount, // send it in payload
       memo: payload.memo || '', // send it in payload
       denomination: payload.denomination || 'BASE',
       currency: payload.currency || 'BTC',
-      clientOrderId: payload.clientOrderId // send in payload
     }, this.db)
     await paymentObject.save()
 
