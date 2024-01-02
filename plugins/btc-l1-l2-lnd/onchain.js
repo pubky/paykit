@@ -11,6 +11,7 @@ function getWatcher (config) {
   return async ({ id, clientOrderId, amount, notificationCallback }) => {
     const outputs = {}
 
+
     const callback = async (receipt) => {
       await notificationCallback({
         id, // slashpay id
@@ -20,21 +21,13 @@ function getWatcher (config) {
         type: 'payment_new',
         rawData: receipt.data,
         isPersonalPayment: !!amount,
-
-        // TODO: handle amount
-        // by decoding receipt.data.transaction
-        // {
-        //   block: <Block Hash Hex String>
-        //   height: <Block Best Chain Height Number>
-        //   transaction: <Raw Transaction Hex String>
-        // }
         state: 'success', // works on confirmation but not on reorgs
 
         currency: 'BTC',
         denomination: 'BASE',
 
         networkId: receipt.data.transaction,
-        amount: '', // XXX after processing tx
+        amount: receipt.data.amount.toString(),
         memo: ''
       })
     }

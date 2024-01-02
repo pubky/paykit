@@ -1,5 +1,6 @@
 const lns = require('ln-service')
 const fs = require('fs')
+const bitcoinJs = require('bitcoinjs-lib')
 
 const toB64 = (path) => fs.readFileSync(path, { encoding: 'base64' })
 
@@ -114,7 +115,6 @@ class LndConnect {
   async subscribeToInvoice (invoiceIdHexString, callback) {
     const sub = lns.subscribeToInvoice({ id: invoiceIdHexString, lnd: this.lnd })
     sub.on('invoice_updated', (data) => {
-      // TODO: Ensure the proper amount has been received.
       if (data?.received > 0) {
         const receipt = {
           data,
@@ -139,11 +139,23 @@ class LndConnect {
     })
     sub.once('confirmation', (data) => { // 1conf
       // TODO: process tx
+      // TODO: Ensure the proper amount has been received.
       const receipt = {
         error: !data,
         data,
         timestamp: new Date().toISOString()
       }
+      const tx = bitcoinJs.Transaction.fromHex(data.transaction)
+      tx.outs.forEach((out) => {
+        try {
+          if (bitcoinJs.address.fromOutputScript(out.script, bitcoinJs.networks.regtest) === address) {
+            if (!receipt.data.amount) receipt.data.amount = 0
+
+            receipt.data.amount += out.value
+          }
+        } catch (e) {
+        }
+      })
       callback(receipt)
       // sub.destroy() - not a function :(
     })
