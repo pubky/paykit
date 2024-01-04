@@ -14,10 +14,10 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   const pluginConfig = require(process.argv[2])
 
   const slashpayConfig = {
-    //sendingPriority: ['bolt11', 'onchain'],
+    sendingPriority: ['bolt11', 'onchain'],
     sendingPriority: ['onchain'],
     plugins: {
-      //bolt11,
+      bolt11,
       onchain
     },
     bolt11: pluginConfig.plugin,
@@ -74,7 +74,7 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   }
 
   async function createInvoice(amount) {
-    const invoiceURL = await paymentManager.createInvoice('reference', amount)
+    const invoiceURL = await paymentManager.createInvoice((new Date()).getTime(), amount)
     console.log('Ask to pay this:')
     console.log(invoiceURL, amount)
   }
