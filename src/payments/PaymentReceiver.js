@@ -53,12 +53,13 @@ class PaymentReceiver {
 
     const url = await this.storage.create(`slashpay/${clientOrderId}/slashpay.json`, slashpayFile, { encrypt: true, awaitRelaySync: true })
 
-    await this.pluginManager.dispatchEvent('receivePayment', {
+    const payload = {
       id,
       clientOrderId,
       amount: amount.serialize(),
       notificationCallback: this.notificationCallback.bind(this)
-    })
+    }
+    await this.pluginManager.dispatchEvent('receivePayment', payload)
     this.ready = true
 
     return url
@@ -89,7 +90,8 @@ class PaymentReceiver {
   async handleNewPayment (payload, regenerateSlashpay = true) {
     // TODO: handle partially paid payments
     const paymentObject = new PaymentObject({
-      orderId: uuidv4(),
+      // orderId: uuidv4(),
+      orderId: payload.id || uuidv4(),
       sendingPriority: [payload.pluginName],
       direction: PAYMENT_DIRECTION.IN,
       internalState: PAYMENT_STATE.COMPLETED,
@@ -112,10 +114,13 @@ class PaymentReceiver {
     }, this.db)
     await paymentObject.save()
 
+    // TODO: if regenerateSlashpay is true or if amount was not specified
+    // if amount was specified and does not match - do not regenerate
     if (regenerateSlashpay) {
       await this.init()
     }
 
+    // TODO: send different notifications is amount was specified but was not matched
     await this.notificationCallback(paymentObject)
   }
 
@@ -137,7 +142,7 @@ class PaymentReceiver {
     }
 
     return {
-      id: uuidv4(),
+      id: uuidv4(), // this is id of payment forwarded to plugin and back
       slashpayFile
     }
   }

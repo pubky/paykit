@@ -44,6 +44,7 @@ class PluginManager {
    * @throws {Error} - if plugin failed to get manifest
    */
   async injectPlugin (module, pluginConfig) {
+    // TODO: inject logger to plugin
     logger.debug('Injecting plugin')
     const plugin = await this.initPlugin(module, pluginConfig)
     const manifest = await this.getManifest(module, plugin)
@@ -115,8 +116,9 @@ class PluginManager {
         .filter(([_name, plugin]) => (plugin.manifest.events.includes(event) && plugin.active))
         .map(async ([name, plugin]) => {
           try {
-            logger.debug.extend(event).extend(name)('Dispatching event')
+            logger.debug.extend(event).extend(name).extend('Dispatching event').extend('Data')(JSON.stringify(data))
             await plugin.plugin[event](data)
+            logger.debug.extend(event).extend(name)('Event dispatched')
           } catch (e) {
             ERRORS.PLUGIN.EVENT_DISPATCH(name, e.message)
             logger.error.extend(event)(e.message)
