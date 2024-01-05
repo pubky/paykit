@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid')
 
 const { DB } = require('../../src/DB/index.js')
 const { deserializePayment } = require('../../src/DB/outgoingPayment.js')
+const { deserializeOrder } = require('../../src/DB/order.js')
 
 async function dropTables (db) {
   const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
@@ -271,7 +272,7 @@ test('db.saveOrder', async (t) => {
   }))
 
   t.is(res.length, 1)
-  const savedOrder = db.deserializeOrder(res[0])
+  const savedOrder = deserializeOrder(res[0])
 
   compareOrders(t, savedOrder, order)
 
