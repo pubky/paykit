@@ -2,6 +2,7 @@ const { test } = require('brittle')
 const { v4: uuidv4 } = require('uuid')
 
 const { DB } = require('../../src/DB/index.js')
+const { deserializePayment } = require('../../src/DB/outgoingPayment.js')
 
 async function dropTables (db) {
   const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
@@ -146,7 +147,7 @@ test('db.savePayment', async (t) => {
   }))
 
   t.is(res.length, 1)
-  const savedPayment = db.deserializePayment(res[0])
+  const savedPayment = deserializePayment(res[0])
 
   comparePayments(t, savedPayment, payment)
 

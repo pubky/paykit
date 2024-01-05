@@ -1,4 +1,5 @@
 const { Sqlite } = require('./Sqlite.js')
+const outgoingPaymentSP = require('./outgoingPayment.js')
 
 const ERROR = {
   NOT_READY: 'DB is not ready'
@@ -22,35 +23,6 @@ class DB {
    */
   async init () {
     await this.db.start()
-
-    const createPaymentsStatement = `
-      CREATE TABLE IF NOT EXISTS payments (
-        id TEXT NOT NULL PRIMARY KEY,
-        orderId TEXT NOT NULL,
-        clientOrderId TEXT NOT NULL,
-        counterpartyURL TEXT NOT NULL,
-        memo TEXT NOT NULL,
-        sendingPriority TEXT NOT NULL,
-        amount TEXT NOT NULL,
-        denomination TEXT NOT NULL,
-        currency TEXT NOT NULL,
-        internalState TEXT NOT NULL,
-        pendingPlugins TEXT NOT NULL,
-        triedPlugins TEXT NOT NULL,
-        currentPlugin TEXT NOT NULL,
-        completedByPlugin TEXT NOT NULL,
-        direction TEXT NOT NULL,
-        createdAt INTEGER NOT NULL,
-        executeAt INTEGER NOT NULL,
-        removed INTEGER NOT NULL DEFAULT 0
-      )`
-
-    const createPaymentsQuery = new Promise((resolve, reject) => {
-      this.db.sqlite.run(createPaymentsStatement, (err, res) => {
-        if (err) return reject(err)
-        return resolve(res)
-      })
-    })
 
     const createOrdersStatement = `
       CREATE TABLE IF NOT EXISTS orders (
@@ -81,7 +53,10 @@ class DB {
       })
     })
 
-    await Promise.all([createPaymentsQuery, createOrdersQuery])
+    await Promise.all([
+      outgoingPaymentSP.createOutgoingPaymentTable(this.db),
+      createOrdersQuery
+    ])
 
     this.ready = true
   }
@@ -94,65 +69,7 @@ class DB {
    */
   async savePayment (payment, execute = true) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
-
-    const params = {
-      $id: payment.id,
-      $orderId: payment.orderId,
-      $clientOrderId: payment.clientOrderId,
-      $counterpartyURL: payment.counterpartyURL,
-      $memo: payment.memo,
-      $sendingPriority: JSON.stringify(payment.sendingPriority),
-      $amount: payment.amount,
-      $denomination: payment.denomination,
-      $currency: payment.currency,
-      $internalState: payment.internalState,
-      $pendingPlugins: JSON.stringify(payment.pendingPlugins),
-      $triedPlugins: JSON.stringify(payment.triedPlugins),
-      $currentPlugin: JSON.stringify(payment.currentPlugin),
-      $completedByPlugin: JSON.stringify(payment.completedByPlugin),
-      $direction: payment.direction,
-      $createdAt: payment.createdAt,
-      $executeAt: payment.executeAt
-    }
-
-    const statement = `
-      INSERT INTO payments (
-        id,
-        orderId,
-        clientOrderId,
-        counterpartyURL,
-        memo,
-        sendingPriority,
-        amount,
-        denomination,
-        currency,
-        internalState,
-        pendingPlugins,
-        triedPlugins,
-        currentPlugin,
-        completedByPlugin,
-        direction,
-        createdAt,
-        executeAt
-      ) VALUES (
-        $id,
-        $orderId,
-        $clientOrderId,
-        $counterpartyURL,
-        $memo,
-        $sendingPriority,
-        $amount,
-        $denomination,
-        $currency,
-        $internalState,
-        $pendingPlugins,
-        $triedPlugins,
-        $currentPlugin,
-        $completedByPlugin,
-        $direction,
-        $createdAt,
-        $executeAt
-      )`
+    const { statement, params } = outgoingPaymentSP.savePayment(payment)
 
     if (execute) return await this.executeStatement(statement, params)
     return { statement, params }
@@ -165,19 +82,11 @@ class DB {
    * @returns {Promise<PaymentObject>}
    */
   async getPayment (id, opts = { removed: false }) {
-    const params = { $id: id }
-    let statement = 'SELECT * FROM payments WHERE id = $id'
-
-    if (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') {
-      statement += ' AND removed = 1'
-    } else if (opts.removed === false || opts.removed === 'false' || opts.removed === 0 || opts.removed === '0') {
-      statement += ' AND removed = 0'
-    }
-
-    statement += ' LIMIT 1'
+    if (!this.ready) throw new Error(ERROR.NOT_READY)
+    const { statement, params } = outgoingPaymentSP.getPayment(id, opts)
 
     const payment = await this.executeStatement(statement, params)
-    return this.deserializePayment(payment)
+    return outgoingPaymentSP.deserializePayment(payment)
   }
 
   /**
@@ -188,19 +97,8 @@ class DB {
    * @returns {Promise<Database| { statement: string, params: object }>}
    */
   async updatePayment (id, update, execute = true) {
-    let statement = 'UPDATE payments SET '
-    const params = { $id: id }
-
-    Object.keys(update).forEach((k, i) => {
-      if (k === 'id') return
-
-      statement += `${k} = $${k}`
-      if (i !== Object.keys(update).length - 1) statement += ', '
-
-      params[`$${k}`] = (typeof update[k] === 'object') ? JSON.stringify(update[k]) : update[k]
-    })
-
-    statement += ' WHERE id = $id'
+    if (!this.ready) throw new Error(ERROR.NOT_READY)
+    const { statement, params } = outgoingPaymentSP.updatePayment(id, update)
 
     if (execute) return await this.executeStatement(statement, params)
     return { statement, params }
@@ -215,22 +113,11 @@ class DB {
    * @returns {Promise<Array<PaymentObject>>}
    */
   async getPayments (opts = {}) {
-    const params = {}
-    let statement = 'SELECT * FROM payments'
-    if (Object.keys(opts).length > 0) statement += ' WHERE '
-    Object.keys(opts).forEach((k, i) => {
-      statement += ` ${k} = $${k}`
-      if (i !== Object.keys(opts).length - 1) statement += ' AND '
-
-      if (typeof opts[k] !== 'string') throw new Error('Only string params are supported')
-
-      params[`$${k}`] = opts[k]
-    })
-
-    statement += ' ORDER BY createdAt DESC'
+    if (!this.ready) throw new Error(ERROR.NOT_READY)
+    const { statement, params } = outgoingPaymentSP.getPayments(opts)
 
     const payments = await this.executeStatement(statement, params, 'all')
-    return payments.map(this.deserializePayment)
+    return payments.map(outgoingPaymentSP.deserializePayment)
   }
 
   /**
@@ -362,28 +249,6 @@ class DB {
         })
       }
     })
-  }
-
-  /**
-   * @method deserializePayment - Deserialize a payment object
-   * @param {Object} payment
-   * @returns {PaymentObject|null}
-   */
-  deserializePayment (payment) {
-    if (!payment) return null
-
-    const res = {
-      ...payment,
-      sendingPriority: JSON.parse(payment.sendingPriority || '[]'),
-      pendingPlugins: JSON.parse(payment.pendingPlugins || '[]'),
-      triedPlugins: JSON.parse(payment.triedPlugins || '[]'),
-      currentPlugin: JSON.parse(payment.currentPlugin || '{}'),
-      completedByPlugin: JSON.parse(payment.completedByPlugin || '{}')
-    }
-
-    delete res.removed
-
-    return res
   }
 
   /**
