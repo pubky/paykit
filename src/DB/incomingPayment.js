@@ -1,6 +1,7 @@
 function createIncomingPaymentTable (db) {
   // TODO:
-  // * exepected amount
+  // * exepected amount (for invoices only)
+  // * 
   // * fail if currencies do not match(
   
     const createPaymentsStatement = `
@@ -11,6 +12,9 @@ function createIncomingPaymentTable (db) {
         amount TEXT,
         denomination TEXT,
         currency TEXT,
+        expectedAmount TEXT,
+        expectedDenomination TEXT,
+        expectedCurrency TEXT,
         receivedByPlugin TEXT,
         createdAt INTEGER NOT NULL,
         receivedAt INTEGER,
@@ -33,6 +37,9 @@ function savePayment(payment) {
     $amount: payment.amount,
     $denomination: payment.denomination,
     $currency: payment.currency,
+    $expectedAmount: payment.expectedAmount,
+    $expectedDenomination: payment.expectedDenomination,
+    $expectedCurrency: payment.expectedCurrency,
     $receivedByPlugin: JSON.stringify(payment.receivedByPlugin),
     $createdAt: payment.createdAt,
     $receivedAt: payment.executeAt
@@ -46,6 +53,9 @@ function savePayment(payment) {
       amount,
       denomination,
       currency,
+      expectedAmount,
+      expectedDenomination,
+      expectedCurrency,
       receivedByPlugin,
       createdAt,
       receivedAt
@@ -56,6 +66,9 @@ function savePayment(payment) {
       $amount,
       $denomination,
       $currency,
+      $expectedAmount,
+      $expectedDenomination,
+      $expectedCurrency,
       $receivedByPlugin,
       $createdAt,
       $receivedAt
