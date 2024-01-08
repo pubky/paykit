@@ -6,7 +6,7 @@ const { deserializePayment } = require('../../src/DB/outgoingPayment.js')
 const { deserializeOrder } = require('../../src/DB/order.js')
 
 async function dropTables (db) {
-  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
+  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders; DROP TABLE IF EXISTS incoming_payments;'
   return new Promise((resolve, reject) => {
     db.db.sqlite.exec(statement, (err, res) => {
       if (err) return reject(err)
@@ -98,7 +98,7 @@ function compareOrders (t, a, b) {
   t.alike(a.sendingPriority, b.sendingPriority)
 }
 
-test('cosntructor', async (t) => {
+test('constructor', async (t) => {
   const db = new DB({ name: 'test', path: './test_db' })
 
   t.ok(db.db)
@@ -120,8 +120,9 @@ test('init', async (t) => {
     })
   }))
 
-  t.is(res.length, 2)
+  t.is(res.length, 3)
   t.is(res.find((r) => r.name === 'payments').name, 'payments')
+  t.is(res.find((r) => r.name === 'incoming_payments').name, 'incoming_payments')
   t.is(res.find((r) => r.name === 'orders').name, 'orders')
 
   await t.teardown(async () => {

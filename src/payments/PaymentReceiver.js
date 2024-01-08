@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid')
 
-const { PaymentObject, PAYMENT_DIRECTION, PAYMENT_STATE } = require('./PaymentObject')
+const { PAYMENT_STATE } = require('./PaymentObject')
+const { PaymentIncoming } = require('./PaymentIncoming')
 const { PaymentAmount } = require('./PaymentAmount')
 const { SLASHPAY_PATH } = require('../slashtags')
 /**
@@ -89,16 +90,11 @@ class PaymentReceiver {
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
     // TODO: handle partially paid payments
-    const paymentObject = new PaymentObject({
-      // orderId: uuidv4(),
-      orderId: payload.id || uuidv4(),
-      sendingPriority: [payload.pluginName],
-      direction: PAYMENT_DIRECTION.IN,
+    const paymentObject = new PaymentIncoming({
+      id: payload.id || uuidv4(),
       internalState: PAYMENT_STATE.COMPLETED,
 
-      counterpartyURL: await this.storage.getUrl(), // we cant really know this so it may always be receiver
-
-      completedByPlugin: {
+      receivedByPlugin: {
         name: payload.pluginName,
         state: payload.state,
         startAt: Date.now(),
@@ -111,6 +107,7 @@ class PaymentReceiver {
       memo: payload.memo || '', // send it in payload
       denomination: payload.denomination || 'BASE',
       currency: payload.currency || 'BTC',
+      receivedAt: Date.now(),
     }, this.db)
     await paymentObject.save()
 
