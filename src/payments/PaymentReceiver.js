@@ -57,11 +57,14 @@ class PaymentReceiver {
     const payload = {
       id,
       clientOrderId,
-      amount: amount.serialize(),
+      ...amount.serialize('expected'),
       notificationCallback: this.notificationCallback.bind(this)
     }
     await this.pluginManager.dispatchEvent('receivePayment', payload)
     this.ready = true
+
+    const createdPaymentFile = await this.createPayment(payload, true)
+    console.log('INVOICE PF', createdPaymentFile)
 
     return url
   }
@@ -89,27 +92,14 @@ class PaymentReceiver {
    * @returns {Promise<void>}
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
-    // TODO: handle partially paid payments
-    const paymentObject = new PaymentIncoming({
-      id: payload.id || uuidv4(),
-      internalState: PAYMENT_STATE.COMPLETED,
-
-      receivedByPlugin: {
-        name: payload.pluginName,
-        state: payload.state,
-        startAt: Date.now(),
-        endAt: Date.now()
-      },
-
-      // FROM PAYLOAD
-      clientOrderId: payload.clientOrderId || uuidv4(),
-      amount: payload.amount, // send it in payload
-      memo: payload.memo || '', // send it in payload
-      denomination: payload.denomination || 'BASE',
-      currency: payload.currency || 'BTC',
-      receivedAt: Date.now(),
-    }, this.db)
-    await paymentObject.save()
+    let paymentObject
+    if (payload.isPersonalPayment) {
+      paymentObject = await this.db.getIncomingPayment(payload.id)
+      // TODO:
+      console.log(paymentObject, payload)
+    } else {
+      paymentObject = await this.createPayment(payload)
+    }
 
     // TODO: if regenerateSlashpay is true or if amount was not specified
     // if amount was specified and does not match - do not regenerate
@@ -119,6 +109,33 @@ class PaymentReceiver {
 
     // TODO: send different notifications is amount was specified but was not matched
     await this.notificationCallback(paymentObject)
+  }
+
+  async createPayment (payload, initial = false) {
+    const input = {
+      id: payload.id || uuidv4(),
+      internalState: PAYMENT_STATE.COMPLETED,
+
+      // FROM PAYLOAD
+      clientOrderId: payload.clientOrderId || uuidv4(),
+      amount: payload.amount, // send it in payload
+      memo: payload.memo || '', // send it in payload
+      denomination: payload.denomination || 'BASE',
+      currency: payload.currency || 'BTC',
+    }
+
+    if (!initial) {
+      input.receivedByPlugin = {
+        name: payload.pluginName,
+        state: payload.state,
+        startAt: Date.now(),
+        endAt: Date.now()
+      }
+    }
+    const paymentObject = new PaymentIncoming(input, this.db)
+    await paymentObject.save()
+
+    return paymentObject
   }
 
   /**

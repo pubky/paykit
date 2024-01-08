@@ -58,7 +58,7 @@ class PaymentIncoming {
     //if (!pO.internalState) throw new Error(ERRORS.INTERNAL_STATE_REQUIRED)
 
     PaymentIncoming.validatePaymentParams(pO)
-    PaymentAmount.validate(pO)
+    if (pO.amount) PaymentAmount.validate(pO)
   }
 
   /**
@@ -87,7 +87,9 @@ class PaymentIncoming {
 
     this.memo = paymentParams.memo || ''
 
-    this.amount = new PaymentAmount(paymentParams)
+    if (paymentParams.amount) {
+      this.amount = new PaymentAmount(paymentParams)
+    }
 
     const statePaymentParams = { ...paymentParams }
 

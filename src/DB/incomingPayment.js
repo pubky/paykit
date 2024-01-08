@@ -1,4 +1,8 @@
 function createIncomingPaymentTable (db) {
+  // TODO:
+  // * exepected amount
+  // * fail if currencies do not match(
+  
     const createPaymentsStatement = `
       CREATE TABLE IF NOT EXISTS incoming_payments (
         id TEXT NOT NULL PRIMARY KEY,
