@@ -138,8 +138,6 @@ class LndConnect {
       min_confirmations: 0
     })
     sub.once('confirmation', (data) => { // 1conf
-      // TODO: process tx
-      // TODO: Ensure the proper amount has been received.
       const receipt = {
         error: !data,
         data,

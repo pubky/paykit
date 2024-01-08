@@ -1,6 +1,5 @@
 const { LndConnect } = require('./LndConnect.js')
 
-// TODO: make sure that data params are correct, make sense and are handled accordingly
 const pluginName = 'onchain'
 
 const supportedMethods = ['p2wpkh']
@@ -34,7 +33,7 @@ function getWatcher (config) {
 
     for (let i = 0; i < supportedMethods.length; i++) {
       const method = supportedMethods[i]
-      const address = await lnd.generateAddress(method) // TODO: support amount?
+      const address = await lnd.generateAddress(method)
       outputs[method] = address.data
       await lnd.subscribeToAddress(address.data, method, callback)
     }

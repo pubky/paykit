@@ -1,6 +1,5 @@
 const { LndConnect } = require('./LndConnect.js')
 
-// TODO: make sure that data params are correct, make sense and are handled accordingly
 const pluginName = 'bolt11'
 
 function getWatcher (config) {
