@@ -93,13 +93,17 @@ class PaymentReceiver {
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
     let paymentObject
+    console.log('PAYLOAD', payload)
     if (payload.isPersonalPayment) {
       paymentObject = await this.db.getIncomingPayment(payload.id)
       // TODO:
       console.log(paymentObject, payload)
     } else {
+      // id here is not really needed and cause troubles when receiving payment in two different plugins
+      delete payload.id
       paymentObject = await this.createPayment(payload)
     }
+    console.log('PAYMENT OBJECT', JSON.stringify(paymentObject))
 
     // TODO: if regenerateSlashpay is true or if amount was not specified
     // if amount was specified and does not match - do not regenerate
@@ -117,21 +121,31 @@ class PaymentReceiver {
       internalState: PAYMENT_STATE.COMPLETED,
 
       // FROM PAYLOAD
-      clientOrderId: payload.clientOrderId || uuidv4(),
-      amount: payload.amount, // send it in payload
+      clientOrderId: payload.clientOrderId,
       memo: payload.memo || '', // send it in payload
-      denomination: payload.denomination || 'BASE',
-      currency: payload.currency || 'BTC',
     }
 
-    if (!initial) {
+    if (initial) {
+      input.expectedAmount = payload.expectedAmount
+      input.expectedDenomination = payload.expectedDenomination || 'BASE'
+      input.expectedCurrency = payload.expectedCurrency || 'BTC'
+      input.receivedByPlugin = {}
+    } else {
       input.receivedByPlugin = {
         name: payload.pluginName,
         state: payload.state,
-        startAt: Date.now(),
-        endAt: Date.now()
+        amount: payload.amount,
+        rawData: payload.rawData,
+        receivedAt: Date.now(),
       }
     }
+
+    if (!payload.isPersonalPayment && !initial) {
+      input.amount = payload.amount
+      input.denomination = payload.denomination || 'BASE'
+      input.currency = payload.currency || 'BTC'
+    }
+
     const paymentObject = new PaymentIncoming(input, this.db)
     await paymentObject.save()
 
@@ -161,14 +175,14 @@ class PaymentReceiver {
     }
   }
 
-  getUrlParams(name, id) {
+  getUrlParams(name, clientOrderId) {
     let p
     const opts = {}
-    if (!id) {
-      id = uuidv4()
+    if (!clientOrderId) {
+      clientOrderId = uuidv4()
       p = `/public/slashpay/${name}/slashpay.json`
     } else {
-      p = `/slashpay/${id}/${name}/slashpay.json`
+      p = `/slashpay/${clientOrderId}/${name}/slashpay.json`
       opts.encrypt = true
     }
     return [p, opts]
