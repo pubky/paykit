@@ -5,7 +5,7 @@ const { test } = require('brittle')
 const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
-const { PAYMENT_STATE, PLUGIN_STATE } = require('../../src/payments/PaymentObject')
+const { PLUGIN_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentManager } = require('../../src/payments/PaymentManager')
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
@@ -128,7 +128,7 @@ test('PaymentManager.handleNewPayment', async t => {
     pluginName: 'p2sh',
     clientOrderId: 'network-id',
     isPersonalPayment: false,
-    state: 'success',
+    state: 'success'
   })
 
   t.is(stub.calledOnce, true)

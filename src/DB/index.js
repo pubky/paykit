@@ -90,6 +90,7 @@ class DB {
     const payment = await this.executeStatement(statement, params)
     return incomingPaymentSP.deserializePayment(payment)
   }
+
   /**
    * @method updatePayment - Update a payment in the database
    * @param {string} id
@@ -217,7 +218,6 @@ class DB {
       }
     })
   }
-
 }
 
 module.exports = { DB, ERROR }

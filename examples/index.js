@@ -15,7 +15,6 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
 
   const slashpayConfig = {
     sendingPriority: ['bolt11', 'onchain'],
-    sendingPriority: ['onchain'],
     plugins: {
       bolt11,
       onchain
@@ -62,22 +61,20 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
     process.exit(0)
   })
 
-  async function sendPayment(counterpartyURL, amount) {
+  async function sendPayment (counterpartyURL, amount) {
     const paymentOrder = await paymentManager.createPaymentOrder({
       clientOrderId: Date.now(),
       amount,
-      sendingPriority: [ 'bolt11', 'onchain' ],
+      sendingPriority: ['bolt11', 'onchain'],
       counterpartyURL
     })
 
     await paymentManager.sendPayment(paymentOrder.id)
   }
 
-  async function createInvoice(amount) {
+  async function createInvoice (amount) {
     const invoiceURL = await paymentManager.createInvoice((new Date()).getTime(), amount)
     console.log('Ask to pay this:')
     console.log(invoiceURL, amount)
   }
-
 })()
-

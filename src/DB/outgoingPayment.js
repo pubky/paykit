@@ -1,6 +1,5 @@
-
 function createOutgoingPaymentTable (db) {
-    const createPaymentsStatement = `
+  const createPaymentsStatement = `
       CREATE TABLE IF NOT EXISTS payments (
         id TEXT NOT NULL PRIMARY KEY,
         orderId TEXT NOT NULL,
@@ -22,15 +21,15 @@ function createOutgoingPaymentTable (db) {
         removed INTEGER NOT NULL DEFAULT 0
       )`
 
-    return new Promise((resolve, reject) => {
-      db.sqlite.run(createPaymentsStatement, (err, res) => {
-        if (err) return reject(err)
-        return resolve(res)
-      })
+  return new Promise((resolve, reject) => {
+    db.sqlite.run(createPaymentsStatement, (err, res) => {
+      if (err) return reject(err)
+      return resolve(res)
     })
+  })
 }
 
-function savePayment(payment) {
+function savePayment (payment) {
   const params = {
     $id: payment.id,
     $orderId: payment.orderId,
@@ -93,7 +92,7 @@ function savePayment(payment) {
   return { statement, params }
 }
 
-function getPayment(id, opts) {
+function getPayment (id, opts) {
   const params = { $id: id }
   let statement = 'SELECT * FROM payments WHERE id = $id'
 
@@ -108,7 +107,7 @@ function getPayment(id, opts) {
   return { statement, params }
 }
 
-function updatePayment(id, update) {
+function updatePayment (id, update) {
   let statement = 'UPDATE payments SET '
   const params = { $id: id }
 
@@ -126,7 +125,7 @@ function updatePayment(id, update) {
   return { statement, params }
 }
 
-function getPayments(opts) {
+function getPayments (opts) {
   const params = {}
   let statement = 'SELECT * FROM payments'
   if (Object.keys(opts).length > 0) statement += ' WHERE '
@@ -165,13 +164,11 @@ function deserializePayment (payment) {
   return res
 }
 
-
-
 module.exports = {
   createOutgoingPaymentTable,
   savePayment,
   getPayment,
   updatePayment,
   getPayments,
-  deserializePayment,
+  deserializePayment
 }

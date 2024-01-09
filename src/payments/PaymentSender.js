@@ -152,7 +152,6 @@ class PaymentSender {
 
     try {
       await this.paymentOrder.complete()
-      return
     } catch (e) {
       if (e.message === ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
         // RECURRING PAYMENT territory

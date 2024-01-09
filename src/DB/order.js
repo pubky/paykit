@@ -1,4 +1,4 @@
-function createOrderTable(db) {
+function createOrderTable (db) {
   const createOrdersStatement = `
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT NOT NULL PRIMARY KEY,
@@ -135,5 +135,5 @@ module.exports = {
   saveOrder,
   getOrder,
   updateOrder,
-  deserializeOrder,
+  deserializeOrder
 }

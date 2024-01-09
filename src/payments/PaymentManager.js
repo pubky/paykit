@@ -217,7 +217,6 @@ class PaymentManager {
     )
     return await paymentReceiver.createPaymentFile(payload)
   }
-
 }
 
 /**

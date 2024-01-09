@@ -10,7 +10,6 @@ function getWatcher (config) {
   return async ({ id, clientOrderId, expectedAmount, notificationCallback }) => {
     const outputs = {}
 
-
     const callback = async (receipt) => {
       await notificationCallback({
         id, // slashpay id

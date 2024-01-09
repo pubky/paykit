@@ -5,7 +5,6 @@ const { test } = require('brittle')
 const SlashtagsURL = require('@synonymdev/slashtags-url')
 
 const { DB } = require('../../src/DB')
-const { PLUGIN_STATE, PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
 
@@ -142,7 +141,7 @@ test('PaymentReceiver.handleNewPayment', async t => {
     amount: '1000',
     pluginName: 'p2sh',
     clientOrderId: 'network-id',
-    state: 'success',
+    state: 'success'
   })
 
   const postPayments = await db.getIncomingPayments()
@@ -161,8 +160,6 @@ test('PaymentReceiver.handleNewPayment', async t => {
   t.ok(payment.receivedByPlugins[0].receivedAt)
 
   t.is(notificationCallback.callCount, 1)
-  const arg = notificationCallback.getCall(0).args[0]
-  // t.alike(arg.serialize(), payment)
 
   t.is(pluginDispatch.callCount, 1)
 

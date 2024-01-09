@@ -3,7 +3,7 @@ const logger = require('slashtags-logger')('Slashpay', 'incoming-payment')
 const { v4: uuidv4 } = require('uuid')
 
 const { PaymentAmount } = require('./PaymentAmount')
-const { PaymentState, PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
+const { PAYMENT_STATE, PLUGIN_STATE } = require('./PaymentState')
 /**
  * PaymentIncoming class
  * @class PaymentIncoming
@@ -54,7 +54,7 @@ class PaymentIncoming {
   static validatePaymentObject (pO) {
     if (!pO) throw new Error(ERRORS.PAYMENT_OBJECT_REQUIRED)
     if (!pO.id) throw new Error(ERRORS.ID_REQUIRED)
-    //if (!pO.internalState) throw new Error(ERRORS.INTERNAL_STATE_REQUIRED)
+    // if (!pO.internalState) throw new Error(ERRORS.INTERNAL_STATE_REQUIRED)
 
     PaymentIncoming.validatePaymentParams(pO)
     if (pO.amount) PaymentAmount.validate(pO)
@@ -103,7 +103,6 @@ class PaymentIncoming {
 
     this.createdAt = paymentParams.createdAt || Date.now()
 
-
     this.logger = {
       debug: (msg) => { logger.debug.extend(JSON.stringify(this.serialize()))({ msg }) },
       info: (msg) => { logger.info.extend(JSON.stringify(this.serialize()))({ msg }) }
@@ -116,7 +115,6 @@ class PaymentIncoming {
   [Symbol.for('nodejs.util.inspect.custom')] () {
     return JSON.stringify(this.serialize())
   }
-
 
   /**
    * Serialize payment object
@@ -131,7 +129,7 @@ class PaymentIncoming {
       receivedAt: this.receivedAt,
       receivedByPlugins: this.receivedByPlugins,
       internalState: this.internalState,
-      ...this.amount?.serialize(),
+      ...this.amount?.serialize()
     }
     if (this.expectedAmount) {
       const serializedAmount = this.expectedAmount.serialize()
@@ -227,12 +225,12 @@ const ERRORS = {
   DB_NOT_READY: 'Database is not ready',
   NOT_ALLOWED: 'Not allowed',
   NO_PAYMENT_FILE: 'No payment file found',
-  INVALID_PLUGIN_STATE: (state) => `Invalid plugin state ${state}`,
+  INVALID_PLUGIN_STATE: (state) => `Invalid plugin state ${state}`
 }
 
 module.exports = {
   PaymentIncoming,
   PAYMENT_STATE,
   PLUGIN_STATE,
-  ERRORS,
+  ERRORS
 }

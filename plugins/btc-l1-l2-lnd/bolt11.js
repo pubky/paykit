@@ -23,7 +23,7 @@ function getWatcher (config) {
         denomination: 'BASE',
         currency: 'BTC',
 
-        state: !!(receipt.data.is_confirmed || receipt.data.tokens) ? 'success' : 'failed',
+        state: receipt.data.is_confirmed || receipt.data.tokens ? 'success' : 'failed',
 
         memo: receipt.data.description,
 
@@ -77,8 +77,6 @@ function getPayer (config) {
     // }
 
     // TODO: convert amount based on denomination
-    let tokens
-
     const res = await lnd.payInvoice({ request, tokens: payload.amount })
     await notificationCallback({
       ...payload,

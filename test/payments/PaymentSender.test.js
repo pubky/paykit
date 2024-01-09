@@ -303,7 +303,7 @@ test('PaymentSender - recurring payment all success', async t => {
   const p2sh = await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' }, { awaitRelaySync: true })
   const p2tr = await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' }, { awaitRelaySync: true })
   await receiver.create(SLASHPAY_PATH, {
-    paymentEndpoints: { p2sh, p2tr, }
+    paymentEndpoints: { p2sh, p2tr }
   }, { awaitRelaySync: true })
 
   const sender = new SlashtagsConnector({
@@ -339,7 +339,6 @@ test('PaymentSender - recurring payment all success', async t => {
       pluginState: PLUGIN_STATES.SUCCESS
     }
     await paymentSender.stateUpdateCallback(paymentUpdate)
-
   }
 
   t.is(submitSpy.callCount, paymentOrder.payments.length - 1) // -1 for last call

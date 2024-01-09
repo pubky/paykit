@@ -61,7 +61,6 @@ async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, cr
     paymentOrder = new PaymentOrder(params, db, sender)
   }
 
-
   return {
     db,
     paymentOrder,
