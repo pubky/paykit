@@ -44,14 +44,7 @@ class PaymentAmount {
   /**
    * @returns {Object} serialized PaymentAmount
    */
-  serialize (prefix = '') {
-    if (prefix !== '') {
-      return {
-        [`${prefix}Amount`]: this.amount,
-        [`${prefix}Currency`]: this.currency,
-        [`${prefix}Denomination`]: this.denomination
-      }
-    }
+  serialize () {
     return {
       amount: this.amount,
       currency: this.currency,

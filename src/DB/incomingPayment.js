@@ -19,8 +19,10 @@ function createIncomingPaymentTable (db) {
         expectedCurrency TEXT,
 
         receivedByPlugins TEXT,
+        internalState TEXT NOT NULL,
 
         createdAt INTEGER NOT NULL,
+
         removed INTEGER NOT NULL DEFAULT 0
       )`
 
@@ -47,6 +49,7 @@ function savePayment(payment) {
     $expectedCurrency: payment.expectedCurrency,
 
     $receivedByPlugins: JSON.stringify(payment.receivedByPlugins),
+    $internalState: payment.internalState,
 
     $createdAt: payment.createdAt,
   }
@@ -66,6 +69,7 @@ function savePayment(payment) {
       expectedCurrency,
 
       receivedByPlugins,
+      internalState,
 
       createdAt
     ) VALUES (
@@ -82,6 +86,7 @@ function savePayment(payment) {
       $expectedCurrency,
 
       $receivedByPlugins,
+      $internalState,
 
       $createdAt
     )`

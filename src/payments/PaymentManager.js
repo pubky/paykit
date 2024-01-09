@@ -91,7 +91,7 @@ class PaymentManager {
       this.slashtagsConnector,
       this.entryPointForPlugin.bind(this)
     )
-    return await paymentReceiver.createInvoice(clientOrderId, new PaymentAmount({ amount, ...amountOpts }))
+    return await paymentReceiver.createInvoice(clientOrderId, new PaymentAmount({ amount, ...amountOpts }, 'expected'))
   }
 
   /**

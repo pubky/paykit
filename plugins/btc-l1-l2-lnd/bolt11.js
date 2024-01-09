@@ -5,7 +5,7 @@ const pluginName = 'bolt11'
 function getWatcher (config) {
   const lnd = new LndConnect(config)
 
-  return async ({ id, clientOrderId, amount, notificationCallback }) => {
+  return async ({ id, clientOrderId, expectedAmount, notificationCallback }) => {
     const outputs = {}
 
     const callback = async (receipt) => {
@@ -17,7 +17,7 @@ function getWatcher (config) {
         type: 'payment_new',
         rawData: receipt.data,
 
-        isPersonalPayment: !!amount,
+        isPersonalPayment: !!expectedAmount,
 
         amount: receipt.data.received.toString(),
         denomination: 'BASE',
@@ -35,8 +35,8 @@ function getWatcher (config) {
     }
 
     let tokens
-    if (amount) {
-      tokens = amount.amount
+    if (expectedAmount) {
+      tokens = expectedAmount.amount
     }
 
     const invoice = await lnd.generateInvoice({ tokens })
@@ -54,8 +54,9 @@ function getWatcher (config) {
 
       type: 'ready_to_receive',
       data: outputs,
+      expectedAmount,
 
-      isPersonalPayment: !!amount
+      isPersonalPayment: !!expectedAmount
     }
     await notificationCallback(readyToReceive)
   }

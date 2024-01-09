@@ -7,7 +7,7 @@ const supportedMethods = ['p2wpkh']
 function getWatcher (config) {
   const lnd = new LndConnect(config)
 
-  return async ({ id, clientOrderId, amount, notificationCallback }) => {
+  return async ({ id, clientOrderId, expectedAmount, notificationCallback }) => {
     const outputs = {}
 
 
@@ -19,14 +19,14 @@ function getWatcher (config) {
         pluginName,
         type: 'payment_new',
         rawData: receipt.data,
-        isPersonalPayment: !!amount,
+        isPersonalPayment: !!expectedAmount,
         state: 'success', // works on confirmation but not on reorgs
 
         currency: 'BTC',
         denomination: 'BASE',
 
         networkId: receipt.data.transaction,
-        amount: receipt.data.amount.toString(),
+        expectedAmount: receipt.data.amount.toString(),
         memo: ''
       })
     }
@@ -49,7 +49,8 @@ function getWatcher (config) {
       type: 'ready_to_receive',
       data: outputs,
 
-      isPersonalPayment: !!amount
+      expectedAmount,
+      isPersonalPayment: !!expectedAmount
     }
     await notificationCallback(readyToReceive)
   }

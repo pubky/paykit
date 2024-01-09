@@ -89,14 +89,20 @@ class PaymentIncoming {
     if (paymentParams.amount) {
       this.amount = new PaymentAmount(paymentParams)
     }
+    if (paymentParams.expectedAmount) {
+      this.expectedAmount = new PaymentAmount({
+        amount: paymentParams.expectedAmount,
+        currency: paymentParams.expectedCurrency,
+        denomination: paymentParams.expectedDenomination
+      })
+    }
 
-    const statePaymentParams = { ...paymentParams }
-
-    // this.internalState = new PaymentState(this, statePaymentParams)
+    this.internalState = paymentParams.internalState || PAYMENT_STATE.INITIAL
 
     this.receivedByPlugins = paymentParams.receivedByPlugins || []
 
     this.createdAt = paymentParams.createdAt || Date.now()
+
 
     this.logger = {
       debug: (msg) => { logger.debug.extend(JSON.stringify(this.serialize()))({ msg }) },
@@ -117,17 +123,24 @@ class PaymentIncoming {
    * @returns {SerializedPayment}
    */
   serialize () {
-    return {
+    const serialized = {
       id: this.id,
       clientOrderId: this.clientOrderId,
       memo: this.memo,
       createdAt: this.createdAt,
       receivedAt: this.receivedAt,
       receivedByPlugins: this.receivedByPlugins,
-      // NOTE: ORM will be nice here
+      internalState: this.internalState,
       ...this.amount?.serialize(),
-//      ...this.internalState?.serialize()
     }
+    if (this.expectedAmount) {
+      const serializedAmount = this.expectedAmount.serialize()
+      serialized.expectedAmount = serializedAmount.amount
+      serialized.expectedCurrency = serializedAmount.currency
+      serialized.expectedDenomination = serializedAmount.denomination
+    }
+
+    return serialized
   }
 
   /**

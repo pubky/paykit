@@ -44,27 +44,29 @@ class PaymentReceiver {
   /**
    * Create private payment endpoints which are encrypted
    * @param {string} clientOrderId - invoice clientOrderId
-   * @param {PaymentAmount} amount - amount of money to receive
+   * @param {PaymentAmount} expectedAmount - expectedAmount of money to receive
    * @returns {Promise<String>} - url to local drive where slashpay.json file is located
   */
-  async createInvoice (clientOrderId, amount) {
+  async createInvoice (clientOrderId, expectedAmount) {
     const paymentPluginNames = this.getListOfSupportedPaymentMethods()
     const { slashpayFile, id } = await this.generateSlashpayContent(paymentPluginNames, clientOrderId)
 
     const url = await this.storage.create(`slashpay/${clientOrderId}/slashpay.json`, slashpayFile, { encrypt: true, awaitRelaySync: true })
-    console.log('URL', url)
 
     const payload = {
       id,
       clientOrderId,
-      ...amount.serialize('expected'),
       notificationCallback: this.notificationCallback.bind(this)
     }
+    const serializedAmount = expectedAmount.serialize()
+    payload.expectedAmount = serializedAmount.amount
+    payload.expectedCurrency = serializedAmount.currency
+    payload.expectedDenomination = serializedAmount.denomination
+
     await this.pluginManager.dispatchEvent('receivePayment', payload)
     this.ready = true
 
-    const createdPaymentFile = await this.createPayment(payload, true)
-    console.log('INVOICE PF', createdPaymentFile)
+    const createdPaymentObject = await this.createPayment(payload, true)
 
     return url
   }
@@ -83,7 +85,7 @@ class PaymentReceiver {
       path = `/slashpay/${payload.clientOrderId}/${payload.pluginName}/slashpay.json`
     }
 
-    await this.storage.create(path, payload.data, opts)
+    const res = await this.storage.create(path, payload.data, opts)
   }
 
   /**
@@ -93,22 +95,21 @@ class PaymentReceiver {
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
     let paymentObject
-    let isCompleted
-    console.log('PAYLOAD', payload)
+    let isFinal
     if (payload.isPersonalPayment) {
       const { paymentObject, isCompleted } = await this.updatePayment(payload)
+      isFinal = isCompleted
     } else {
       // id here is not really needed and cause troubles when receiving payment in two different plugins
       // TODO: consider not generating id for non-personal payments
       delete payload.id
       paymentObject = await this.createPayment(payload)
-      isCompleted = true
+      isFinal = true
     }
-    console.log('PAYMENT OBJECT', JSON.stringify(paymentObject))
 
     // TODO: if regenerateSlashpay is true or if amount was not specified
     // if amount was specified and does not match - do not regenerate
-    if (regenerateSlashpay && isCompleted) {
+    if (regenerateSlashpay && isFinal) {
       await this.init()
     }
 
@@ -117,7 +118,7 @@ class PaymentReceiver {
   }
 
   async updatePayment (payload) {
-    isCompleted = false
+    let isCompleted = false
     const paymentObject = await this.db.getIncomingPayment(payload.id)
     if (!paymentObject) throw new Error('PAYMENT_OBJECT_NOT_FOUND')
 
@@ -147,7 +148,7 @@ class PaymentReceiver {
       update.internalState = PAYMENT_STATE.IN_PROGRESS
     }
 
-    await this.db.updatePayment(payload.id, update)
+    await this.db.updateIncomingPayment(payload.id, update)
 
     return { paymentObject, isCompleted }
   }
@@ -166,7 +167,6 @@ class PaymentReceiver {
       input.expectedDenomination = payload.expectedDenomination || 'BASE'
       input.expectedCurrency = payload.expectedCurrency || 'BTC'
       input.receivedByPlugins = []
-      input.internalState = PAYMENT_STATE.INITIAL
     } else {
       input.receivedByPlugins = [{
         name: payload.pluginName,

@@ -105,6 +105,21 @@ class DB {
     return { statement, params }
   }
 
+  /**
+   * @method updateIncomingPayment - Update a payment in the database
+   * @param {string} id
+   * @param {Object} update
+   * @param {boolean} execute - Execute the statement or return it
+   * @returns {Promise<Database| { statement: string, params: object }>}
+   */
+  async updateIncomingPayment (id, update, execute = true) {
+    if (!this.ready) throw new Error(ERROR.NOT_READY)
+    const { statement, params } = incomingPaymentSP.updatePayment(id, update)
+
+    if (execute) return await this.executeStatement(statement, params)
+    return { statement, params }
+  }
+
   // XXX: super naive
   // TODO: add pagination
   // ...
