@@ -26,7 +26,7 @@ function getWatcher (config) {
         denomination: 'BASE',
 
         networkId: receipt.data.transaction,
-        expectedAmount: receipt.data.amount.toString(),
+        amount: receipt.data.amount.toString(),
         memo: ''
       })
     }

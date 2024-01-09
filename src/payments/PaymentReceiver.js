@@ -94,16 +94,17 @@ class PaymentReceiver {
    * @returns {Promise<void>}
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
-    let paymentObject
+    let result
     let isFinal
     if (payload.isPersonalPayment) {
       const { paymentObject, isCompleted } = await this.updatePayment(payload)
       isFinal = isCompleted
+      result = paymentObject
     } else {
       // id here is not really needed and cause troubles when receiving payment in two different plugins
       // TODO: consider not generating id for non-personal payments
       delete payload.id
-      paymentObject = await this.createPayment(payload)
+      result = await this.createPayment(payload)
       isFinal = true
     }
 
@@ -114,7 +115,7 @@ class PaymentReceiver {
     }
 
     // TODO: send different notifications is amount was specified but was not matched
-    await this.notificationCallback(paymentObject)
+    await this.notificationCallback(result)
   }
 
   async updatePayment (payload) {
@@ -140,8 +141,8 @@ class PaymentReceiver {
       update.amount = payload.amount
     }
 
-    const totalReceivedAmount = paymentObject.receivedByPlugins.reduce((acc, { amount }) => acc + amount, 0)
-    if (totalReceivedAmount === paymentObject.expectedAmount) {
+    const totalReceivedAmount = update.receivedByPlugins.reduce((acc, { amount }) => acc + parseInt(amount), 0)
+    if (totalReceivedAmount === parseInt(paymentObject.expectedAmount)) {
       update.internalState = PAYMENT_STATE.COMPLETED
       isCompleted = true
     } else {
@@ -149,8 +150,9 @@ class PaymentReceiver {
     }
 
     await this.db.updateIncomingPayment(payload.id, update)
+    const res = await this.db.getIncomingPayment(payload.id)
 
-    return { paymentObject, isCompleted }
+    return { paymentObject: res, isCompleted }
   }
 
   async createPayment (payload, initial = false) {
