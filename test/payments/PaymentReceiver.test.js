@@ -157,8 +157,7 @@ test('PaymentReceiver.handleNewPayment', async t => {
   t.is(payment.currency, 'BTC')
   t.is(payment.denomination, 'BASE')
   t.is(payment.receivedByPlugin.name, 'p2sh')
-  t.ok(payment.receivedByPlugin.startAt)
-  t.ok(payment.receivedByPlugin.endAt)
+  t.ok(payment.receivedByPlugin.receivedAt)
 
   t.is(notificationCallback.callCount, 1)
   const arg = notificationCallback.getCall(0).args[0]

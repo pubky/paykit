@@ -32,7 +32,6 @@ class PaymentIncoming {
    */
   static validatePaymentParams (paymentParams) {
     if (!paymentParams) throw new Error(ERRORS.PARAMS_REQUIRED)
-    if (!paymentParams.clientOrderId) throw new Error(ERRORS.CLIENT_ID_REQUIRED)
   }
 
   /**
@@ -203,7 +202,6 @@ class PaymentIncoming {
 /**
  * @typedef {Object} Error
  * @property {string} NO_PLUGINS - no plugins found
- * @property {string} CLIENT_ID_REQUIRED - clientOrderId is required
  * @property {string} NOT_ALLOWED - not allowed
  * @property {string} NO_PAYMENT_FILE - no payment file found
  * @property {string} INVALID_PLUGIN_STATE - invalid plugin state
@@ -215,7 +213,6 @@ const ERRORS = {
   ALREADY_EXISTS: (id) => `Payment id: ${id} already exists`,
   NO_DB: 'No database provided',
   DB_NOT_READY: 'Database is not ready',
-  CLIENT_ID_REQUIRED: 'clientOrderId is required',
   NOT_ALLOWED: 'Not allowed',
   NO_PAYMENT_FILE: 'No payment file found',
   INVALID_PLUGIN_STATE: (state) => `Invalid plugin state ${state}`,

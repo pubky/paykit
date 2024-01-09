@@ -7,15 +7,19 @@ function createIncomingPaymentTable (db) {
     const createPaymentsStatement = `
       CREATE TABLE IF NOT EXISTS incoming_payments (
         id TEXT NOT NULL PRIMARY KEY,
-        clientOrderId TEXT NOT NULL,
+        clientOrderId TEXT,
         memo TEXT NOT NULL,
+
         amount TEXT,
         denomination TEXT,
         currency TEXT,
+
         expectedAmount TEXT,
         expectedDenomination TEXT,
         expectedCurrency TEXT,
+
         receivedByPlugin TEXT,
+
         createdAt INTEGER NOT NULL,
         receivedAt INTEGER,
         removed INTEGER NOT NULL DEFAULT 0
@@ -34,13 +38,17 @@ function savePayment(payment) {
     $id: payment.id,
     $clientOrderId: payment.clientOrderId,
     $memo: payment.memo,
+
     $amount: payment.amount,
     $denomination: payment.denomination,
     $currency: payment.currency,
+
     $expectedAmount: payment.expectedAmount,
     $expectedDenomination: payment.expectedDenomination,
     $expectedCurrency: payment.expectedCurrency,
+
     $receivedByPlugin: JSON.stringify(payment.receivedByPlugin),
+
     $createdAt: payment.createdAt,
     $receivedAt: payment.executeAt
   }
@@ -50,26 +58,34 @@ function savePayment(payment) {
       id,
       clientOrderId,
       memo,
+
       amount,
       denomination,
       currency,
+
       expectedAmount,
       expectedDenomination,
       expectedCurrency,
+
       receivedByPlugin,
+
       createdAt,
       receivedAt
     ) VALUES (
       $id,
       $clientOrderId,
       $memo,
+
       $amount,
       $denomination,
       $currency,
+
       $expectedAmount,
       $expectedDenomination,
       $expectedCurrency,
+
       $receivedByPlugin,
+
       $createdAt,
       $receivedAt
     )`

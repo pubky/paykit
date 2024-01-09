@@ -147,8 +147,7 @@ test('PaymentManager.handleNewPayment', async t => {
   t.is(got.denomination, 'BASE')
   t.is(got.receivedByPlugin.name, 'p2sh')
   t.is(got.receivedByPlugin.state, PLUGIN_STATE.SUCCESS)
-  t.ok(got.receivedByPlugin.startAt)
-  t.ok(got.receivedByPlugin.endAt)
+  t.ok(got.receivedByPlugin.receivedAt)
 
   t.teardown(async () => {
     await dropTables(db)
