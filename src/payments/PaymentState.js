@@ -295,6 +295,7 @@ const PAYMENT_STATE = {
   INITIAL: 'initial',
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
+  // TODO: add partial
   FAILED: 'failed',
   CANCELLED: 'cancelled'
 }

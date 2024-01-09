@@ -1,7 +1,6 @@
 const { v4: uuidv4 } = require('uuid')
 
-const { PAYMENT_STATE } = require('./PaymentObject')
-const { PaymentIncoming } = require('./PaymentIncoming')
+const { PaymentIncoming, PAYMENT_STATE } = require('./PaymentIncoming')
 const { PaymentAmount } = require('./PaymentAmount')
 const { SLASHPAY_PATH } = require('../slashtags')
 /**
@@ -53,6 +52,7 @@ class PaymentReceiver {
     const { slashpayFile, id } = await this.generateSlashpayContent(paymentPluginNames, clientOrderId)
 
     const url = await this.storage.create(`slashpay/${clientOrderId}/slashpay.json`, slashpayFile, { encrypt: true, awaitRelaySync: true })
+    console.log('URL', url)
 
     const payload = {
       id,
@@ -93,21 +93,22 @@ class PaymentReceiver {
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
     let paymentObject
+    let isCompleted
     console.log('PAYLOAD', payload)
     if (payload.isPersonalPayment) {
-      paymentObject = await this.db.getIncomingPayment(payload.id)
-      // TODO:
-      console.log(paymentObject, payload)
+      const { paymentObject, isCompleted } = await this.updatePayment(payload)
     } else {
       // id here is not really needed and cause troubles when receiving payment in two different plugins
+      // TODO: consider not generating id for non-personal payments
       delete payload.id
       paymentObject = await this.createPayment(payload)
+      isCompleted = true
     }
     console.log('PAYMENT OBJECT', JSON.stringify(paymentObject))
 
     // TODO: if regenerateSlashpay is true or if amount was not specified
     // if amount was specified and does not match - do not regenerate
-    if (regenerateSlashpay) {
+    if (regenerateSlashpay && isCompleted) {
       await this.init()
     }
 
@@ -115,10 +116,45 @@ class PaymentReceiver {
     await this.notificationCallback(paymentObject)
   }
 
+  async updatePayment (payload) {
+    isCompleted = false
+    const paymentObject = await this.db.getIncomingPayment(payload.id)
+    if (!paymentObject) throw new Error('PAYMENT_OBJECT_NOT_FOUND')
+
+    if (paymentObject.expectedCurrency !== payload.currency) throw new Error('PAYMENT_CURRENCY_MISMATCH')
+    // XXX: conversion might be supported in the future
+    if (paymentObject.expectedDenomination !== payload.denomination) throw new Error('PAYMENT_DENOMINATION_MISMATCH')
+
+    const update = {
+      receivedByPlugins: [...paymentObject.receivedByPlugins, {
+        name: payload.pluginName,
+        state: payload.state,
+        amount: payload.amount,
+        rawData: payload.rawData,
+        receivedAt: Date.now(),
+      }]
+    }
+
+    if (payload.amount === paymentObject.expectedAmount) {
+      update.amount = payload.amount
+    }
+
+    const totalReceivedAmount = paymentObject.receivedByPlugins.reduce((acc, { amount }) => acc + amount, 0)
+    if (totalReceivedAmount === paymentObject.expectedAmount) {
+      update.internalState = PAYMENT_STATE.COMPLETED
+      isCompleted = true
+    } else {
+      update.internalState = PAYMENT_STATE.IN_PROGRESS
+    }
+
+    await this.db.updatePayment(payload.id, update)
+
+    return { paymentObject, isCompleted }
+  }
+
   async createPayment (payload, initial = false) {
     const input = {
       id: payload.id || uuidv4(),
-      internalState: PAYMENT_STATE.COMPLETED,
 
       // FROM PAYLOAD
       clientOrderId: payload.clientOrderId,
@@ -129,15 +165,17 @@ class PaymentReceiver {
       input.expectedAmount = payload.expectedAmount
       input.expectedDenomination = payload.expectedDenomination || 'BASE'
       input.expectedCurrency = payload.expectedCurrency || 'BTC'
-      input.receivedByPlugin = {}
+      input.receivedByPlugins = []
+      input.internalState = PAYMENT_STATE.INITIAL
     } else {
-      input.receivedByPlugin = {
+      input.receivedByPlugins = [{
         name: payload.pluginName,
         state: payload.state,
         amount: payload.amount,
         rawData: payload.rawData,
         receivedAt: Date.now(),
-      }
+      }]
+      input.internalState = PAYMENT_STATE.COMPLETED
     }
 
     if (!payload.isPersonalPayment && !initial) {
@@ -201,7 +239,8 @@ class PaymentReceiver {
 
 const ERRORS = {
   PAYMENT_RECEIVER_NOT_READY: 'PAYMENT_RECEIVER_NOT_READY',
-  PAYLOAD_CLIENT_ORDER_ID_IS_MISSING: 'CLIENT_ORDER_ID_IS_MISSING', 
+  PAYLOAD_CLIENT_ORDER_ID_IS_MISSING: 'CLIENT_ORDER_ID_IS_MISSING',
+  PAYMENT_OBJECT_NOT_FOUND: 'PAYMENT_OBJECT_NOT_FOUND',
 }
 
 module.exports = {

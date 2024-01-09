@@ -145,9 +145,10 @@ test('PaymentManager.handleNewPayment', async t => {
   t.is(got.amount, '1000')
   t.is(got.currency, 'BTC')
   t.is(got.denomination, 'BASE')
-  t.is(got.receivedByPlugin.name, 'p2sh')
-  t.is(got.receivedByPlugin.state, PLUGIN_STATE.SUCCESS)
-  t.ok(got.receivedByPlugin.receivedAt)
+  t.is(got.receivedByPlugins.length, 1)
+  t.is(got.receivedByPlugins[0].name, 'p2sh')
+  t.is(got.receivedByPlugins[0].state, PLUGIN_STATE.SUCCESS)
+  t.ok(got.receivedByPlugins[0].receivedAt)
 
   t.teardown(async () => {
     await dropTables(db)
