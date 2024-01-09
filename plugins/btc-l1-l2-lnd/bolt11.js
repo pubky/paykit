@@ -43,7 +43,7 @@ function getWatcher (config) {
     outputs.bolt11 = invoice.data
     lnd.subscribeToInvoice(invoice.id, callback)
 
-    await notificationCallback({
+    const readyToReceive = {
       id,
       clientOrderId,
 
@@ -56,7 +56,8 @@ function getWatcher (config) {
       data: outputs,
 
       isPersonalPayment: !!amount
-    })
+    }
+    await notificationCallback(readyToReceive)
   }
 }
 

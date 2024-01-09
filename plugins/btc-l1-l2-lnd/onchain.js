@@ -38,7 +38,7 @@ function getWatcher (config) {
       await lnd.subscribeToAddress(address.data, method, callback)
     }
 
-    await notificationCallback({
+    const readyToReceive = {
       id,
       clientOrderId,
       // TODO:
@@ -50,7 +50,8 @@ function getWatcher (config) {
       data: outputs,
 
       isPersonalPayment: !!amount
-    })
+    }
+    await notificationCallback(readyToReceive)
   }
 }
 
