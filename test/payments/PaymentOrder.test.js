@@ -13,7 +13,7 @@ const { orderParams } = require('../fixtures/paymentParams')
 const { PaymentOrder, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
 
-const { getOneTimePaymentOrderEntities, sleep, dropTables, tmpdir } = require('../helpers')
+const { getOneTimePaymentOrderEntities, dropTables, tmpdir } = require('../helpers')
 
 test('PaymentOrder - new (default one time)', async t => {
   const { paymentOrder, receiver, db, relay } = await getOneTimePaymentOrderEntities(t)
@@ -485,7 +485,7 @@ test('PaymentOrder - recurring order (finite)', async t => {
       p2sh: '/public/p2sh.json',
       p2tr: '/public/p2tr.json'
     }
-  })
+  }, { awaitRelaySync: true })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),
@@ -513,7 +513,6 @@ test('PaymentOrder - recurring order (finite)', async t => {
     t.is(res.internalState.internalState, PAYMENT_STATE.IN_PROGRESS)
     await res.complete()
     t.is(res.internalState.internalState, PAYMENT_STATE.COMPLETED)
-    await sleep(1)
   }
 
   t.teardown(async () => {
@@ -538,7 +537,7 @@ test('PaymentOrder - recurring order (infinite)', async t => {
       p2sh: '/public/p2sh.json',
       p2tr: '/public/p2tr.json'
     }
-  })
+  }, { awaitRelaySync: true })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),
@@ -563,7 +562,6 @@ test('PaymentOrder - recurring order (infinite)', async t => {
     t.is(res.internalState.internalState, PAYMENT_STATE.IN_PROGRESS)
     await res.complete()
     t.is(res.internalState.internalState, PAYMENT_STATE.COMPLETED)
-    await sleep(1)
   }
 
   await paymentOrder.process()

@@ -5,7 +5,7 @@ const { test } = require('brittle')
 const { config } = require('../fixtures/config')
 const { paymentParams } = require('../fixtures/paymentParams')
 
-const { PAYMENT_STATE, PLUGIN_STATE } = require('../../src/payments/PaymentObject')
+const { PLUGIN_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentManager } = require('../../src/payments/PaymentManager')
 const { PaymentReceiver } = require('../../src/payments/PaymentReceiver')
 
@@ -121,40 +121,34 @@ test('PaymentManager.handleNewPayment', async t => {
     sinon.fake(PaymentReceiver.prototype.handleNewPayment)
   )
 
-  const prePayments = await db.getPayments()
+  const prePayments = await db.getIncomingPayments()
   t.is(prePayments.length, 0)
   await paymentManager.handleNewPayment({
     amount: '1000',
     pluginName: 'p2sh',
     clientOrderId: 'network-id',
-    amountWasSpecified: false
+    isPersonalPayment: false,
+    state: 'success'
   })
 
   t.is(stub.calledOnce, true)
   t.is(receiverHandler.calledOnce, true)
 
-  const postPayments = await db.getPayments()
+  const postPayments = await db.getIncomingPayments()
   t.is(postPayments.length, 1)
   const paymentId = postPayments[0].id
 
-  const got = await db.getPayment(paymentId)
+  const got = await db.getIncomingPayment(paymentId)
   t.is(got.id, paymentId)
-  t.ok(got.orderId)
   t.is(got.clientOrderId, 'network-id')
-  t.is(got.internalState, PAYMENT_STATE.COMPLETED)
-  t.is(got.counterpartyURL, await receiver.getUrl())
   t.is(got.memo, '')
   t.is(got.amount, '1000')
   t.is(got.currency, 'BTC')
   t.is(got.denomination, 'BASE')
-  t.alike(got.sendingPriority, ['p2sh'])
-  t.alike(got.pendingPlugins, [])
-  t.alike(got.triedPlugins, [])
-  t.alike(got.currentPlugin, {})
-  t.is(got.completedByPlugin.name, 'p2sh')
-  t.is(got.completedByPlugin.state, PLUGIN_STATE.SUCCESS)
-  t.ok(got.completedByPlugin.startAt)
-  t.ok(got.completedByPlugin.endAt)
+  t.is(got.receivedByPlugins.length, 1)
+  t.is(got.receivedByPlugins[0].name, 'p2sh')
+  t.is(got.receivedByPlugins[0].state, PLUGIN_STATE.SUCCESS)
+  t.ok(got.receivedByPlugins[0].receivedAt)
 
   t.teardown(async () => {
     await dropTables(db)

@@ -7,45 +7,57 @@ const supportedMethods = ['p2wpkh']
 function getWatcher (config) {
   const lnd = new LndConnect(config)
 
-  return async ({ amount, notificationCallback }) => {
+  return async ({ id, clientOrderId, expectedAmount, notificationCallback }) => {
     const outputs = {}
 
     const callback = async (receipt) => {
       await notificationCallback({
+        id, // slashpay id
+        clientOrderId, // optional customer generated id
+
         pluginName,
         type: 'payment_new',
         rawData: receipt.data,
-        amountWasSpecified: !!amount,
+        isPersonalPayment: !!expectedAmount,
+        state: 'success', // works on confirmation but not on reorgs
 
         currency: 'BTC',
         denomination: 'BASE',
 
-        clientOrderId: receipt.data.transaction,
-        amount: '1000', // XXX after processing tx
+        networkId: receipt.data.transaction,
+        amount: receipt.data.amount.toString(),
         memo: ''
       })
     }
 
     for (let i = 0; i < supportedMethods.length; i++) {
       const method = supportedMethods[i]
-      const address = await lnd.generateAddress(method) // TODO: support amount?
+      const address = await lnd.generateAddress(method)
       outputs[method] = address.data
       await lnd.subscribeToAddress(address.data, method, callback)
     }
 
-    await notificationCallback({
+    const readyToReceive = {
+      id,
+      clientOrderId,
+      // TODO:
+      // networkid: address?
+
       pluginName,
+
       type: 'ready_to_receive',
       data: outputs,
-      amountWasSpecified: !!amount
-    })
+
+      expectedAmount,
+      isPersonalPayment: !!expectedAmount
+    }
+    await notificationCallback(readyToReceive)
   }
 }
 
 function getPayer (config) {
   const lnd = new LndConnect(config)
 
-  // XXX address should be general common for all plugin names
   return async ({ target, payload, notificationCallback }) => {
     let address
     if (typeof target === 'string') {
@@ -69,7 +81,6 @@ function getPayer (config) {
       address, tokens: parseInt(payload.amount)
     })
 
-    // XXX what again do I need here?
     await notificationCallback({
       ...payload,
       pluginName,
@@ -82,7 +93,7 @@ function getPayer (config) {
 module.exports = {
   getmanifest: () => {
     return {
-      name: pluginName, // FIXME
+      name: pluginName,
       type: 'payment',
       description: 'Slashpay bitcoin l1 payments',
       rpc: ['pay'],

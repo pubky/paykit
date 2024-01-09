@@ -15,7 +15,7 @@ module.exports = {
 }
 
 function tmpdir () {
-  return os.tmpdir() + Math.random().toString(16).slice(2)
+  return `./tmp/${os.tmpdir() + Math.random().toString(16).slice(2)}`
 }
 
 async function sleep (ms) {
@@ -45,17 +45,15 @@ async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, cr
   }
 
   if (initializeReceiver) {
+    const p2sh = await receiver.create('/public/p2sh.json', { p2sh: 'test.p2sh' }, { awaitRelaySync: true })
+    const p2tr = await receiver.create('/public/p2tr.json', { p2tr: 'test.p2tr' }, { awaitRelaySync: true })
+
     await receiver.create(SLASHPAY_PATH, {
       paymentEndpoints: {
-        p2sh: '/public/p2sh.json',
-        p2tr: '/public/p2tr.json'
+        p2sh,
+        p2tr
       }
-    })
-
-    await receiver.create('/public/p2sh.json', { p2sh: 'test.p2sh' })
-    await receiver.create('/public/p2tr.json', { p2tr: 'test.p2tr' })
-
-    await sleep(100)
+    }, { awaitRelaySync: true })
   }
 
   let paymentOrder
@@ -73,7 +71,7 @@ async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, cr
 }
 
 async function dropTables (db) {
-  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders;'
+  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS incoming_payments; DROP TABLE IF EXISTS orders;'
   return new Promise((resolve, reject) => {
     db.db.sqlite.exec(statement, (err, res) => {
       if (err) return reject(err)

@@ -10,7 +10,7 @@ const { PaymentObject, PAYMENT_STATE, PLUGIN_STATE, ERRORS } = require('../../sr
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 const { ERRORS: STATE_ERRORS } = require('../../src/payments/PaymentState')
 const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
-const { dropTables, tmpdir, sleep } = require('../helpers')
+const { dropTables, tmpdir } = require('../helpers')
 
 async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
   const db = new DB({ name: 'test', path: './test_db' })
@@ -40,9 +40,7 @@ async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
         p2sh: '/public/p2sh.json',
         p2tr: '/public/p2tr.json'
       }
-    })
-
-    await sleep(100)
+    }, { awaitRelaySync: true })
   }
 
   const paymentObject = new PaymentObject(params, db, sender)

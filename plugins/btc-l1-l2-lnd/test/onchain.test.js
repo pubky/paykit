@@ -29,12 +29,12 @@ test('e2e', async (t) => {
   const notificationCallbackAlice = (payload) => {
     if (payload.type === 'ready_to_receive') {
       t.is(payload.pluginName, 'onchain')
-      t.is(payload.amountWasSpecified, false)
+      t.is(payload.isPersonalPayment, false)
       t.ok(payload.data)
       address = payload.data.p2wpkh
     } else if (payload.type === 'payment_new') {
       t.is(payload.pluginName, 'onchain')
-      t.is(payload.amountWasSpecified, false)
+      t.is(payload.isPersonalPayment, false)
       t.ok(payload.rawData)
       t.ok(payload.clientOrderId)
       t.pass()

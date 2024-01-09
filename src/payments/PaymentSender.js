@@ -39,8 +39,9 @@ class PaymentSender {
     }
 
     const { paymentEndpoints } = await payment.slashtagsConnector.readRemote(payment.counterpartyURL)
-    const paymentUrl = payment.slashtagsConnector.updateUrl(payment.counterpartyURL, { path: paymentEndpoints[name] })
+    const paymentUrl = paymentEndpoints[name]
     const target = await payment.slashtagsConnector.readRemote(paymentUrl)
+    // TODO: skip to next target instead
     if (!target) throw new Error(ERRORS.PAYMENT_TARGET_NOT_FOUND)
 
     await plugin.pay({
@@ -109,10 +110,10 @@ class PaymentSender {
    * @returns {Promise<void>}
    */
   async handlePluginState (payment) {
-    // TODO: pluginStates should be conventional
-    if (payment.pluginUpdate.pluginState === 'failed') { // TODO: use constants
+    // TODO: use constants for plugin states
+    if (payment.pluginUpdate.pluginState === 'failed') {
       await this.handleFailure(payment)
-    } else if (payment.pluginUpdate.pluginState === 'success') { // TODO: use constants
+    } else if (payment.pluginUpdate.pluginState === 'success') {
       await this.handleSuccess(payment)
     } else {
       // XXX: intermediate state which requires action from user
@@ -151,7 +152,6 @@ class PaymentSender {
 
     try {
       await this.paymentOrder.complete()
-      return
     } catch (e) {
       if (e.message === ORDER_ERRORS.OUTSTANDING_PAYMENTS) {
         // RECURRING PAYMENT territory
