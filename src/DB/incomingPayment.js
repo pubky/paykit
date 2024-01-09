@@ -18,10 +18,9 @@ function createIncomingPaymentTable (db) {
         expectedDenomination TEXT,
         expectedCurrency TEXT,
 
-        receivedByPlugin TEXT,
+        receivedByPlugins TEXT,
 
         createdAt INTEGER NOT NULL,
-        receivedAt INTEGER,
         removed INTEGER NOT NULL DEFAULT 0
       )`
 
@@ -47,10 +46,9 @@ function savePayment(payment) {
     $expectedDenomination: payment.expectedDenomination,
     $expectedCurrency: payment.expectedCurrency,
 
-    $receivedByPlugin: JSON.stringify(payment.receivedByPlugin),
+    $receivedByPlugins: JSON.stringify(payment.receivedByPlugins),
 
     $createdAt: payment.createdAt,
-    $receivedAt: payment.executeAt
   }
 
   const statement = `
@@ -67,10 +65,9 @@ function savePayment(payment) {
       expectedDenomination,
       expectedCurrency,
 
-      receivedByPlugin,
+      receivedByPlugins,
 
-      createdAt,
-      receivedAt
+      createdAt
     ) VALUES (
       $id,
       $clientOrderId,
@@ -84,10 +81,9 @@ function savePayment(payment) {
       $expectedDenomination,
       $expectedCurrency,
 
-      $receivedByPlugin,
+      $receivedByPlugins,
 
-      $createdAt,
-      $receivedAt
+      $createdAt
     )`
 
   return { statement, params }
@@ -118,6 +114,7 @@ function updatePayment(id, update) {
     statement += `${k} = $${k}`
     if (i !== Object.keys(update).length - 1) statement += ', '
 
+    // TODO: array support
     params[`$${k}`] = (typeof update[k] === 'object') ? JSON.stringify(update[k]) : update[k]
   })
 
@@ -153,7 +150,7 @@ function deserializePayment (payment) {
 
   const res = {
     ...payment,
-    receivedByPlugin: JSON.parse(payment.receivedByPlugin || '{}')
+    receivedByPlugins: JSON.parse(payment.receivedByPlugins || '[]')
   }
 
   delete res.removed

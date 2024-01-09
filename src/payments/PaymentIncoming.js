@@ -94,10 +94,9 @@ class PaymentIncoming {
 
     // this.internalState = new PaymentState(this, statePaymentParams)
 
-    this.receivedByPlugin = paymentParams.receivedByPlugin || {}
+    this.receivedByPlugins = paymentParams.receivedByPlugins || []
 
     this.createdAt = paymentParams.createdAt || Date.now()
-    this.receivedAt = paymentParams.receivedAt || Date.now()
 
     this.logger = {
       debug: (msg) => { logger.debug.extend(JSON.stringify(this.serialize()))({ msg }) },
@@ -124,7 +123,7 @@ class PaymentIncoming {
       memo: this.memo,
       createdAt: this.createdAt,
       receivedAt: this.receivedAt,
-      receivedByPlugin: this.receivedByPlugin,
+      receivedByPlugins: this.receivedByPlugins,
       // NOTE: ORM will be nice here
       ...this.amount?.serialize(),
 //      ...this.internalState?.serialize()
