@@ -95,23 +95,27 @@ class PaymentReceiver {
    */
   async handleNewPayment (payload, regenerateSlashpay = true) {
     let result
-    let isFinal
+    let amountDue = null
     if (payload.isPersonalPayment) {
-      const { paymentObject, isCompleted } = await this.updatePayment(payload)
-      isFinal = isCompleted
+      const { paymentObject, missingAmount } = await this.updatePayment(payload)
       result = paymentObject
+      amountDue = missingAmount
     } else {
       // id here is not really needed and cause troubles when receiving payment in two different plugins
       // TODO: consider not generating id for non-personal payments
       delete payload.id
       result = await this.createPayment(payload)
-      isFinal = true
     }
 
     // TODO: if regenerateSlashpay is true or if amount was not specified
     // if amount was specified and does not match - do not regenerate
-    if (regenerateSlashpay && isFinal) {
+    if (regenerateSlashpay) {
       await this.init()
+    }
+
+    if (payload.isPersonalPayment && amountDue) {
+      result.amountDue = amountDue
+      result.invoiceURL = await this.createInvoice(payload.clientOrderId, amountDue)
     }
 
     // TODO: send different notifications is amount was specified but was not matched
@@ -141,18 +145,22 @@ class PaymentReceiver {
       update.amount = payload.amount
     }
 
+    let missingAmount = null
     const totalReceivedAmount = update.receivedByPlugins.reduce((acc, { amount }) => acc + parseInt(amount), 0)
-    if (totalReceivedAmount === parseInt(paymentObject.expectedAmount)) {
+    if (totalReceivedAmount >= parseInt(paymentObject.expectedAmount)) {
       update.internalState = PAYMENT_STATE.COMPLETED
       isCompleted = true
     } else {
+      missingAmount = new PaymentAmount({
+        amount: (parseInt(paymentObject.expectedAmount) - totalReceivedAmount).toString(),
+      })
       update.internalState = PAYMENT_STATE.IN_PROGRESS
     }
 
     await this.db.updateIncomingPayment(payload.id, update)
     const res = await this.db.getIncomingPayment(payload.id)
 
-    return { paymentObject: res, isCompleted }
+    return { paymentObject: res, missingAmount }
   }
 
   async createPayment (payload, initial = false) {
