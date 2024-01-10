@@ -11,16 +11,23 @@ TODO: describe initialization etc after adding server and lib modes
 ```javascript
 const notificationCallback = console.log
 const slashpay = new Slashpay(notificationCallback)
-const paymentOrder = await slashpay.createPaymentOrder({
-  clientOrderId: '<unique id>'
-  amount: '<sting amount, defaults to sats>'
-  counterparyURL: '<slashtags url to the drive o to the slashpay json>'
-})
 
+// Sending payment
+const paymentOrder = await slashpay.createPaymentOrder({
+  clientOrderId: '<unique id>',
+  amount: '<sting amount, defaults to sats>',
+  counterparyURL: '<slashtags url to the drive o to the slashpay json>',
+  current: '[BTC]',
+  denomination: '[BASE|MAIN]',
+})
 await slashpay.sendPayment(paymentOrder.id)
 
-const url = await slashpay.receivePayments()
-// TODO: add more
+// Receiving payments
+const paymentURL = await slashpay.receivePayments()
+
+// Issue an invoice
+
+const invoiceURL = await slashpay.createInvoice('<unique id>', '<amount>', { currency: 'BTC', denomination: 'BASE' })
 ```
 ## Core
 The core consists of business logic and auxiliary classes. 
