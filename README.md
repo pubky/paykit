@@ -11,16 +11,23 @@ TODO: describe initialization etc after adding server and lib modes
 ```javascript
 const notificationCallback = console.log
 const slashpay = new Slashpay(notificationCallback)
-const paymentOrder = await slashpay.createPaymentOrder({
-  clientOrderId: '<unique id>'
-  amount: '<sting amount, defaults to sats>'
-  counterparyURL: '<slashtags url to the drive o to the slashpay json>'
-})
 
+// Sending payment
+const paymentOrder = await slashpay.createPaymentOrder({
+  clientOrderId: '<unique id>',
+  amount: '<sting amount, defaults to sats>',
+  counterparyURL: '<slashtags url to the drive o to the slashpay json>',
+  current: '[BTC]',
+  denomination: '[BASE|MAIN]',
+})
 await slashpay.sendPayment(paymentOrder.id)
 
-const url = await slashpay.receivePayments()
-// TODO: add more
+// Receiving payments
+const paymentURL = await slashpay.receivePayments()
+
+// Issue an invoice
+
+const invoiceURL = await slashpay.createInvoice('<unique id>', '<amount>', { currency: 'BTC', denomination: 'BASE' })
 ```
 ## Core
 The core consists of business logic and auxiliary classes. 
@@ -120,22 +127,28 @@ The payload may contain the property `type` with the following string values:
 
 ## Collaboration diagram
 
+### Highlevel overview
+This diagram depicts the highlevel collaboration between different components
+<p aling="center">
+    <img alt="hightlevel_diagram" src="./imgs/highlevel.png"></img>
+</p>
+
 ### Creating Payment
 This diagram depicts the creation of a payment. 
 <p align="center">
-  <img alt="diagram_create" src="./docs/create.png"></img>
+  <img alt="diagram_create" src="./imgs/create.png"></img>
 </p>
 
 ### Sending Payment
 This diagram which depicts the sending of a payment. 
 <p align="center">
-  <img alt="diagram_send" src="./docs/send.png"></img>
+  <img alt="diagram_send" src="./imgs/send.png"></img>
 </p>
 
 ### Receiving Payment
 This diagram depicts the receipt of a payment. 
 <p align="center">
-  <img alt="diagram_receive" src="./docs/receive.png"></img>
+  <img alt="diagram_receive" src="./imgs/receive.png"></img>
 </p>
 
 # Other resources

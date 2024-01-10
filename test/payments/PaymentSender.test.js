@@ -14,7 +14,7 @@ const { PAYMENT_STATE } = require('../../src/payments/PaymentObject')
 const { PaymentSender, PLUGIN_STATES } = require('../../src/payments/PaymentSender')
 const { PaymentOrder, ORDER_STATE, ERRORS: ORDER_ERRORS } = require('../../src/payments/PaymentOrder')
 
-const { getOneTimePaymentOrderEntities, sleep, dropTables, tmpdir } = require('../helpers')
+const { getOneTimePaymentOrderEntities, dropTables, tmpdir } = require('../helpers')
 
 test('PaymentSender.constructor', async t => {
   const p2shStub = require('../fixtures/p2sh/main.js')
@@ -300,14 +300,11 @@ test('PaymentSender - recurring payment all success', async t => {
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
+  const p2sh = await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' }, { awaitRelaySync: true })
+  const p2tr = await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' }, { awaitRelaySync: true })
   await receiver.create(SLASHPAY_PATH, {
-    paymentEndpoints: {
-      p2sh: '/public/p2sh.json',
-      p2tr: '/public/p2tr.json'
-    }
-  })
-  await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' })
-  await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' })
+    paymentEndpoints: { p2sh, p2tr }
+  }, { awaitRelaySync: true })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),
@@ -342,8 +339,6 @@ test('PaymentSender - recurring payment all success', async t => {
       pluginState: PLUGIN_STATES.SUCCESS
     }
     await paymentSender.stateUpdateCallback(paymentUpdate)
-
-    await sleep(1)
   }
 
   t.is(submitSpy.callCount, paymentOrder.payments.length - 1) // -1 for last call
@@ -376,14 +371,11 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
+  const p2sh = await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' }, { awaitRelaySync: true })
+  const p2tr = await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' }, { awaitRelaySync: true })
   await receiver.create(SLASHPAY_PATH, {
-    paymentEndpoints: {
-      p2sh: '/public/p2sh.json',
-      p2tr: '/public/p2tr.json'
-    }
-  })
-  await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' })
-  await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' })
+    paymentEndpoints: { p2sh, p2tr }
+  }, { awaitRelaySync: true })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),
@@ -418,14 +410,12 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
         id: paymentOrder.payments[i].id,
         pluginState: PLUGIN_STATES.FAILED
       })
-      await sleep(1)
 
       t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
       await paymentSender.stateUpdateCallback({
         id: paymentOrder.payments[i].id,
         pluginState: PLUGIN_STATES.SUCCESS
       })
-      await sleep(1)
 
       break
     }
@@ -434,7 +424,6 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
       id: paymentOrder.payments[i].id,
       pluginState: PLUGIN_STATES.SUCCESS
     })
-    await sleep(1)
   }
 
   t.is(submitSpy.callCount, stateUpdateSpy.callCount - 1) // -1 for last call
@@ -469,14 +458,11 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
+  const p2sh = await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' }, { awaitRelaySync: true })
+  const p2tr = await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' }, { awaitRelaySync: true })
   await receiver.create(SLASHPAY_PATH, {
-    paymentEndpoints: {
-      p2sh: '/public/p2sh.json',
-      p2tr: '/public/p2tr.json'
-    }
-  })
-  await receiver.create('public/slashpay/p2sh.json', { p2sh: '342ftSRCvFHfCeFFBuz4xwbeqnDw6BGUey' })
-  await receiver.create('public/slashpay/p2tr.json', { p2tr: 'bc1pxwww0ct9ue7e8tdnlmug5m2tamfn7q06sahstg39ys4c9f3340qqxrdu9k' })
+    paymentEndpoints: { p2sh, p2tr }
+  }, { awaitRelaySync: true })
 
   const sender = new SlashtagsConnector({
     storage: tmpdir(),
@@ -511,14 +497,12 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
         id: paymentOrder.payments[i].id,
         pluginState: PLUGIN_STATES.FAILED
       })
-      await sleep(1)
 
       t.is(paymentSender.paymentOrder.state, ORDER_STATE.PROCESSING)
       await paymentSender.stateUpdateCallback({
         id: paymentOrder.payments[i].id,
         pluginState: PLUGIN_STATES.FAILED
       })
-      await sleep(1)
 
       break
     }
@@ -527,7 +511,6 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
       id: paymentOrder.payments[i].id,
       pluginState: PLUGIN_STATES.SUCCESS
     })
-    await sleep(1)
   }
 
   const outstandingPayment = await paymentSender.paymentOrder.getFirstOutstandingPayment()

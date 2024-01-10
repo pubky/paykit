@@ -3,6 +3,7 @@ const { PluginManager } = require('../plugins/PluginManager')
 const { PaymentOrder } = require('./PaymentOrder')
 const { PaymentSender } = require('./PaymentSender')
 const { PaymentReceiver } = require('./PaymentReceiver')
+const { PaymentAmount } = require('./PaymentAmount')
 const { DB } = require('../DB')
 const { SlashtagsConnector } = require('../slashtags')
 
@@ -60,7 +61,7 @@ class PaymentManager {
       paymentParams.sendingPriority = this.config.sendingPriority
     }
 
-    const paymentOrder = new PaymentOrder(paymentObject, this.db, this.slashtagsConnector)
+    const paymentOrder = new PaymentOrder(paymentParams, this.db, this.slashtagsConnector)
     await paymentOrder.init()
 
     return paymentOrder.serialize()
@@ -78,11 +79,27 @@ class PaymentManager {
   }
 
   /**
+   * Create a personalized invoice
+   * @param {string} clientOrderId - client defined invoice id
+   * @param {string} amount - amount to be paid (base denomination of the default currency)
+   * @returns {Promise<{string}>} - invoice url
+   */
+  async createInvoice (clientOrderId, amount, amountOpts = { currency: 'BTC', denomination: 'BASE' }) {
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      this.pluginManager,
+      this.slashtagsConnector,
+      this.entryPointForPlugin.bind(this)
+    )
+    return await paymentReceiver.createInvoice(clientOrderId, new PaymentAmount({ amount, ...amountOpts }, 'expected'))
+  }
+
+  /**
    * Receive payments
    * @returns {Promise<string>}
    */
-  // TODO: enable handling of multiple drives. First guess is to to create one receiver per drive
   async receivePayments () {
+    // TODO: consider not hanging if some plugins fail to load
     await Promise.all(Object.keys(this.config.plugins).map(async (name) => {
       return await this.pluginManager.loadPlugin(name, this.slashtagsConnector)
     }))
@@ -136,7 +153,7 @@ class PaymentManager {
       this.slashtagsConnector,
       this.userNotificationEndpoint.bind(this)
     )
-    await paymentReceiver.handleNewPayment(payload, payload.amountWasSpecified)
+    await paymentReceiver.handleNewPayment(payload, payload.isPersonalPayment)
   }
 
   /**
@@ -160,7 +177,7 @@ class PaymentManager {
   async entryPointForUser (data) {
     const paymentSender = await this.getPaymentSender(data.orderId)
 
-    // TOOD: consider adding requirements to the data format
+    // TODO: consider adding requirements to the data format
     await paymentSender.updatePayment(data)
   }
 
@@ -188,13 +205,17 @@ class PaymentManager {
   }
 
   /**
-   * Create payment file
+   * Create plugin specific payment file
    * @param {Object} payload - data to be written to the payment file
    */
   async createPaymentFile (payload) {
-    const subPath = payload.amountWasSpecified ? payload.id : payload.pluginName
-    const path = `public/slashpay/${subPath}/slashpay.json`
-    await this.slashtagsConnector.create(path, payload.data)
+    const paymentReceiver = new PaymentReceiver(
+      this.db,
+      this.pluginManager,
+      this.slashtagsConnector,
+      this.entryPointForPlugin.bind(this)
+    )
+    return await paymentReceiver.createPaymentFile(payload)
   }
 }
 

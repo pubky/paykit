@@ -30,7 +30,7 @@ test('e2e - amount', async (t) => {
   const resAlice = notificationCallbackAlice.getCall(0).args[0]
   t.is(resAlice.type, 'ready_to_receive')
   t.is(resAlice.pluginName, 'bolt11')
-  t.is(resAlice.amountWasSpecified, true)
+  t.is(resAlice.isPersonalPayment, true)
   t.ok(resAlice.data.bolt11)
 
   const invoice = resAlice.data.bolt11
@@ -63,7 +63,7 @@ test('e2e - amount', async (t) => {
 
   t.is(notificationAlice.type, 'payment_new')
   t.is(notificationAlice.pluginName, 'bolt11')
-  t.is(notificationAlice.amountWasSpecified, true)
+  t.is(notificationAlice.isPersonalPayment, true)
   t.ok(notificationAlice.rawData)
   t.is(notificationAlice.amount, amount.toString())
   t.is(notificationAlice.denomination, 'BASE')
@@ -88,7 +88,7 @@ test('e2e - no amount', async (t) => {
   const resAlice = notificationCallbackAlice.getCall(0).args[0]
   t.is(resAlice.type, 'ready_to_receive')
   t.is(resAlice.pluginName, 'bolt11')
-  t.is(resAlice.amountWasSpecified, false)
+  t.is(resAlice.isPersonalPayment, false)
   t.ok(resAlice.data.bolt11)
 
   const invoice = notificationCallbackAlice.getCall(0).args[0].data.bolt11
@@ -122,7 +122,7 @@ test('e2e - no amount', async (t) => {
   const notificationAlice = notificationCallbackAlice.getCall(1).args[0]
   t.is(notificationAlice.type, 'payment_new')
   t.is(notificationAlice.pluginName, 'bolt11')
-  t.is(notificationAlice.amountWasSpecified, false)
+  t.is(notificationAlice.isPersonalPayment, false)
   t.ok(notificationAlice.rawData)
   t.is(notificationAlice.amount, amount.toString())
   t.is(notificationAlice.denomination, 'BASE')

@@ -5,41 +5,60 @@ const pluginName = 'bolt11'
 function getWatcher (config) {
   const lnd = new LndConnect(config)
 
-  return async ({ amount, notificationCallback }) => {
+  return async ({ id, clientOrderId, expectedAmount, notificationCallback }) => {
     const outputs = {}
 
     const callback = async (receipt) => {
       await notificationCallback({
+        id, // slashpay id
+        clientOrderId, // optional customer generated id
+
         pluginName,
         type: 'payment_new',
         rawData: receipt.data,
 
-        amountWasSpecified: !!amount,
+        isPersonalPayment: !!expectedAmount,
 
         amount: receipt.data.received.toString(),
         denomination: 'BASE',
         currency: 'BTC',
 
+        state: receipt.data.is_confirmed || receipt.data.tokens ? 'success' : 'failed',
+
         memo: receipt.data.description,
 
-        clientOrderId: receipt.data.id,
+        networkId: receipt.data.id,
 
         createdAt: receipt.data.created_at,
         confirmedAt: receipt.data.confirmed_at
       })
     }
 
-    const invoice = await lnd.generateInvoice({ tokens: amount })
+    let tokens
+    if (expectedAmount) {
+      tokens = expectedAmount.amount
+    }
+
+    const invoice = await lnd.generateInvoice({ tokens })
     outputs.bolt11 = invoice.data
     lnd.subscribeToInvoice(invoice.id, callback)
 
-    await notificationCallback({
-      id: invoice.id,
+    const readyToReceive = {
+      id,
+      clientOrderId,
+
+      // TODO:
+      // networkid: invice.id
+
       pluginName,
+
       type: 'ready_to_receive',
       data: outputs,
-      amountWasSpecified: !!amount
-    })
+      expectedAmount,
+
+      isPersonalPayment: !!expectedAmount
+    }
+    await notificationCallback(readyToReceive)
   }
 }
 
@@ -58,7 +77,6 @@ function getPayer (config) {
     // }
 
     // TODO: convert amount based on denomination
-    // TODO: validate currency
     const res = await lnd.payInvoice({ request, tokens: payload.amount })
     await notificationCallback({
       ...payload,
