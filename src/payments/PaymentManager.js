@@ -61,7 +61,7 @@ class PaymentManager {
       paymentParams.sendingPriority = this.config.sendingPriority
     }
 
-    const paymentOrder = new PaymentOrder(paymentObject, this.db, this.slashtagsConnector)
+    const paymentOrder = new PaymentOrder(paymentParams, this.db, this.slashtagsConnector)
     await paymentOrder.init()
 
     return paymentOrder.serialize()
