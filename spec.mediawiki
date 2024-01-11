@@ -14,9 +14,9 @@
 Slashpay abstracts and automates any payment method behind a single, static public key. Slashpay enables applications where users pay directly to profiles, so offers a very intuitive experience, particularly when multiple payment methods are possible within the system.  
 
 == Motivation ==
-Automated switch between payment mechanisms should sipmlyfiy user experience for both sides of the payment. It also allows to reduce congitive overhead during the use different payment methods for different purposes. For example, onchain for large amounts and ln for small ones.
+Automated switch between payment mechanisms should sipmlyfiy user experience for both sides of the payment. It also allows to reduce cognitive overhead during the use different payment methods for different purposes. For example, onchain for large amounts and ln for small ones.
 
-== User story ==
+== User case ==
 
 Alice wants to receive payment
 
@@ -33,6 +33,10 @@ Steps for Bob:
 # In case of a failure try next supported payment method according to personal priorities.
 
 '''Note:''' ''addressing'' and ''transport'' schemes are arbitrary with the only requirements that they both must be suppored by each of the payment counterparties.
+
+=== Highlevel Interaction diagram ===
+
+[[Image:./imgs/spec.png]]
 
 == Index file ==
 
@@ -115,4 +119,4 @@ The content of the file is arbitrary with only requirement to be written and rea
 * [https://github.com/slashtags/slashpay-solo PayKit] reference implementation which uses [https://github.com/slashtags/url SlashUrl] and [https://github.com/slashtags/web-relay Slashtags] for addressing and transport correspondingly
 
 == Other implementations ==
-*
+* [https://github.com/synonymdev/bitkit BitKit] mobile wallet with the integration of PayKit
