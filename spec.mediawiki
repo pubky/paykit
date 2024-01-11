@@ -11,7 +11,7 @@
 </pre>
 
 == Abstract ==
-Slashpay abstracts and automates any payment method behind a single, static public key. The public key belongs to a [https://github.com/synonymdev/slashtags/tree/master/packages/slashtag slashtag instance] and points to a data store containing all supported payment endpoints. Slashpay enables applications where users pay directly to profiles, so offers a very intuitive experience, particularly when multiple payment methods are possible within the system.  
+Slashpay abstracts and automates any payment method behind a single, static public key. Slashpay enables applications where users pay directly to profiles, so offers a very intuitive experience, particularly when multiple payment methods are possible within the system.  
 
 == Motivation ==
 Automated switch between payment mechanisms should sipmlyfiy user experience for both sides of the payment. It also allows to reduce congitive overhead during the use different payment methods for different purposes. For example, onchain for large amounts and ln for small ones.
