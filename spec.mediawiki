@@ -1,3 +1,4 @@
+<pre>
 BIP: [To be assigned]
 Layer: Applications
 Title: Paykit - Extensible Payment Protocol
@@ -7,6 +8,7 @@ Comments-URI: [To be filled]
 Status: Draft
 Type: Standards Track
 Created: 2024-01-23
+</pre>
 
 == Abstract ==
 Paykit abstracts and automates various payment methods, including Bitcoin and Lightning, into a single, static public key. This enables direct payments to self-sovereign profiles, supporting multiple payment methods, enhancing user and developer experience, privacy, and censorship resistance.
@@ -15,55 +17,55 @@ Paykit abstracts and automates various payment methods, including Bitcoin and Li
 This proposal aims to simplify the user experience by automating the switch between payment mechanisms, reducing cognitive overhead, and adapting dynamically to transaction contexts. Ex: Use an onchain payment for large amounts and Lightning for small amounts. 
 
 == Specification ==
-### Plugin System
-- Any underlying payment protocol can be implemented as a plugin.
-- Applications choose supported plugins.
+=== Plugin System ===
+* Any underlying payment protocol can be implemented as a plugin.
+* Applications choose supported plugins.
 
-### Public and Private Payment Endpoints
-- Users set up public and private endpoints.
-- Private endpoints minimize observability and can be unique per peer.
+=== Public and Private Payment Endpoints ===
+* Users set up public and private endpoints.
+* Private endpoints minimize observability and can be unique per receiving peer.
 
-### Payment Identities
-- Pseudonymous keypairs used for identities.
-- Lookup via DHT using PKARR records or custom relay servers.
+=== Payment Identities ===
+* Pseudonymous keypairs used for identities.
+* Lookup via DHT using PKARR records or custom relay servers.
 
-### Dynamic Payment Selection
-- Automatic prioritization and fallback from ideal to the lowest common method.
+=== Dynamic Payment Selection ===
+* Automatic prioritization and fallback from ideal to the lowest common method.
 
-### Scalability and Market Competition
-- Extensible and allows payment methods to compete under the protocol.
+=== Scalability and Market Competition ===
+* Extensible and allows payment methods to compete under the protocol.
 
-### Interoperability and Standards
-- Facilitates communication among peers for dynamic payment selection.
-- Features specific to Paykit, like subscriptions, must be followed.
+=== Interoperability and Standards ===
+* Facilitates communication among peers for dynamic payment selection.
+* Features specific to Paykit, like subscriptions, must be followed.
 
-### Decentralization and Trust
-- Utilizes a DHT for decentralized routing.
+=== Decentralization and Trust ===
+* Utilizes a DHT for decentralized routing.
 
-### Example User Experience
-- A user-friendly interface and example implementation can be tried in the Bitkit wallet app: https://github.com/synonymdev/bitkit
+=== Example User Experience ===
+* A user-friendly interface and example implementation can be tried in the Bitkit wallet app: https://github.com/synonymdev/bitkit
 
 == User Case ==
 Alice wants to receive payment:
-1. Creates payment files for each method and stores them publicly.
-2. Generates a JSON index file linking to payment files.
-3. Shares the index file URL with counterparties.
+# Creates payment files for each method and stores them publicly.
+# Generates a JSON index file linking to payment files.
+# Shares the index file URL with counterparties.
 
 Bob wants to pay Alice:
-1. Reads the index file from the URL.
-2. Selects a payment method and accesses the corresponding file.
-3. Executes payment using details from the payment file.
-4. On failure, tries alternative methods.
+# Reads the index file from the URL.
+# Selects a payment method and accesses the corresponding file.
+# Executes payment using details from the payment file.
+# On failure, tries alternative methods.
 
 '''Note:''' ''addressing'' and ''transport'' schemes are arbitrary with the only requirements that they both must be supported by each of the payment counterparties.
 
 == High-Level Interaction Diagram ==
-[Include Image: spec.png]
+[[Image:./imgs/spec.png]]
 
 == Index File ==
-### Public Payments
-- Default path: `/public/paykit.json`
-- Custom paths supported.
+=== Public Payments ===
+* Default path: `/public/paykit.json`
+* Custom paths supported.
 
 ==== Schema: ====
 
