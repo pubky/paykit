@@ -1,48 +1,71 @@
 <pre>
-  IP: 000 
-  Layer: applications
-  Title: Slashpay
-  Author: synonym.to
-  Comments-Summary: 
-  Comments-URI: 
-  Status: Draft 
-  Type: Standards Track
-  Created: 2013-09-10
+BIP: [To be assigned]
+Layer: Applications
+Title: Paykit - Extensible Payment Protocol
+Author: [To be filled]
+Comments-Summary: No comments yet.
+Comments-URI: [To be filled]
+Status: Draft
+Type: Standards Track
+Created: 2024-01-23
 </pre>
 
 == Abstract ==
-Slashpay abstracts and automates any payment method behind a single, static public key. Slashpay enables applications where users pay directly to profiles, so offers a very intuitive experience, particularly when multiple payment methods are possible within the system.  
+Paykit abstracts and automates various payment methods, including Bitcoin and Lightning, into a single, static public key. This enables direct payments to self-sovereign profiles, supporting multiple payment methods, enhancing user and developer experience, privacy, and censorship resistance.
 
 == Motivation ==
-Automated switch between payment mechanisms should sipmlyfiy user experience for both sides of the payment. It also allows to reduce cognitive overhead during the use different payment methods for different purposes. For example, onchain for large amounts and ln for small ones.
+This proposal aims to simplify the user experience by automating the switch between payment mechanisms, reducing cognitive overhead, and adapting dynamically to transaction contexts. Ex: Use an onchain payment for large amounts and Lightning for small amounts. 
 
-== User case ==
+== Specification ==
+=== Plugin System ===
+* Any underlying payment protocol can be implemented as a plugin.
+* Applications choose supported plugins.
 
-Alice wants to receive payment
+=== Public and Private Payment Endpoints ===
+* Users set up public and private endpoints.
+* Private endpoints minimize observability and can be unique per receiving peer.
 
-Steps for Alice:
-# For each supported payment method Alice creates corresponding payment file and stores under publicly availbable location identified by URL. The content of the file is spcific to the payment method;
-# Generate json index file with keys being names of the previously created payment methods and values refrences to corresponding payment files;
-# Share url to index file with counteparties.
+=== Payment Identities ===
+* Pseudonymous keypairs used for identities.
+* Lookup via DHT using PKARR records or custom relay servers.
 
-Steps for Bob:
-# Read index file by URL received from Alice;
-# Select desirable payment method iterating over keys;
-# Read content of the payment file accessing it by refecence (value from the corresponding entry in the index file);
-# Execute payment using details from the contenct ofo correspondig payment file (ln invoice, onchain address etc);
-# In case of a failure try next supported payment method according to personal priorities.
+=== Dynamic Payment Selection ===
+* Automatic prioritization and fallback from ideal to the lowest common method.
 
-'''Note:''' ''addressing'' and ''transport'' schemes are arbitrary with the only requirements that they both must be suppored by each of the payment counterparties.
+=== Scalability and Market Competition ===
+* Extensible and allows payment methods to compete under the protocol.
 
-=== Highlevel Interaction diagram ===
+=== Interoperability and Standards ===
+* Facilitates communication among peers for dynamic payment selection.
+* Features specific to Paykit, like subscriptions, must be followed.
 
+=== Decentralization and Trust ===
+* Utilizes a DHT for decentralized routing.
+
+=== Example User Experience ===
+* A user-friendly interface and example implementation can be tried in the Bitkit wallet app: https://github.com/synonymdev/bitkit
+
+== User Case ==
+Alice wants to receive payment:
+# Creates payment files for each method and stores them publicly.
+# Generates a JSON index file linking to payment files.
+# Shares the index file URL with counterparties.
+
+Bob wants to pay Alice:
+# Reads the index file from the URL.
+# Selects a payment method and accesses the corresponding file.
+# Executes payment using details from the payment file.
+# On failure, tries alternative methods.
+
+'''Note:''' ''addressing'' and ''transport'' schemes are arbitrary with the only requirements that they both must be supported by each of the payment counterparties.
+
+== High-Level Interaction Diagram ==
 [[Image:./imgs/spec.png]]
 
-== Index file ==
-
-=== Public payments: ===
-* Default path: ''/public/slashpay.json''
-* Custom paths are supported as well
+== Index File ==
+=== Public Payments ===
+* Default path: `/public/paykit.json`
+* Custom paths supported.
 
 ==== Schema: ====
 
@@ -115,8 +138,8 @@ The content of the file is arbitrary with only requirement to be written and rea
     "p2wpkh":"bcrt1q8dmjhwj0ptrfhc6hhnzlmwp0mtlx7x62pxllru"
   }
 
-== Reference implementation ==
-* [https://github.com/slashtags/slashpay-solo PayKit] reference implementation which uses [https://github.com/slashtags/url SlashUrl] and [https://github.com/slashtags/web-relay Slashtags] for addressing and transport correspondingly
+== Reference Implementation ==
+* [https://github.com/slashtags/slashpay-solo Paykit] reference implementation which uses [https://github.com/slashtags/url SlashURL] and [https://github.com/slashtags/web-relay Slashtags] for addressing and transport correspondingly.
 
-== Other implementations ==
+== Other Implementations ==
 * [https://github.com/synonymdev/bitkit BitKit] mobile wallet with the integration of PayKit
