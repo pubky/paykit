@@ -36,11 +36,11 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   console.log('initializing...')
   await paymentManager.init() // receiver
   console.log('initialized')
-  console.log('initializging receivers...')
+  console.log('initializing receivers...')
   const myUrl = await paymentManager.receivePayments()
 
   console.log('ready to receive payments at:')
-  qrcode.generate(myURL, { small: true })
+  qrcode.generate(myUrl, { small: true })
   console.log('send', myUrl, '1000')
   console.log('')
 
