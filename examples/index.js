@@ -8,28 +8,11 @@ const rl = readline.createInterface({
   output: process.stdout
 })
 
-const bolt11 = require('../plugins/btc-l1-l2-lnd/bolt11.js')
-const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
-
 ;(async () => {
-  const pluginConfig = require(process.argv[2])
-
-  const slashpayConfig = {
-    sendingPriority: ['bolt11', 'onchain'],
-    plugins: {
-      bolt11,
-      onchain
-    },
-    bolt11: pluginConfig.plugin,
-    onchain: pluginConfig.plugin
-  }
+  const config = require(process.argv[2])
 
   const paymentManager = new PaymentManager({
-    config: {
-      slashpay: slashpayConfig,
-      db: pluginConfig.db,
-      slashtags: { relay: 'http://localhost:3000' } // TODO: staging config
-    },
+    config,
     notificationCallback: (p) => console.log('--- nofication: ', p)
   })
 
