@@ -1,6 +1,7 @@
 const readline = require('readline')
 
 const { PaymentManager } = require('../src/payments/PaymentManager')
+const qrcode = require('qrcode-terminal')
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -27,7 +28,7 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
     config: {
       slashpay: slashpayConfig,
       db: pluginConfig.db,
-      slashtags: { relay: 'http://localhost:3000' }
+      slashtags: { relay: 'http://localhost:3000' } // TODO: staging config
     },
     notificationCallback: (p) => console.log('--- nofication: ', p)
   })
@@ -39,6 +40,7 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   const myUrl = await paymentManager.receivePayments()
 
   console.log('ready to receive payments at:')
+  qrcode.generate(myURL, { small: true })
   console.log('send', myUrl, '1000')
   console.log('')
 
@@ -75,6 +77,7 @@ const onchain = require('../plugins/btc-l1-l2-lnd/onchain.js')
   async function createInvoice (amount) {
     const invoiceURL = await paymentManager.createInvoice((new Date()).getTime(), amount)
     console.log('Ask to pay this:')
+    qrcode.generate(invoiceURL, { small: true })
     console.log(invoiceURL, amount)
   }
 })()
