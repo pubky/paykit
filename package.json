@@ -1,7 +1,7 @@
 {
-  "name": "slashpay",
+  "name": "paykit",
   "version": "0.0.1",
-  "description": "Slashpay is a method for abstracting and automating any payment process behind a single, static pubkey (\"slashtag\") which refers to a data store containing all supported payment endpoints. ",
+  "description": "PayKit is a method for abstracting and automating any payment process behind a single, static pubkey (\"slashtag\") which refers to a data store containing all supported payment endpoints. ",
   "main": "index.js",
   "types": "types/",
   "scripts": {

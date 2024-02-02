@@ -12,7 +12,7 @@ function getWatcher (config) {
 
     const callback = async (receipt) => {
       await notificationCallback({
-        id, // slashpay id
+        id, // paykit id
         clientOrderId, // optional customer generated id
 
         pluginName,

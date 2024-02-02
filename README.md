@@ -1,33 +1,33 @@
-# Slashpay
+# PayKit
 
 ## Description 
 Slashpay abstracts and automates any payment method behind a single, static public key. The public key belongs to a [slashtag instance](https://github.com/synonymdev/slashtags/tree/master/packages/slashtag) and points to a data store containing all supported payment endpoints. Slashpay enables applications where users pay directly to profiles, so offers a very intuitive experience, particularly when multiple payment methods are possible within the system.  
 
-Internally, Slashpay consists of the [core](#core) and [plugins](#plugins). See the [diagram](#collaboration-diagram) for more details on the internal system interactions.
+PayKit is a reference implementation of [SlashPay](./spec.mediawiki) Internally, PayKit consists of the [core](#core) and [plugins](#plugins). See the [diagram](#collaboration-diagram) for more details on the internal system interactions.
 
 ## API
 TODO: describe initialization etc after adding server and lib modes
 
 ```javascript
 const notificationCallback = console.log
-const slashpay = new Slashpay(notificationCallback)
+const payKit = new PayKit(notificationCallback)
 
 // Sending payment
-const paymentOrder = await slashpay.createPaymentOrder({
+const paymentOrder = await payKit.createPaymentOrder({
   clientOrderId: '<unique id>',
   amount: '<sting amount, defaults to sats>',
   counterparyURL: '<slashtags url to the drive o to the slashpay json>',
   current: '[BTC]',
   denomination: '[BASE|MAIN]',
 })
-await slashpay.sendPayment(paymentOrder.id)
+await payKit.sendPayment(paymentOrder.id)
 
 // Receiving payments
-const paymentURL = await slashpay.receivePayments()
+const paymentURL = await payKit.receivePayments()
 
 // Issue an invoice
 
-const invoiceURL = await slashpay.createInvoice('<unique id>', '<amount>', { currency: 'BTC', denomination: 'BASE' })
+const invoiceURL = await payKit.createInvoice('<unique id>', '<amount>', { currency: 'BTC', denomination: 'BASE' })
 ```
 ## Core
 The core consists of business logic and auxiliary classes. 
@@ -54,7 +54,7 @@ All payment methods can be added through plugins. Any auxiliary logic can also b
 
 ### Plugin manifest
 A JSON object returned via the `async getmanifest()` method. The returned JSON object must have the following keys:
-- String `name` - A required unique name of the plugin within the scope of the slashpay instance
+- String `name` - A required unique name of the plugin within the scope of the payKit instance
 - String `type` - A value (so far the only supported type is `"payment"`)
 - Optional array of strings `rpc` - Maps the name of the command to a function, see [rpc](#rpc-methods)
 - Optional array of strings `events` - Maps the name of the command to a function, see [events](#events)

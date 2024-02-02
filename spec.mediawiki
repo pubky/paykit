@@ -1,0 +1,145 @@
+<pre>
+BIP: [To be assigned]
+Layer: Applications
+Title: Paykit - Extensible Payment Protocol
+Author: [To be filled]
+Comments-Summary: No comments yet.
+Comments-URI: [To be filled]
+Status: Draft
+Type: Standards Track
+Created: 2024-01-23
+</pre>
+
+== Abstract ==
+Paykit abstracts and automates various payment methods, including Bitcoin and Lightning, into a single, static public key. This enables direct payments to self-sovereign profiles, supporting multiple payment methods, enhancing user and developer experience, privacy, and censorship resistance.
+
+== Motivation ==
+This proposal aims to simplify the user experience by automating the switch between payment mechanisms, reducing cognitive overhead, and adapting dynamically to transaction contexts. Ex: Use an onchain payment for large amounts and Lightning for small amounts. 
+
+== Specification ==
+=== Plugin System ===
+* Any underlying payment protocol can be implemented as a plugin.
+* Applications choose supported plugins.
+
+=== Public and Private Payment Endpoints ===
+* Users set up public and private endpoints.
+* Private endpoints minimize observability and can be unique per receiving peer.
+
+=== Payment Identities ===
+* Pseudonymous keypairs used for identities.
+* Lookup via DHT using PKARR records or custom relay servers.
+
+=== Dynamic Payment Selection ===
+* Automatic prioritization and fallback from ideal to the lowest common method.
+
+=== Scalability and Market Competition ===
+* Extensible and allows payment methods to compete under the protocol.
+
+=== Interoperability and Standards ===
+* Facilitates communication among peers for dynamic payment selection.
+* Features specific to Paykit, like subscriptions, must be followed.
+
+=== Decentralization and Trust ===
+* Utilizes a DHT for decentralized routing.
+
+=== Example User Experience ===
+* A user-friendly interface and example implementation can be tried in the Bitkit wallet app: https://github.com/synonymdev/bitkit
+
+== User Case ==
+Alice wants to receive payment:
+# Creates payment files for each method and stores them publicly.
+# Generates a JSON index file linking to payment files.
+# Shares the index file URL with counterparties.
+
+Bob wants to pay Alice:
+# Reads the index file from the URL.
+# Selects a payment method and accesses the corresponding file.
+# Executes payment using details from the payment file.
+# On failure, tries alternative methods.
+
+'''Note:''' ''addressing'' and ''transport'' schemes are arbitrary with the only requirements that they both must be supported by each of the payment counterparties.
+
+== High-Level Interaction Diagram ==
+[[Image:./imgs/spec.png]]
+
+== Index File ==
+=== Public Payments ===
+* Default path: `/public/paykit.json`
+* Custom paths supported.
+
+==== Schema: ====
+
+  {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "paymentEndpoints": {
+        "type": "object"
+       }
+    },
+    "required": ["paymentEndpoints"]
+  }
+
+==== Template: ====
+  {
+    "paymentEndpoints": {
+      "<payment method name>": "<URL>/public/slashpay/<payment method name>/slashpay.json"
+    }
+  }
+
+==== Example: ====
+  {
+    "paymentEndpoints": {
+      "bolt11":"slash:5din1q9wuzzrqfiphtyd4648j6nqgyrnzmuboko1fokbdxh5rj7y/public/slashpay/bolt11/slashpay.json?relay=http://localhost:3000#",
+      "onchain":"slash:5din1q9wuzzrqfiphtyd4648j6nqgyrnzmuboko1fokbdxh5rj7y/public/slashpay/onchain/slashpay.json?relay=http://localhost:3000#",
+    }
+  }
+
+=== Private payments: ===
+
+==== Schema: ====
+  {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "paymentEndpoints": {
+         "type": "object"
+       }
+    },
+    "required": ["paymentEndpoints"]
+  }
+
+==== Template: ====
+  {
+    "paymentEndpoints": {
+      "<payment method name>": "<URL>/slashpay/<random id>/slashpay/<payment method name>/slashpay.json"
+    }
+  }
+
+==== Example: ====
+  {
+    "paymentEndpoints": {
+      "bolt11":"slash:5din1q9wuzzrqfiphtyd4648j6nqgyrnzmuboko1fokbdxh5rj7y/slashpay/FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF/slashpay/bolt11/slashpay.json?relay=http://localhost:3000#encryptionKey=ozpcsq7qfcpumobamisgdqunqn4osopbmmiip8y4d6nuuawhiyiy",
+      "onchain":"slash:5din1q9wuzzrqfiphtyd4648j6nqgyrnzmuboko1fokbdxh5rj7y/slashpay/FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF/slashpay/onchain/slashpay.json?relay=http://localhost:300#encryptionKey=ozpcsq7qfcpumobamisgdqunqn4osopbmmiip8y4d6nuuawhiyiy"
+    }
+  }
+
+== Plugin specific payment file: ==
+
+The content of the file is arbitrary with only requirement to be written and read by plugin.
+
+=== Example for '''bolt11''' plugin: ===
+  {
+    "bolt11":"lnbcrt1pj5pn7tpp5c9sv2wjdc8lc3eaj48mjfamy60d6mkpw09nhl0g92dm8gk7kqmsqdqqcqzzsxqr23ssp5ml7jh23fqz94a889uxjludht0pvf9dtxjslsahtwtpd8lzksp2zq9qyyssqm79hxquhzeltvhjm367lzlnx7fck4guemel6httr5hzdncf4uu4hum0v8gtu46kunknqtxzrqjchw5gyn96j43uwwvdtvd5ypwc5cacp9e33v0"
+  }
+
+=== Example for '''onchain''' plugin: ===
+  {
+    "p2wpkh":"bcrt1q8dmjhwj0ptrfhc6hhnzlmwp0mtlx7x62pxllru"
+  }
+
+== Reference Implementation ==
+* [https://github.com/slashtags/slashpay-solo Paykit] reference implementation which uses [https://github.com/slashtags/url SlashURL] and [https://github.com/slashtags/web-relay Slashtags] for addressing and transport correspondingly.
+
+== Other Implementations ==
+* [https://github.com/synonymdev/bitkit BitKit] mobile wallet with the integration of PayKit

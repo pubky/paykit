@@ -1,5 +1,5 @@
 const { isEmptyObject } = require('../utils')
-const logger = require('slashtags-logger')('Slashpay', 'payment-state')
+const logger = require('slashtags-logger')('PayKit', 'payment-state')
 /**
  * PaymentState class
  * @class PaymentState

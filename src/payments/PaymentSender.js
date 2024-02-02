@@ -23,6 +23,7 @@ class PaymentSender {
    * @returns {Promise<void>}
    * @throws {Error} - if no plugins for making payment are available
    */
+  // FIXME: should also accept id for private payments
   async submit () {
     const payment = await this.paymentOrder.process()
 
