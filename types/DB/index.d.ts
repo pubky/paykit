@@ -21,12 +21,26 @@ export class DB {
      */
     savePayment(payment: any, execute?: boolean): Promise<any>;
     /**
-     * @method savePayment - Save a payment to the database
+     * @method saveIncomingPayment - Save a payment to the database
+     * @param {Object} payment
+     * @param {boolean} execute - Execute the statement or return it
+     * @returns {Promise<Database| { statement: string, params: object }>}
+     */
+    saveIncomingPayment(payment: any, execute?: boolean): Promise<any>;
+    /**
+     * @method getPayment - Save a payment to the database
      * @param {string} id
      * @param {Object} opts
      * @returns {Promise<PaymentObject>}
      */
     getPayment(id: string, opts?: any): Promise<PaymentObject>;
+    /**
+     * @method getIncomingPayment - Save a payment to the database
+     * @param {string} id
+     * @param {Object} opts
+     * @returns {Promise<PaymentObject>}
+     */
+    getIncomingPayment(id: string, opts?: any): Promise<PaymentObject>;
     /**
      * @method updatePayment - Update a payment in the database
      * @param {string} id
@@ -36,11 +50,25 @@ export class DB {
      */
     updatePayment(id: string, update: any, execute?: boolean): Promise<any>;
     /**
-     * @method getPayments - Get payments from the database
+     * @method updateIncomingPayment - Update a payment in the database
+     * @param {string} id
+     * @param {Object} update
+     * @param {boolean} execute - Execute the statement or return it
+     * @returns {Promise<Database| { statement: string, params: object }>}
+     */
+    updateIncomingPayment(id: string, update: any, execute?: boolean): Promise<any>;
+    /**
+     * @method getOutgoingPayments - Get payments from the database
      * @param {Object} opts
      * @returns {Promise<Array<PaymentObject>>}
      */
-    getPayments(opts?: any): Promise<Array<PaymentObject>>;
+    getOutgoingPayments(opts?: any): Promise<Array<PaymentObject>>;
+    /**
+     * @method getIncommingPayments - Get payments from the database
+     * @param {Object} opts
+     * @returns {Promise<Array<PaymentObject>>}
+     */
+    getIncomingPayments(opts?: any): Promise<Array<PaymentObject>>;
     /**
      * @method saveOrder - Save an order to the database
      * @param {Object} order
@@ -71,18 +99,6 @@ export class DB {
      * @returns {Promise<Database>}
      */
     executeStatement(statement: string, params: any, method?: string): Promise<Database>;
-    /**
-     * @method deserializePayment - Deserialize a payment object
-     * @param {Object} payment
-     * @returns {PaymentObject|null}
-     */
-    deserializePayment(payment: any): PaymentObject | null;
-    /**
-     * @method deserializeOrder - Deserialize an order object
-     * @param {Object} order
-     * @returns {OrderObject|null}
-     */
-    deserializeOrder(order: any): OrderObject | null;
 }
 export namespace ERROR {
     const NOT_READY: string;

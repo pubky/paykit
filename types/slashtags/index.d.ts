@@ -83,7 +83,7 @@ export class SlashtagsConnector {
      * Get url to a drive
      * @returns {string}
      */
-    getUrl(): string;
+    getUrl(path: string, opts: any): string;
     /**
      * Update a file
      * @param {string} key - path to file

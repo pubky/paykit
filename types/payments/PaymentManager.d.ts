@@ -74,6 +74,18 @@ export class PaymentManager {
      */
     sendPayment(id: string): Promise<void>;
     /**
+     * Create a personalized invoice
+     * @param {string} clientOrderId - client defined invoice id
+     * @param {string} amount - amount to be paid (base denomination of the default currency)
+     * @returns {Promise<{string}>} - invoice url
+     */
+    createInvoice(clientOrderId: string, amount: string, amountOpts?: {
+        currency: string;
+        denomination: string;
+    }): Promise<{
+        string;
+    }>;
+    /**
      * Receive payments
      * @returns {Promise<string>}
      */
@@ -122,7 +134,7 @@ export class PaymentManager {
      */
     userNotificationEndpoint(payload: any): Promise<void>;
     /**
-     * Create payment file
+     * Create plugin specific payment file
      * @param {Object} payload - data to be written to the payment file
      */
     createPaymentFile(payload: any): Promise<void>;

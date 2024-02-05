@@ -125,11 +125,11 @@ class DB {
   // TODO: add pagination
   // ...
   /**
-   * @method getPayments - Get payments from the database
+   * @method getOutgoingPayments - Get payments from the database
    * @param {Object} opts
    * @returns {Promise<Array<PaymentObject>>}
    */
-  async getPayments (opts = {}) {
+  async getOutgoingPayments (opts = {}) {
     if (!this.ready) throw new Error(ERROR.NOT_READY)
     const { statement, params } = outgoingPaymentSP.getPayments(opts)
 
@@ -141,7 +141,7 @@ class DB {
   // TODO: add pagination
   // ...
   /**
-   * @method getPayments - Get payments from the database
+   * @method getIncommingPayments - Get payments from the database
    * @param {Object} opts
    * @returns {Promise<Array<PaymentObject>>}
    */

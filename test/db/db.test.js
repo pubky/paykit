@@ -230,7 +230,7 @@ test('db.getPayment - removed', async (t) => {
   })
 })
 
-test('db.getPayments', async (t) => {
+test('db.getOutgoingPayments', async (t) => {
   const payment1 = createPayment()
   const payment2 = createPayment()
   const payment3 = createPayment()
@@ -243,7 +243,7 @@ test('db.getPayments', async (t) => {
   await db.savePayment(payment3)
 
   await db.updatePayment(payment2.id, { internalState: 'completed', direction: 'incomming' })
-  const res = await db.getPayments({ internalState: 'pending', memo: 'test memo' })
+  const res = await db.getOutgoingPayments({ internalState: 'pending', memo: 'test memo' })
 
   t.is(res.length, 2)
   t.is(res.find((r) => r.id === payment1.id).id, payment1.id)
