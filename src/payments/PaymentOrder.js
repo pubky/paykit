@@ -1,4 +1,4 @@
-const logger = require('slashtags-logger')('PayKit', 'payment-order')
+const logger = require('slashtags-logger')('Paykit', 'payment-order')
 
 const { v4: uuidv4 } = require('uuid')
 

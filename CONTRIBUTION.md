@@ -1,12 +1,12 @@
 # Contributing to Paykit
-Thank you for your interest in contributing to PayKit! Any successful proposals you make for our Github project will be reflected on the project page.
+Thank you for your interest in contributing to Paykit! Any successful proposals you make for our Github project will be reflected on the project page.
 
-The PayKit project is managed on the basis of an open contributor model: anyone is welcome to contribute in the form of peer review, documentation, testing, and patches.
+The Paykit project is managed on the basis of an open contributor model: anyone is welcome to contribute in the form of peer review, documentation, testing, and patches.
 
 Pull requests can generally be utilized for making suggestions with regards to the documentation and code. If you have suggestions that are too substantial for a pull request, please open up an issue or contact us directly.  
 
 # Communication Channels
-Communication about the development of PayKit happens primarily in our [telegram](https://t.me/synonym_to) channel.
+Communication about the development of Paykit happens primarily in our [telegram](https://t.me/synonym_to) channel.
 
 Discussion about code base improvements are conducted within GitHub issues and pull requests.
 
@@ -22,7 +22,7 @@ Scan through our [existing issues](https://github.com/github/docs/issues) to fin
 
 Look at out our [projects](https://github.com/orgs/slashtags/projects) to see our roadmap and orient yourself about our future steps and priorities.
 
-If you spot a problem with PayKit, please first [search if an issue already exists](https://docs.github.com/en/github/searching-for-information-on-github/searching-on-github/searching-issues-and-pull-requests#search-by-the-title-body-or-comments). If a related issue doesn't exist, you can open a new issue using a relevant [issue form](https://github.com/github/docs/issues/new/choose).
+If you spot a problem with Paykit, please first [search if an issue already exists](https://docs.github.com/en/github/searching-for-information-on-github/searching-on-github/searching-issues-and-pull-requests#search-by-the-title-body-or-comments). If a related issue doesn't exist, you can open a new issue using a relevant [issue form](https://github.com/github/docs/issues/new/choose).
 
 # Review
 Even if you have an extensive open source background or sound software engineering skills, please understand that a reviewer’s ability to comprehend your code is as important as its technical correctness.
@@ -32,7 +32,7 @@ You are welcome to ask for a review on our Telegram. For reviewers, it's nice to
 If you're eager to increase the velocity of the development process, reviewing the work from other contributors is a great way to fill the time while awaiting reviews on your own.
 
 # Contribution Workflow
-The PayKit codebase is maintained using the "contributor workflow" where everyone without exception contributes patch proposals using "pull requests". This promotes transparency, facilitates social contribution, easy testing, and peer review.
+The Paykit codebase is maintained using the "contributor workflow" where everyone without exception contributes patch proposals using "pull requests". This promotes transparency, facilitates social contribution, easy testing, and peer review.
 
 To contribute a patch, the workflow is as follows:
 

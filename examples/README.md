@@ -1,4 +1,4 @@
-# Basic PayKit example:
+# Basic Paykit example:
 
 Start slashtags relay:
 `node relay.js`

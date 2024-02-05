@@ -1,4 +1,4 @@
-const logger = require('slashtags-logger')('PayKit', 'plugin-manager')
+const logger = require('slashtags-logger')('Paykit', 'plugin-manager')
 const utils = require('./utils')
 
 const { ERRORS } = utils
