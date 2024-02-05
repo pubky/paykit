@@ -1,9 +1,9 @@
 # PayKit
 
 ## Description 
-Slashpay abstracts and automates any payment method behind a single, static public key. The public key belongs to a [slashtag instance](https://github.com/synonymdev/slashtags/tree/master/packages/slashtag) and points to a data store containing all supported payment endpoints. Slashpay enables applications where users pay directly to profiles, so offers a very intuitive experience, particularly when multiple payment methods are possible within the system.  
+Paykit abstracts and automates any payment method behind a single, static public key. The public key belongs to a [slashtag instance](https://github.com/synonymdev/slashtags/tree/master/packages/slashtag) and points to a data store containing all supported payment endpoints. Paykit enables applications where users pay directly to profiles, so offers a very intuitive experience, particularly when multiple payment methods are possible within the system.  
 
-PayKit is a reference implementation of [SlashPay](./spec.mediawiki) Internally, PayKit consists of the [core](#core) and [plugins](#plugins). See the [diagram](#collaboration-diagram) for more details on the internal system interactions.
+PayKit is a reference implementation of [Paykit](./spec.mediawiki) Internally, PayKit consists of the [core](#core) and [plugins](#plugins). See the [diagram](#collaboration-diagram) for more details on the internal system interactions.
 
 ## API
 TODO: describe initialization etc after adding server and lib modes
