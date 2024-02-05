@@ -139,7 +139,7 @@ The content of the file is arbitrary with only requirement to be written and rea
   }
 
 == Reference Implementation ==
-* [https://github.com/slashtags/slashpay-solo Paykit] reference implementation which uses [https://github.com/slashtags/url SlashURL] and [https://github.com/slashtags/web-relay Slashtags] for addressing and transport correspondingly.
+* [https://github.com/slashtags/paykit Paykit] reference implementation which uses [https://github.com/slashtags/url SlashURL] and [https://github.com/slashtags/web-relay Slashtags] for addressing and transport correspondingly.
 
 == Other Implementations ==
 * [https://github.com/synonymdev/bitkit BitKit] mobile wallet with the integration of PayKit
