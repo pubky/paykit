@@ -18,12 +18,12 @@ const defaultConfig = {
       onchain: require('./plugins/btc-l1-l2-lnd/onchain.js'),
     },
     bolt11: {
-      CERT: ''
+      CERT: '',
       MACAROON: '',
       SOCKET: '',
     },
     onchain: {
-      CERT: ''
+      CERT: '',
       MACAROON: '',
       SOCKET: '',
     }
@@ -31,20 +31,23 @@ const defaultConfig = {
 }
 
 class Paykit {
-  constructor (notificationCallback, config) {
+  constructor ({ notificationCallback, config }) {
     this.config = { ...defaultConfig, ...config }
-    this.db = new DB(this.config.db)
-    this.paymentManager = new PaymentManager(this.config, this.db)
     this.notificationCallback = notificationCallback
+    this.paymentManager = new PaymentManager({ config: this.config, notificationCallback: this.notificationCallback })
   }
 
-  async init (receivePayments = true) {
+  async init (receivePayments = false) {
     await this.paymentManager.init()
     if (receivePayments) {
-      const myUrl = await this.paymentManager.receivePayments()
-      this.notificationCallback(myUrl)
+      await this.receivePayments()
     }
   }
+
+  async receivePayments () {
+    return await this.paymentManager.receivePayments()
+  }
+
 
   async createPaymentOrder ({
     clientOrderId,
@@ -52,9 +55,9 @@ class Paykit {
     memo = '',
     sendingPriority = this.config.slashpay.sendingPriority,
     amount,
-    amountOpts = { currency: 'BTC', denomination: 'base' }
+    amountOpts = { currency: 'BTC', denomination: 'BASE' }
   }) {
-    return await paymentManager.createPaymentOrder({
+    return await this.paymentManager.createPaymentOrder({
       clientOrderId,
       amount,
       counterpartyURL,
@@ -71,9 +74,9 @@ class Paykit {
   async createInvoice ({
     clientInvoiceId,
     amount,
-    amountOpts = { currency: 'BTC', denomination: 'base' }
+    amountOpts = { currency: 'BTC', denomination: 'BASE' }
   }) {
-    return this.paymentManager.createInvoice(id, amount, amountOpts)
+    return this.paymentManager.createInvoice(clientInvoiceId, amount, amountOpts)
   }
 
   async getIncomingPayments (params) {

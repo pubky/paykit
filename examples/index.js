@@ -1,6 +1,6 @@
 const readline = require('readline')
 
-const { PaymentManager } = require('../src/payments/PaymentManager')
+const Paykit = require('../index')
 const qrcode = require('qrcode-terminal')
 
 const rl = readline.createInterface({
@@ -11,7 +11,7 @@ const rl = readline.createInterface({
 ;(async () => {
   const config = require(process.argv[2])
 
-  const paymentManager = new PaymentManager({
+  const paymentManager = new Paykit({
     config,
     notificationCallback: (p) => console.log('--- nofication: ', p)
   })
@@ -58,7 +58,8 @@ const rl = readline.createInterface({
   }
 
   async function createInvoice (amount) {
-    const invoiceURL = await paymentManager.createInvoice((new Date()).getTime(), amount)
+    const id = (new Date()).getTime()
+    const invoiceURL = await paymentManager.createInvoice({ clientOrderId: id,  amount })
     console.log('Ask to pay this:')
     qrcode.generate(invoiceURL, { small: true })
     console.log(invoiceURL, amount)
