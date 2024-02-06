@@ -30,7 +30,7 @@ const defaultConfig = {
   }
 }
 
-class PayKit {
+class Paykit {
   constructor (notificationCallback, config) {
     this.config = { ...defaultConfig, ...config }
     this.db = new DB(this.config.db)
@@ -46,16 +46,34 @@ class PayKit {
     }
   }
 
-  async createPaymentOrder ({ clientOrderId, amount, counterpartyURL }) {
-    return await paymentManager.createPaymentOrder({ clientOrderId, amount, counterpartyURL })
+  async createPaymentOrder ({
+    clientOrderId,
+    counterpartyURL,
+    memo = '',
+    sendingPriority = this.config.slashpay.sendingPriority,
+    amount,
+    amountOpts = { currency: 'BTC', denomination: 'base' }
+  }) {
+    return await paymentManager.createPaymentOrder({
+      clientOrderId,
+      amount,
+      counterpartyURL,
+      memo,
+      sendingPriority,
+      ...amountOpts
+    })
   }
 
   async sendPayment (id) {
     return this.paymentManager.sendPayment(id)
   }
 
-  async createInvoice (id, amount) {
-    return this.paymentManager.createInvoice(id, amount)
+  async createInvoice ({
+    clientInvoiceId,
+    amount,
+    amountOpts = { currency: 'BTC', denomination: 'base' }
+  }) {
+    return this.paymentManager.createInvoice(id, amount, amountOpts)
   }
 
   async getIncomingPayments (params) {
@@ -69,4 +87,4 @@ class PayKit {
   // TODO: add more interface methods
 }
 
-module.exports = PayKit
+module.exports = Paykit
