@@ -87,6 +87,14 @@ class Paykit {
     return await this.db.getOutgoingPayments(params)
   }
 
+  async triggerUserNotification (data) {
+    return await this.paymentManager.userNotificationEndpoint(data)
+  }
+
+  async updatePayment({ orderId, ...rest }) {
+    return thi.paymentManager.entryPointForUser({ orderId, ...rest })
+  }
+
   // TODO: add more interface methods
 }
 
