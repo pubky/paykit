@@ -49,8 +49,7 @@ const rl = readline.createInterface({
   async function sendPayment (counterpartyURL, amount) {
     const paymentOrder = await paymentManager.createPaymentOrder({
       clientOrderId: Date.now(),
-      amount,
-      sendingPriority: ['bolt11', 'onchain'],
+      amount, // TODO: extend with fee etc
       counterpartyURL
     })
 
