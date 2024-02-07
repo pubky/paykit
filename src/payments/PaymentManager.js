@@ -201,7 +201,7 @@ class PaymentManager {
    * @returns {Promise<void>}
    */
   async userNotificationEndpoint (payload) {
-    this.notificationCallback(payload)
+    await this.notificationCallback(payload)
   }
 
   /**
