@@ -26,9 +26,9 @@ export type Errors = {
      */
     MISSING_DB: string;
     /**
-     * - Missing slashtagsConnector
+     * - Missing TransportConnector
      */
-    MISSING_SLASHTAGS_CONNECTOR: string;
+    MISSING_TRANSPORT_CONNECTOR: string;
 };
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
@@ -46,13 +46,13 @@ export class PaymentManager {
      * @constructor
      * @param {Object} config - configuration object
      * @param {any} db - instance of Database class
-     * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
+     * @param {TransportConnector} transportConnector - instance of TransportConnector class
      * @param {Function} notificationCallback - callback function for user notifications
      */
-    constructor({ config, db, slashtagsConnector, notificationCallback }: any);
+    constructor({ config, db, transportConnector, notificationCallback }: any);
     config: any;
     db: any;
-    slashtagsConnector: any;
+    transportConnector: any;
     pluginManager: PluginManager;
     notificationCallback: any;
     ready: boolean;
@@ -148,7 +148,7 @@ export namespace PAYLOAD_TYPE {
 export namespace ERRORS {
     const MISSING_CONFIG: string;
     const MISSING_DB: string;
-    const MISSING_SLASHTAGS_CONNECTOR: string;
+    const MISSING_TRANSPORT_CONNECTOR: string;
 }
 import { PluginManager } from "../plugins/PluginManager";
 import { PaymentOrder } from "./PaymentOrder";

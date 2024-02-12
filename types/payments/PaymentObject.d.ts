@@ -113,12 +113,12 @@ export class PaymentObject {
      * @property {Amount} paymentParams.amount - amount of the payment
      * @property {string[]} paymentParams.sendingPriority - list of plugins to use to send the payment
      * @param {db} db - database
-     * @param {SlashtagsConnector} [slashtagsConnector] - slashtags connector
+     * @param {TransportConnector} [transportConnector] - TransportConnector connector
      */
-    constructor(paymentParams: PaymentParams, db: any, slashtagsConnector?: SlashtagsConnector);
+    constructor(paymentParams: PaymentParams, db: any, transportConnector?: TransportConnector);
     db: any;
     sendingPriority: any;
-    slashtagsConnector: SlashtagsConnector;
+    transportConnector: TransportConnector;
     id: any;
     orderId: any;
     clientOrderId: any;
@@ -158,10 +158,7 @@ export class PaymentObject {
         internalState: {
             INITIAL: string;
             IN_PROGRESS: string;
-            COMPLETED: string; /**
-             * checks if payment is in final state
-             * @returns {boolean}
-             */
+            COMPLETED: string;
             FAILED: string;
             CANCELLED: string;
         };

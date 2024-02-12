@@ -62,11 +62,11 @@ export class PaymentIncoming {
      * @property {string} paymentParams.clientOrderId - client payment id
      * @property {Amount} paymentParams.amount - amount of the payment
      * @param {db} db - database
-     * @param {SlashtagsConnector} [slashtagsConnector] - slashtags connector
+     * @param {TransportConnector} [transportConnector] - TransportConnector connector
      */
-    constructor(paymentParams: PaymentParams, db: any, slashtagsConnector?: SlashtagsConnector);
+    constructor(paymentParams: PaymentParams, db: any, transportConnector?: TransportConnector);
     db: any;
-    slashtagsConnector: SlashtagsConnector;
+    transportConnector: TransportConnector;
     id: any;
     clientOrderId: any;
     memo: any;
