@@ -18,7 +18,7 @@ const { PaymentAmount } = require('./PaymentAmount')
  * @property {string} sendingPriority - Sending priority
  * @property {object} orderParams - Order params
  * @property {object} db - Database
- * @property {object} slashtags - slashtags
+ * @property {object} TransportConnector - transportConnector
  * @property {Date} createdAt - Order creation timestamp
  * @property {Date} firstPaymentAt - Order execution timestamp
  * @property {Date} lastPaymentAt - Last payment timestamp
@@ -91,7 +91,7 @@ class PaymentOrder {
    * @param {object} db - Database
    * @returns {PaymentOrder}
    */
-  constructor (orderParams, db, slashtags) {
+  constructor (orderParams, db, transportConnector) {
     logger.info('Creating payment order')
     logger.debug(`Creating payment order with ${JSON.stringify(orderParams)}`)
 
@@ -99,7 +99,7 @@ class PaymentOrder {
 
     this.orderParams = orderParams
     this.db = db
-    this.slashtags = slashtags
+    this.transportConnector = transportConnector
 
     this.id = orderParams.id || null
     this.clientOrderId = orderParams.clientOrderId
@@ -171,7 +171,7 @@ class PaymentOrder {
         ...this.orderParams,
         executeAt: this.firstPaymentAt + this.frequency * i,
         orderId: this.id
-      }, this.db, this.slashtags))
+      }, this.db, this.transportConnector))
     }
   }
 
@@ -377,15 +377,15 @@ class PaymentOrder {
    * @static find - Find order by id in db
    * @param {string} id - Order id
    * @param {DB} db - DB instance
-   * @param {slashtags} slashtags - Slashtags instance
+   * @param {TransportConnector} transportConnector - TransportConnector instance
    * @returns {Promise<PaymentOrder>}
    */
-  static async find (id, db, slashtags) {
+  static async find (id, db, transportConnector) {
     const orderParams = await db.getOrder(id)
     if (!orderParams) throw new Error(ERRORS.ORDER_NOT_FOUND(id))
 
     const paymentOrder = new PaymentOrder(orderParams, db)
-    paymentOrder.payments = (await db.getOutgoingPayments({ orderId: id })).map(p => new PaymentObject(p, db, slashtags))
+    paymentOrder.payments = (await db.getOutgoingPayments({ orderId: id })).map(p => new PaymentObject(p, db, transportConnector))
 
     return paymentOrder
   }

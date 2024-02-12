@@ -5,7 +5,7 @@ const { PaymentSender } = require('./PaymentSender')
 const { PaymentReceiver } = require('./PaymentReceiver')
 const { PaymentAmount } = require('./PaymentAmount')
 const { DB } = require('../DB')
-const { SlashtagsConnector } = require('../slashtags')
+const { TransportConnector } = require('../transport')
 
 /**
  * @class PaymentManager - main class for payment management. Use this class to create, submit, receive and interact
@@ -23,18 +23,18 @@ class PaymentManager {
    * @constructor
    * @param {Object} config - configuration object
    * @param {any} db - instance of Database class
-   * @param {SlashtagsConnector} slashtagsConnector - instance of SlashtagsConnector class
+   * @param {TransportConnector} transportConnector - instance of TransportConnector class
    * @param {Function} notificationCallback - callback function for user notifications
    */
-  constructor ({ config, db, slashtagsConnector, notificationCallback }) {
+  constructor ({ config, db, transportConnector, notificationCallback }) {
     if (!config) throw new Error(ERRORS.MISSING_CONFIG)
     if (!db && !config.db) throw new Error(ERRORS.MISSING_DB)
-    if (!slashtagsConnector && !config.slashtags) throw new Error(ERRORS.MISSING_SLASHTAGS_CONNECTOR)
+    if (!transportConnector && !config.transport) throw new Error(ERRORS.MISSING_TRANSPORT_CONNECTOR)
 
     this.config = config.slashpay || config
 
     this.db = db || new DB(config.db)
-    this.slashtagsConnector = slashtagsConnector || new SlashtagsConnector(config.slashtags)
+    this.transportConnector = transportConnector || new TransportConnector(config.transport)
     this.pluginManager = new PluginManager(this.config)
     this.notificationCallback = notificationCallback
 
@@ -61,7 +61,7 @@ class PaymentManager {
       paymentParams.sendingPriority = this.config.sendingPriority
     }
 
-    const paymentOrder = new PaymentOrder(paymentParams, this.db, this.slashtagsConnector)
+    const paymentOrder = new PaymentOrder(paymentParams, this.db, this.transportConnector)
     await paymentOrder.init()
 
     return paymentOrder.serialize()
@@ -88,7 +88,7 @@ class PaymentManager {
     const paymentReceiver = new PaymentReceiver(
       this.db,
       this.pluginManager,
-      this.slashtagsConnector,
+      this.transportConnector,
       this.entryPointForPlugin.bind(this)
     )
     return await paymentReceiver.createInvoice(clientOrderId, new PaymentAmount({ amount, ...amountOpts }, 'expected'))
@@ -101,13 +101,13 @@ class PaymentManager {
   async receivePayments () {
     // TODO: consider not hanging if some plugins fail to load
     await Promise.all(Object.keys(this.config.plugins).map(async (name) => {
-      return await this.pluginManager.loadPlugin(name, this.slashtagsConnector)
+      return await this.pluginManager.loadPlugin(name, this.transportConnector)
     }))
 
     const paymentReceiver = new PaymentReceiver(
       this.db,
       this.pluginManager,
-      this.slashtagsConnector,
+      this.transportConnector,
       this.entryPointForPlugin.bind(this)
     )
     return await paymentReceiver.init()
@@ -150,7 +150,7 @@ class PaymentManager {
     const paymentReceiver = new PaymentReceiver(
       this.db,
       this.pluginManager,
-      this.slashtagsConnector,
+      this.transportConnector,
       this.userNotificationEndpoint.bind(this)
     )
     await paymentReceiver.handleNewPayment(payload, payload.isPersonalPayment)
@@ -187,7 +187,7 @@ class PaymentManager {
    * @returns {Promise<PaymentSender>} - instance of PaymentSender class
    */
   async getPaymentSender (id) {
-    const paymentOrder = await PaymentOrder.find(id, this.db, this.slashtagsConnector)
+    const paymentOrder = await PaymentOrder.find(id, this.db, this.transportConnector)
     return new PaymentSender(
       paymentOrder,
       this.pluginManager,
@@ -212,7 +212,7 @@ class PaymentManager {
     const paymentReceiver = new PaymentReceiver(
       this.db,
       this.pluginManager,
-      this.slashtagsConnector,
+      this.transportConnector,
       this.entryPointForPlugin.bind(this)
     )
     return await paymentReceiver.createPaymentFile(payload)
@@ -237,12 +237,12 @@ const PAYLOAD_TYPE = {
  * @typedef {Object} Errors
  * @property {String} MISSING_CONFIG - Missing config
  * @property {String} MISSING_DB - Missing db
- * @property {String} MISSING_SLASHTAGS_CONNECTOR - Missing slashtagsConnector
+ * @property {String} MISSING_TRANSPORT_CONNECTOR - Missing TransportConnector
  */
 const ERRORS = {
   MISSING_CONFIG: 'Missing config',
   MISSING_DB: 'Missing db',
-  MISSING_SLASHTAGS_CONNECTOR: 'Missing slashtagsConnector'
+  MISSING_TRANSPORT_CONNECTOR: 'Missing TransportConnector'
 }
 
 module.exports = {

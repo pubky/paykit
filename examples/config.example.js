@@ -3,7 +3,7 @@ module.exports = {
     name: 'paykit',
     path: './paykit_db'
   },
-  slashtags: {
+  transport: {
     relay: 'http://localhost:3000'
   },
   slashpay: {

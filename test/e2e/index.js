@@ -26,7 +26,7 @@ test('e2e', async (t) => {
     config: {
       slashpay: configA,
       db: { name: 'test', path: './test_dba' },
-      slashtags: {
+      transport: {
         storage: tmpdir(),
         relay: 'http://localhost:3000'
       }
@@ -51,7 +51,7 @@ test('e2e', async (t) => {
     config: {
       slashpay: configB,
       db: { name: 'test', path: './test_dbb' },
-      slashtags: {
+      transport: {
         storage: tmpdir(),
         relay: 'http://localhost:3000'
       }

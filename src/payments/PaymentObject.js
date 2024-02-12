@@ -103,10 +103,10 @@ class PaymentObject {
    * @property {Amount} paymentParams.amount - amount of the payment
    * @property {string[]} paymentParams.sendingPriority - list of plugins to use to send the payment
    * @param {db} db - database
-   * @param {SlashtagsConnector} [slashtagsConnector] - slashtags connector
+   * @param {TransportConnector} [transportConnector] - TransportConnector connector
    */
 
-  constructor (paymentParams, db, slashtagsConnector) {
+  constructor (paymentParams, db, transportConnector) {
     logger.info('Creating payment object')
     logger.debug(`Creating payment object with ${JSON.stringify(paymentParams)}`)
 
@@ -115,7 +115,7 @@ class PaymentObject {
 
     this.db = db
     this.sendingPriority = paymentParams.sendingPriority || []
-    this.slashtagsConnector = slashtagsConnector
+    this.transportConnector = transportConnector
 
     this.id = paymentParams.id || null
     this.orderId = paymentParams.orderId
@@ -158,7 +158,7 @@ class PaymentObject {
     this.logger.info('Initializing payment')
 
     this.logger.debug('Retrieving payment file')
-    const paymentFile = await this.slashtagsConnector.readRemote(this.counterpartyURL)
+    const paymentFile = await this.transportConnector.readRemote(this.counterpartyURL)
     if (!paymentFile) throw new Error(ERRORS.NO_PAYMENT_FILE)
     this.logger.debug('Retrieved payment file')
 

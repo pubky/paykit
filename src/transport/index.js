@@ -7,8 +7,8 @@ const SlashtagsURL = require('@synonymdev/slashtags-url')
 const SLASHPAY_PATH = '/public/slashpay.json'
 
 /**
- * SlashtagsConnector class
- * @class SlashtagsConnector
+ * TransportConnector class
+ * @class TransportConnector
  * @param {Object} params - parameters for core data
  * @property {{secretKey: Uint8Array, publicKey: Uint8Array}} [params.keyPair]
  * @property {Uint8Array[]} [params.seeders] Seeders' public keys
@@ -19,7 +19,7 @@ const SLASHPAY_PATH = '/public/slashpay.json'
  * @property {Uint8Array} [params.seedersTopic] topic for seeders discovery
  * @property {client} client - core data instance
  */
-class SlashtagsConnector {
+class TransportConnector {
   constructor (params) {
     this.client = new Client(params)
   }
@@ -48,7 +48,7 @@ class SlashtagsConnector {
   }
 
   /**
-   * Initialize SlashtagsConnector
+   * Initialize TransportConnector
    * @returns {Promise<void>}
    */
 
@@ -106,7 +106,7 @@ class SlashtagsConnector {
    * @throws {Error} - if value is not valid JSON
    */
   async create (key, value, opts = {}) {
-    SlashtagsConnector.validate(value)
+    TransportConnector.validate(value)
 
     if (key === SLASHPAY_PATH) {
       await this.client.put(key, encode(value), opts)
@@ -148,7 +148,7 @@ class SlashtagsConnector {
    * @throws {Error} - if value is not valid JSON
    */
   async update (key, value, opts = {}) {
-    SlashtagsConnector.validate(value)
+    TransportConnector.validate(value)
 
     await this.client.put(key, encode(value), opts)
   }
@@ -236,7 +236,7 @@ function decode (buf) {
 }
 
 module.exports = {
-  SlashtagsConnector,
+  TransportConnector,
   ERRORS,
   SLASHPAY_PATH
 }

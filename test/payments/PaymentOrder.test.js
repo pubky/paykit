@@ -11,7 +11,7 @@ const { PaymentObject } = require('../../src/payments/PaymentObject')
 const { orderParams } = require('../fixtures/paymentParams')
 
 const { PaymentOrder, ORDER_STATE, ERRORS } = require('../../src/payments/PaymentOrder')
-const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
+const { TransportConnector, SLASHPAY_PATH } = require('../../src/transport')
 
 const { getOneTimePaymentOrderEntities, dropTables, tmpdir } = require('../helpers')
 
@@ -475,7 +475,7 @@ test('PaymentOrder - recurring order (finite)', async t => {
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -487,7 +487,7 @@ test('PaymentOrder - recurring order (finite)', async t => {
     }
   }, { awaitRelaySync: true })
 
-  const sender = new SlashtagsConnector({
+  const sender = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -528,7 +528,7 @@ test('PaymentOrder - recurring order (infinite)', async t => {
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -539,7 +539,7 @@ test('PaymentOrder - recurring order (infinite)', async t => {
     }
   }, { awaitRelaySync: true })
 
-  const sender = new SlashtagsConnector({
+  const sender = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })

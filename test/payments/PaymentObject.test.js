@@ -9,7 +9,7 @@ const { paymentParams } = require('../fixtures/paymentParams')
 const { PaymentObject, PAYMENT_STATE, PLUGIN_STATE, ERRORS } = require('../../src/payments/PaymentObject')
 const { PaymentAmount } = require('../../src/payments/PaymentAmount')
 const { ERRORS: STATE_ERRORS } = require('../../src/payments/PaymentState')
-const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
+const { TransportConnector, SLASHPAY_PATH } = require('../../src/transport')
 const { dropTables, tmpdir } = require('../helpers')
 
 async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
@@ -19,11 +19,11 @@ async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
-  const sender = new SlashtagsConnector({
+  const sender = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })

@@ -3,7 +3,7 @@ const os = require('os')
 
 const { PaymentOrder } = require('../src/payments/PaymentOrder')
 const { DB } = require('../src/DB')
-const { SlashtagsConnector, SLASHPAY_PATH } = require('../src/slashtags')
+const { TransportConnector, SLASHPAY_PATH } = require('../src/transport')
 
 const { Relay } = require('@synonymdev/web-relay')
 
@@ -29,11 +29,11 @@ async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, cr
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
-  const sender = new SlashtagsConnector({
+  const sender = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })

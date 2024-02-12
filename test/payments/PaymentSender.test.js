@@ -4,7 +4,7 @@ const { Relay } = require('@synonymdev/web-relay')
 
 const { DB } = require('../../src/DB')
 
-const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
+const { TransportConnector, SLASHPAY_PATH } = require('../../src/transport')
 const { PluginManager } = require('../../src/plugins/PluginManager')
 const { pluginConfig } = require('../fixtures/config.js')
 
@@ -296,7 +296,7 @@ test('PaymentSender - recurring payment all success', async t => {
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -306,7 +306,7 @@ test('PaymentSender - recurring payment all success', async t => {
     paymentEndpoints: { p2sh, p2tr }
   }, { awaitRelaySync: true })
 
-  const sender = new SlashtagsConnector({
+  const sender = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -367,7 +367,7 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -377,7 +377,7 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
     paymentEndpoints: { p2sh, p2tr }
   }, { awaitRelaySync: true })
 
-  const sender = new SlashtagsConnector({
+  const sender = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -454,7 +454,7 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
   const p2trStub = require('../fixtures/p2tr/main.js')
   p2trStub.resetAll()
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })
@@ -464,7 +464,7 @@ test('PaymentSender - recurring payment completely failed intermediate payment',
     paymentEndpoints: { p2sh, p2tr }
   }, { awaitRelaySync: true })
 
-  const sender = new SlashtagsConnector({
+  const sender = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })

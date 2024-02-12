@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('uuid')
 
 const { PaymentIncoming, PAYMENT_STATE } = require('./PaymentIncoming')
 const { PaymentAmount } = require('./PaymentAmount')
-const { SLASHPAY_PATH } = require('../slashtags')
+const { SLASHPAY_PATH } = require('../transport')
 /**
  * PaymentReceiver is a class which is responsible for making plugins to receive payments
  * @class PaymentReceiver

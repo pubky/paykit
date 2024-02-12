@@ -6,7 +6,7 @@ const SlashtagsURL = require('@synonymdev/slashtags-url')
 
 const { DB } = require('../../src/DB')
 
-const { SlashtagsConnector, SLASHPAY_PATH } = require('../../src/slashtags')
+const { TransportConnector, SLASHPAY_PATH } = require('../../src/transport')
 
 const { PluginManager } = require('../../src/plugins/PluginManager')
 
@@ -24,7 +24,7 @@ async function createStorageEntities (t) {
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
 
-  const receiver = new SlashtagsConnector({
+  const receiver = new TransportConnector({
     storage: tmpdir(),
     relay: 'http://localhost:3000'
   })

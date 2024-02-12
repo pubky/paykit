@@ -68,10 +68,10 @@ class PaymentIncoming {
    * @property {string} paymentParams.clientOrderId - client payment id
    * @property {Amount} paymentParams.amount - amount of the payment
    * @param {db} db - database
-   * @param {SlashtagsConnector} [slashtagsConnector] - slashtags connector
+   * @param {TransportConnector} [transportConnector] - TransportConnector connector
    */
 
-  constructor (paymentParams, db, slashtagsConnector) {
+  constructor (paymentParams, db, transportConnector) {
     logger.info('Creating payment object')
     logger.debug(`Creating payment object with ${JSON.stringify(paymentParams)}`)
 
@@ -79,7 +79,7 @@ class PaymentIncoming {
     PaymentIncoming.validateDB(db)
 
     this.db = db
-    this.slashtagsConnector = slashtagsConnector
+    this.transportConnector = transportConnector
 
     this.id = paymentParams.id || null
     this.clientOrderId = paymentParams.clientOrderId

@@ -1,6 +1,6 @@
 const { PaymentManager } = require('./src/payments/PaymentManager')
 const { DB } = require('./src/DB')
-const { SlashtagsConnector } = require('./src/slashtags')
+const { TransportConnector } = require('./src/transport')
 const path = require('path')
 
 const defaultConfig = {
@@ -8,7 +8,7 @@ const defaultConfig = {
     name: 'paykit',
     path: './paykit_db'
   },
-  slashtags: {
+  transport: {
     relay: 'http://localhost:3000'
   },
   slashpay: {
