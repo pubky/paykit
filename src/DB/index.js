@@ -1,4 +1,5 @@
 const { Sqlite } = require('./Sqlite.js')
+const { MMKV } = require('./mmkv.js')
 const outgoingPaymentSP = require('./outgoingPayment.js')
 const orderSP = require('./order.js')
 const incomingPaymentSP = require('./incomingPayment.js')
@@ -220,4 +221,4 @@ class DB {
   }
 }
 
-module.exports = { DB, ERROR }
+module.exports = { DB: MMKV, ERROR }

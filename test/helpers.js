@@ -71,11 +71,5 @@ async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, cr
 }
 
 async function dropTables (db) {
-  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS incoming_payments; DROP TABLE IF EXISTS orders;'
-  return new Promise((resolve, reject) => {
-    db.db.sqlite.exec(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  })
+  await db.db.clearAll()
 }

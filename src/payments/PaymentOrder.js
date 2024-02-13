@@ -283,25 +283,15 @@ class PaymentOrder {
     this.logger.debug('Cancelling payment order')
     if (this.state === ORDER_STATE.COMPLETED) throw new Error(ERRORS.ORDER_COMPLETED)
 
-    try {
-      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
+    for (const payment of this.payments) {
+      if (payment.isFinal()) continue
 
-      this.state = ORDER_STATE.CANCELLED
-      const { statement, params } = await this.update(false)
-      await this.db.executeStatement(statement, params, 'run')
-
-      await this.payments
-        .filter((payment) => !payment.isFinal())
-        .forEach(async (payment) => {
-          const { statement, params } = await payment.cancel(false)
-          await this.db.executeStatement(statement, params, 'run')
-        })
-
-      await this.db.executeStatement('COMMIT', [], 'exec')
-    } catch (e) {
-      await this.db.executeStatement('ROLLBACK', [], 'exec')
-      throw e
+      await payment.cancel()
     }
+
+    this.state = ORDER_STATE.CANCELLED
+    await this.db.updateOrder (this.id, { state: this.state })
+    console.log(this.serialize())
   }
 
   /**
@@ -340,23 +330,10 @@ class PaymentOrder {
   async save () {
     this.logger.debug('Saving payment order')
     const orderObject = this.serialize()
-
-    try {
-      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
-
-      const { statement, params } = await this.db.saveOrder(orderObject, false)
-      await this.db.executeStatement(statement, params, 'run')
-
-      for (const payment of this.payments) {
-        const { statement, params } = await payment.save(false)
-        await this.db.executeStatement(statement, params, 'run')
-      }
-
-      await this.db.executeStatement('COMMIT', [], 'exec')
-    } catch (e) {
-      await this.db.executeStatement('ROLLBACK', [], 'exec')
-      throw e
+    for (const payment of this.payments) {
+      await payment.save()
     }
+    await this.db.saveOrder(orderObject)
   }
 
   /**
