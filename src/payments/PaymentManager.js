@@ -42,15 +42,6 @@ class PaymentManager {
   }
 
   /**
-   * Initialize the payment manager
-   * @returns {Promise<void>}
-   */
-  async init () {
-    await this.db.init()
-    this.ready = true
-  }
-
-  /**
    * Create a payment
    * @param {Object} paymentObject - payment object
    * @returns {Promise<PaymentOrder>} - instance of Payment class

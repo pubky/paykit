@@ -378,7 +378,6 @@ class PaymentOrder {
  * @property {string} ORDER_CONFIG_REQUIRED
  * @property {string} ORDER_CONFIG_SENDING_PARTY_REQUIRED
  * @property {string} DB_REQUIRED
- * @property {string} DB_NOT_READY
  * @property {string} OUTSTANDING_PAYMENTS
  * @property {string} ORDER_CANCELLED
  * @property {string} ORDER_COMPLETED
@@ -396,7 +395,6 @@ const ERRORS = {
   ORDER_CONFIG_REQUIRED: 'Order config is required',
   ORDER_CONFIG_SENDING_PARTY_REQUIRED: 'Order config sending party is required',
   DB_REQUIRED: 'DB is required',
-  DB_NOT_READY: 'DB is not ready',
   OUTSTANDING_PAYMENTS: 'There are outstanding payments',
   ORDER_CANCELLED: 'Order is cancelled',
   ORDER_COMPLETED: 'Order is completed',

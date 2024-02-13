@@ -75,7 +75,6 @@ class PaymentObject {
    */
   static validateDB (db) {
     if (!db) throw new Error(ERRORS.NO_DB)
-    if (!db.ready) throw new Error(ERRORS.DB_NOT_READY)
   }
 
   /**
@@ -221,12 +220,12 @@ class PaymentObject {
       this.id = PaymentObject.generateId()
     }
 
-    const paymentObject = await this.db.getPayment(this.id, { removed: '*' })
+    const paymentObject = await this.db.getOutgoingPayment(this.id, { removed: '*' })
     if (paymentObject) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
-    const res = await this.db.savePayment(serialized, persist)
+    const res = await this.db.saveOutgoingPayment(serialized, persist)
     this.logger.debug('Payment object saved')
 
     return res
@@ -243,7 +242,7 @@ class PaymentObject {
       this.logger.info('Force deleting payment object')
       throw new Error(ERRORS.NOT_ALLOWED)
     }
-    await this.db.updatePayment(this.id, { removed: true })
+    await this.db.updateOutgoingPayment(this.id, { removed: true })
     this.logger.debug('Payment object deleted')
   }
 
@@ -258,7 +257,7 @@ class PaymentObject {
 
     const serialized = this.serialize()
     PaymentObject.validatePaymentObject(serialized)
-    const res = await this.db.updatePayment(this.id, serialized, persist)
+    const res = await this.db.updateOutgoingPayment(this.id, serialized, persist)
 
     this.logger.debug('Payment object updated')
     return res
@@ -366,7 +365,6 @@ const ERRORS = {
   ORDER_ID_REQUIRED: 'orderId is required',
   ALREADY_EXISTS: (id) => `Payment id: ${id} already exists`,
   NO_DB: 'No database provided',
-  DB_NOT_READY: 'Database is not ready',
   NO_MATCHING_PLUGINS: 'No plugins found',
   CLIENT_ID_REQUIRED: 'clientOrderId is required',
   COUNTERPARTY_REQUIRED: 'counterpartyURL is required',

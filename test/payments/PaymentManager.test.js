@@ -27,29 +27,10 @@ test('PaymentManager.constructor', async t => {
   })
 })
 
-test('PaymentManager.init', async t => {
-  const { sender, db, relay } = await getOneTimePaymentOrderEntities(t)
-  const paymentManager = new PaymentManager({ config, db, transportConnector: sender, notificationCallback: console.log })
-
-  const dbInit = sinon.stub(db, 'init').resolves()
-
-  await paymentManager.init()
-
-  t.is(paymentManager.ready, true)
-  t.is(dbInit.calledOnce, true)
-
-  t.teardown(async () => {
-    await dropTables(db)
-    sinon.restore()
-    relay.close()
-  })
-})
-
 test('PaymentManager.createPaymentOrder', async t => {
   const { sender, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager({ config, db, transportConnector: sender, notificationCallback: console.log })
-  await paymentManager.init()
 
   const paymentOrder = await paymentManager.createPaymentOrder({
     ...paymentParams,
@@ -72,7 +53,6 @@ test('PaymentManager.sendPayment', async t => {
   const p2shStub = require('../fixtures/p2sh/main.js')
 
   const paymentManager = new PaymentManager({ config, db, transportConnector: sender, notificationCallback: console.log })
-  await paymentManager.init()
 
   await paymentManager.sendPayment(paymentOrder.id)
 
@@ -96,7 +76,6 @@ test('PaymentManager.receivePayments', async t => {
   }
 
   const paymentManager = new PaymentManager({ config: validConfig, db, transportConnector: receiver, notificationCallback: console.log })
-  await paymentManager.init()
   const url = await paymentManager.receivePayments()
 
   t.ok(url.includes(await receiver.getUrl()))
@@ -112,7 +91,6 @@ test('PaymentManager.handleNewPayment', async t => {
   const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager({ config, db, transportConnector: receiver, notificationCallback: console.log })
-  await paymentManager.init()
 
   const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
   const receiverHandler = sinon.replace(
@@ -161,7 +139,6 @@ test('PaymentManager.handlePaymentUpdate', async t => {
   const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager({ config, db, transportConnector: receiver, notificationCallback: console.log })
-  await paymentManager.init()
 
   const stub = sinon.replace(paymentManager, 'userNotificationEndpoint', sinon.fake())
 
@@ -190,7 +167,6 @@ test('PaymentManager.entryPointForUser', async t => {
   const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager({ config, db, transportConnector: receiver, notificationCallback: console.log })
-  await paymentManager.init()
 
   const paymentOrder = await paymentManager.createPaymentOrder({
     ...paymentParams,
@@ -212,7 +188,6 @@ test('PaymentManager.entryPointForPlugin waiting for client', async t => {
   const { receiver, db, relay } = await getOneTimePaymentOrderEntities(t, true, false)
 
   const paymentManager = new PaymentManager({ config, db, transportConnector: receiver, notificationCallback: console.log })
-  await paymentManager.init()
 
   const handleNewPaymentStub = sinon.stub(paymentManager, 'handleNewPayment').resolves()
   const handlePaymentUpdateStub = sinon.stub(paymentManager, 'handlePaymentUpdate').resolves()

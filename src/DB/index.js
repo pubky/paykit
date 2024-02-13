@@ -1,224 +1,165 @@
-const { Sqlite } = require('./Sqlite.js')
-const { MMKV } = require('./mmkv.js')
-const outgoingPaymentSP = require('./outgoingPayment.js')
-const orderSP = require('./order.js')
-const incomingPaymentSP = require('./incomingPayment.js')
+const MMKVModule = require("nodejs-mmkv");
+const path = require("path");
 
-const ERROR = {
-  NOT_READY: 'DB is not ready'
-}
-
-/**
- * @class DB
- * @param {Object} config
- * @param {String} config.path
- * @param {String} config.name
- */
 class DB {
-  constructor (config) {
-    this.db = new Sqlite(config)
-    this.ready = false
+  constructor (config = {}) {
+    if (!config) throw new Error(ERROR.CONFIG_MISSING)
+    if (!config.name) throw new Error(ERROR.DB_NAME_MISSING)
+    if (!config.path) throw new Error(ERROR.DB_PATH_MISSING)
+
+    this.db = new MMKVModule({
+      id: config.name,
+      rootDir: config.path,
+    });
   }
 
-  /**
-   * @method init - Initialize the database
-   * @returns {Promise}
-   */
-  async init () {
-    await this.db.start()
 
-    await Promise.all([
-      outgoingPaymentSP.createOutgoingPaymentTable(this.db),
-      orderSP.createOrderTable(this.db),
-      incomingPaymentSP.createIncomingPaymentTable(this.db)
-    ])
-
-    this.ready = true
+  async saveOutgoingPayment(payment, execute = true) {
+    const key = `outgoing_payment_${payment.id}`;
+    const value = JSON.stringify(payment);
+    if (execute) {
+      await this.db.setString(key, value);
+    }
+    return { key, value };
   }
 
-  /**
-   * @method savePayment - Save a payment to the database
-   * @param {Object} payment
-   * @param {boolean} execute - Execute the statement or return it
-   * @returns {Promise<Database| { statement: string, params: object }>}
-   */
-  async savePayment (payment, execute = true) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = outgoingPaymentSP.savePayment(payment)
+  async getOutgoingPayment (id, opts = { removed: false }) {
+    const key = `outgoing_payment_${id}`;
+    let value = await this.db.getString(key);
+    if (!value) return null;
+    value = JSON.parse(value);
 
-    if (execute) return await this.executeStatement(statement, params)
-    return { statement, params }
+    const returnRemoved = (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1')
+    const returnNotRemoved = (opts.removed === false || opts.removed === 'false' || opts.removed === 0 || opts.removed === '0')
+    const returnAll = opts.removed === '*'
+
+    let res
+    if (returnRemoved) {
+      if (!value.removed) return null;
+      res = value;
+    } else if (returnNotRemoved) {
+      if (value.removed) return null;
+      res = value;
+    } else if (returnAll) {
+      res = value;
+    } else {
+      throw new Error(`Invalid option: ${opts.removed}`);
+    }
+
+    delete value.removed
+    return value;
   }
 
-  /**
-   * @method saveIncomingPayment - Save a payment to the database
-   * @param {Object} payment
-   * @param {boolean} execute - Execute the statement or return it
-   * @returns {Promise<Database| { statement: string, params: object }>}
-   */
-  async saveIncomingPayment (payment, execute = true) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = incomingPaymentSP.savePayment(payment)
-
-    if (execute) return await this.executeStatement(statement, params)
-    return { statement, params }
-  }
-
-  /**
-   * @method getPayment - Save a payment to the database
-   * @param {string} id
-   * @param {Object} opts
-   * @returns {Promise<PaymentObject>}
-   */
-  async getPayment (id, opts = { removed: false }) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = outgoingPaymentSP.getPayment(id, opts)
-
-    const payment = await this.executeStatement(statement, params)
-    return outgoingPaymentSP.deserializePayment(payment)
-  }
-
-  /**
-   * @method getIncomingPayment - Save a payment to the database
-   * @param {string} id
-   * @param {Object} opts
-   * @returns {Promise<PaymentObject>}
-   */
-  async getIncomingPayment (id, opts = { removed: false }) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = incomingPaymentSP.getPayment(id, opts)
-
-    const payment = await this.executeStatement(statement, params)
-    return incomingPaymentSP.deserializePayment(payment)
-  }
-
-  /**
-   * @method updatePayment - Update a payment in the database
-   * @param {string} id
-   * @param {Object} update
-   * @param {boolean} execute - Execute the statement or return it
-   * @returns {Promise<Database| { statement: string, params: object }>}
-   */
-  async updatePayment (id, update, execute = true) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = outgoingPaymentSP.updatePayment(id, update)
-
-    if (execute) return await this.executeStatement(statement, params)
-    return { statement, params }
-  }
-
-  /**
-   * @method updateIncomingPayment - Update a payment in the database
-   * @param {string} id
-   * @param {Object} update
-   * @param {boolean} execute - Execute the statement or return it
-   * @returns {Promise<Database| { statement: string, params: object }>}
-   */
-  async updateIncomingPayment (id, update, execute = true) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = incomingPaymentSP.updatePayment(id, update)
-
-    if (execute) return await this.executeStatement(statement, params)
-    return { statement, params }
-  }
-
-  // XXX: super naive
-  // TODO: add pagination
-  // ...
-  /**
-   * @method getOutgoingPayments - Get payments from the database
-   * @param {Object} opts
-   * @returns {Promise<Array<PaymentObject>>}
-   */
   async getOutgoingPayments (opts = {}) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = outgoingPaymentSP.getPayments(opts)
+    const keys = await this.db.getKeys();
+    const payments = [];
 
-    const payments = await this.executeStatement(statement, params, 'all')
-    return payments.map(outgoingPaymentSP.deserializePayment)
-  }
+    const getRemoved = (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') 
+    const getAll = opts.removed === '*'
 
-  // XXX: super naive
-  // TODO: add pagination
-  // ...
-  /**
-   * @method getIncommingPayments - Get payments from the database
-   * @param {Object} opts
-   * @returns {Promise<Array<PaymentObject>>}
-   */
-  async getIncomingPayments (opts = {}) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = incomingPaymentSP.getPayments(opts)
-
-    const payments = await this.executeStatement(statement, params, 'all')
-    return payments.map(incomingPaymentSP.deserializePayment)
-  }
-
-  /**
-   * @method saveOrder - Save an order to the database
-   * @param {Object} order
-   * @param {boolean} execute - Execute the statement or return it
-   * @returns {Promise<Database| { statement: string, params: object }>}
-   */
-  async saveOrder (order, execute = true) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = orderSP.saveOrder(order)
-
-    if (execute) return await this.executeStatement(statement, params)
-    return { statement, params }
-  }
-
-  /**
-   * @method getOrder - Get an order from the database
-   * @param {string} id
-   * @param {Object} opts
-   * @returns {Promise<OrderObject>}
-   */
-  async getOrder (id, opts = { removed: false }) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = orderSP.getOrder(id, opts)
-
-    const order = await this.executeStatement(statement, params)
-    return orderSP.deserializeOrder(order)
-  }
-
-  /**
-   * @method updateOrder - Update an order in the database
-   * @param {string} id
-   * @param {Object} update
-   * @param {boolean} execute - Execute the statement or return it
-   * @returns {Promise<Database| { statement: string, params: object }>}
-   */
-  async updateOrder (id, update, execute = true) {
-    if (!this.ready) throw new Error(ERROR.NOT_READY)
-    const { statement, params } = orderSP.updateOrder(id, update)
-
-    if (execute) return await this.executeStatement(statement, params)
-    return { statement, params }
-  }
-
-  /**
-   * @method executeStatement - Execute a statement on the database
-   * @param {string} statement
-   * @param {Object} params
-   * @param {string} method
-   * @returns {Promise<Database>}
-   */
-  async executeStatement (statement, params, method = 'get') {
-    return await new Promise((resolve, reject) => {
-      if (method === 'exec') {
-        this.db.sqlite[method](statement, (err, res) => {
-          if (err) return reject(err)
-          return resolve(res)
-        })
-      } else {
-        this.db.sqlite[method](statement, params, (err, res) => {
-          if (err) return reject(err)
-          return resolve(res)
-        })
+    for (const key of keys) {
+      if (key.startsWith("outgoing_payment_")) {
+        let value = await this.db.getString(key);
+        if (!value) continue;
+        value = JSON.parse(value);
+        if (getRemoved && !value.removed) continue;
+        if (!getAll && value.removed) continue;
+        payments.push(value);
       }
-    })
+    }
+    return payments;
+  }
+
+  async updateOutgoingPayment (id, update, execute = true) {
+    const payment = await this.getOutgoingPayment(id);
+    const updatedPayment = { ...payment, ...update };
+    if (execute) {
+      await this.saveOutgoingPayment(updatedPayment);
+    }
+    return updatedPayment;
+  }
+
+  async saveIncomingPayment (payment, execute = true) {
+    const key = `incoming_payment_${payment.id}`;
+    const value = JSON.stringify(payment);
+    if (execute) {
+      await this.db.setString(key, value);
+    }
+    return { key, value };
+  }
+
+  async getIncomingPayment (id, opts = { removed: false }) {
+    const key = `incoming_payment_${id}`;
+    let value = await this.db.getString(key);
+    if (!value) return null;
+    value = JSON.parse(value);
+
+    if (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') {
+      if (!value.removed) return null;
+      return value;
+    } else if (opts.removed === false || opts.removed === 'false' || opts.removed === 0 || opts.removed === '0') {
+      if (value.removed) return null;
+      return value;
+    } else if (opts.removed === '*') {
+      return value;
+    } else {
+      throw new Error(`Invalid option: ${opts.removed}`);
+    }
+    return JSON.parse(value);
+  }
+
+  async updateIncomingPayment (id, update, execute = true) {
+    const payment = await this.getIncomingPayment(id);
+    const updatedPayment = { ...payment, ...update };
+    if (execute) {
+      await this.saveIncomingPayment(updatedPayment);
+    }
+    return updatedPayment;
+  }
+
+  async getIncomingPayments (opts = {}) {
+    const keys = await this.db.getKeys();
+    const payments = [];
+
+    const getRemoved = (opts.removed === true || opts.removed === 'true' || opts.removed === 1 || opts.removed === '1') 
+    const getAll = opts.removed === '*'
+
+    for (const key of keys) {
+      if (key.startsWith("incoming_payment_")) {
+        let value = await this.db.getString(key);
+        if (!value) continue;
+        value = JSON.parse(value);
+        if (getRemoved && !value.removed) continue;
+        if (!getAll && value.removed) continue;
+        payments.push(value);
+      }
+    }
+    return payments;
+  }
+
+  async saveOrder (order, execute = true) {
+    const key = `order_${order.id}`;
+    const value = JSON.stringify(order);
+    if (execute) {
+      await this.db.setString(key, value);
+    }
+    return { key, value };
+  }
+
+  async getOrder (id, opts = { removed: false }) {
+    const key = `order_${id}`;
+    const value = await this.db.getString(key);
+    return JSON.parse(value);
+  }
+
+  async updateOrder (id, update, execute = true) {
+    const order = await this.getOrder(id);
+    const updatedOrder = { ...order, ...update };
+    if (execute) {
+      await this.saveOrder(updatedOrder);
+    }
+    return updatedOrder;
   }
 }
 
-module.exports = { DB: MMKV, ERROR }
+module.exports = { DB }
