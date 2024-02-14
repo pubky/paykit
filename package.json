@@ -30,6 +30,12 @@
     "sinon": "^15.0.3",
     "typescript": "^5.0.3"
   },
+  "react-native": {
+    "./src/DB/mmkv.js": "./src/DB/react-native-mmkv.js"
+  },
+  "node": {
+    "./src/DB/mmkv.js": "./src/DB/mmkv.js"
+  },
   "dependencies": {
     "@synonymdev/slashtags-url": "^1.0.0-alpha.3",
     "@synonymdev/web-relay": "github:slashtags/web-relay",

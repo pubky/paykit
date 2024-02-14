@@ -1,4 +1,4 @@
-const MMKVModule = require("nodejs-mmkv");
+const MMKVModule = require("./mmkv");
 const path = require("path");
 
 class DB {
