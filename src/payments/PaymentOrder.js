@@ -291,7 +291,6 @@ class PaymentOrder {
 
     this.state = ORDER_STATE.CANCELLED
     await this.db.updateOrder (this.id, { state: this.state })
-    console.log(this.serialize())
   }
 
   /**
