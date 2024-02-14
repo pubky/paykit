@@ -41,7 +41,6 @@ test('PaymentOrder - new (default one time)', async t => {
 
 test('PaymentOrder - new (invalid frequency)', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
   const params = { ...orderParams, frequency: 'a' }
 
@@ -153,7 +152,7 @@ test('PaymentOrder.save', async t => {
     lastPaymentAt: paymentOrder.lastPaymentAt
   })
 
-  const gotPayment = await paymentOrder.db.getPayment(paymentOrder.payments[0].id)
+  const gotPayment = await paymentOrder.db.getOutgoingPayment(paymentOrder.payments[0].id)
   t.alike(gotPayment, {
     id: paymentOrder.payments[0].id,
     orderId: paymentOrder.id,
@@ -471,7 +470,6 @@ test('PaymentOrder.find', async t => {
 
 test('PaymentOrder - recurring order (finite)', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
 
@@ -523,7 +521,6 @@ test('PaymentOrder - recurring order (finite)', async t => {
 
 test('PaymentOrder - recurring order (infinite)', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
   const relay = new Relay(tmpdir())
   await relay.listen(3000)

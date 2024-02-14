@@ -14,7 +14,6 @@ const { dropTables, tmpdir } = require('../helpers')
 
 async function createPaymentEntities (t, initializeReceiver = true, opts = {}) {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
@@ -79,9 +78,7 @@ test('PaymentObject.validatePaymentParams', t => {
 test('PaymentObject.validateDB', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
   t.exception(() => PaymentObject.validateDB(), ERRORS.NO_DB)
-  t.exception(() => PaymentObject.validateDB(db), ERRORS.DB_NOT_READY)
 
-  await db.init()
   t.execution(() => PaymentObject.validateDB(db))
 
   await t.teardown(async () => await dropTables(db))
@@ -270,7 +267,7 @@ test('PaymentObject.save - iff entry is new', async t => {
 
   await paymentObject.save()
 
-  const got = await db.getPayment(paymentObject.id)
+  const got = await db.getOutgoingPayment(paymentObject.id)
   t.alike(got, paymentObject.serialize())
 
   await t.exception(async () => await paymentObject.save(), ERRORS.ALREADY_EXISTS(paymentObject.id))
@@ -288,10 +285,10 @@ test('PaymentObject.delete', async t => {
   const { id } = paymentObject
   await paymentObject.delete()
 
-  let got = await db.getPayment(id)
+  let got = await db.getOutgoingPayment(id)
   t.is(got, null)
 
-  got = await db.getPayment(id, { removed: true })
+  got = await db.getOutgoingPayment(id, { removed: true })
   t.alike(got, paymentObject.serialize())
 
   t.teardown(async () => {
@@ -323,7 +320,7 @@ test('PaymentObject.update', async t => {
   paymentObject.amount = new PaymentAmount({ amount: '200', currency: 'BTC' })
   await paymentObject.update()
 
-  const got = await db.getPayment(id)
+  const got = await db.getOutgoingPayment(id)
   t.alike(got, paymentObject.serialize())
   t.is(got.amount, '200')
   t.is(got.currency, 'BTC')
@@ -338,7 +335,7 @@ test('PaymentObject.process', async t => {
   const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
-  const update = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
+  const update = sinon.replace(db, 'updateOutgoingPayment', sinon.fake(db.updateOutgoingPayment))
 
   await paymentObject.save()
   await paymentObject.init()
@@ -469,7 +466,7 @@ test('PaymentObject.complete', async t => {
   const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
-  const update = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
+  const update = sinon.replace(db, 'updateOutgoingPayment', sinon.fake(db.updateOutgoingPayment))
 
   await paymentObject.save()
   await paymentObject.init()
@@ -545,7 +542,7 @@ test('PaymentObject.cancel', async t => {
   const { paymentObject, db, relay } = await createPaymentEntities(t, true, {
     executeAt: new Date(Date.now() + 100000)
   })
-  const update = sinon.replace(db, 'updatePayment', sinon.fake(db.updatePayment))
+  const update = sinon.replace(db, 'updateOutgoingPayment', sinon.fake(db.updateOutgoingPayment))
 
   await paymentObject.save()
   await paymentObject.init()

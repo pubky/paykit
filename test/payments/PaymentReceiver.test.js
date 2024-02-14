@@ -19,7 +19,6 @@ const { dropTables, tmpdir } = require('../helpers')
 
 async function createStorageEntities (t) {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
   const relay = new Relay(tmpdir())
   await relay.listen(3000)

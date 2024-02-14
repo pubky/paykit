@@ -11,7 +11,6 @@ const uninitializedPayment = {
 test('PaymentState.validate', t => {
   t.exception(() => PaymentState.validate(), ERRORS.PAYMENT_REQUIRED)
   t.exception(() => PaymentState.validate({}), ERRORS.DB_REQUIRED)
-  t.exception(() => PaymentState.validate({ db: {} }), ERRORS.DB_NOT_READY)
 
   t.execution(() => PaymentState.validate(uninitializedPayment))
 })

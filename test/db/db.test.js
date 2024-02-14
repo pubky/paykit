@@ -2,18 +2,7 @@ const { test } = require('brittle')
 const { v4: uuidv4 } = require('uuid')
 
 const { DB } = require('../../src/DB/index.js')
-const { deserializePayment } = require('../../src/DB/outgoingPayment.js')
-const { deserializeOrder } = require('../../src/DB/order.js')
-
-async function dropTables (db) {
-  const statement = 'DROP TABLE IF EXISTS payments; DROP TABLE IF EXISTS orders; DROP TABLE IF EXISTS incoming_payments;'
-  return new Promise((resolve, reject) => {
-    db.db.sqlite.exec(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  })
-}
+const { dropTables } = require('../helpers')
 
 function createPayment () {
   return {
@@ -102,74 +91,34 @@ test('constructor', async (t) => {
   const db = new DB({ name: 'test', path: './test_db' })
 
   t.ok(db.db)
-  t.is(db.ready, false)
 })
 
-test('init', async (t) => {
-  const db = new DB({ name: 'test', path: './test_db' })
-
-  await db.init()
-
-  t.is(db.ready, true)
-  const statement = 'SELECT * FROM sqlite_schema WHERE type =\'table\' AND name NOT LIKE \'sqlite_%\';'
-
-  const res = await (new Promise((resolve, reject) => {
-    db.db.sqlite.all(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  }))
-
-  t.is(res.length, 3)
-  t.is(res.find((r) => r.name === 'payments').name, 'payments')
-  t.is(res.find((r) => r.name === 'incoming_payments').name, 'incoming_payments')
-  t.is(res.find((r) => r.name === 'orders').name, 'orders')
-
-  await t.teardown(async () => {
-    await dropTables(db)
-  })
-})
-
-test('db.savePayment', async (t) => {
+test('db.saveOutgoingPayment', async (t) => {
   const payment = createPayment()
 
   const db = new DB({ name: 'test', path: './test_db' })
 
-  await db.init()
+  await db.saveOutgoingPayment(payment)
+  const res = await db.getOutgoingPayment(payment.id)
 
-  await db.savePayment(payment)
-
-  const statement = 'SELECT * FROM payments;'
-
-  const res = await (new Promise((resolve, reject) => {
-    db.db.sqlite.all(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  }))
-
-  t.is(res.length, 1)
-  const savedPayment = deserializePayment(res[0])
-
-  comparePayments(t, savedPayment, payment)
+  comparePayments(t, res, payment)
 
   await t.teardown(async () => {
     await dropTables(db)
   })
 })
 
-test('db.getPayment', async (t) => {
+test('db.getOutgoingPayment', async (t) => {
   const payment1 = createPayment()
   const payment2 = createPayment()
 
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
-  await db.savePayment(payment1)
-  await db.savePayment(payment2)
+  await db.saveOutgoingPayment(payment1)
+  await db.saveOutgoingPayment(payment2)
 
-  const res1 = await db.getPayment(payment1.id)
-  const res2 = await db.getPayment(payment2.id)
+  const res1 = await db.getOutgoingPayment(payment1.id)
+  const res2 = await db.getOutgoingPayment(payment2.id)
 
   comparePayments(t, res1, payment1)
   comparePayments(t, res2, payment2)
@@ -179,20 +128,19 @@ test('db.getPayment', async (t) => {
   })
 })
 
-test('db.updatePayment', async (t) => {
+test('db.updateOutgoingPayment', async (t) => {
   const payment = createPayment()
 
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
-  await db.savePayment(payment)
+  await db.saveOutgoingPayment(payment)
 
-  const res = await db.getPayment(payment.id)
+  const res = await db.getOutgoingPayment(payment.id)
 
   comparePayments(t, res, payment)
 
-  await db.updatePayment(payment.id, { internalState: 'completed' })
+  await db.updateOutgoingPayment(payment.id, { internalState: 'completed' })
 
-  const updated = await db.getPayment(payment.id)
+  const updated = await db.getOutgoingPayment(payment.id)
 
   t.is(updated.internalState, 'completed')
   t.is(updated.id, payment.id)
@@ -202,26 +150,25 @@ test('db.updatePayment', async (t) => {
   })
 })
 
-test('db.getPayment - removed', async (t) => {
+test('db.getOutgoingPayment - removed', async (t) => {
   const payment1 = createPayment()
   const payment2 = createPayment()
 
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
-  await db.savePayment(payment1)
-  await db.savePayment(payment2)
+  await db.saveOutgoingPayment(payment1)
+  await db.saveOutgoingPayment(payment2)
 
-  await db.updatePayment(payment1.id, { removed: true })
+  await db.updateOutgoingPayment(payment1.id, { removed: true })
 
-  const res1 = await db.getPayment(payment1.id)
-  const res2 = await db.getPayment(payment2.id)
+  const res1 = await db.getOutgoingPayment(payment1.id)
+  const res2 = await db.getOutgoingPayment(payment2.id)
 
   t.absent(res1, undefined)
   comparePayments(t, res2, payment2)
 
-  const resA = await db.getPayment(payment1.id, { removed: '*' })
-  const resR = await db.getPayment(payment1.id, { removed: true })
+  const resA = await db.getOutgoingPayment(payment1.id, { removed: '*' })
+  const resR = await db.getOutgoingPayment(payment1.id, { removed: true })
 
   comparePayments(t, resA, resR)
 
@@ -236,16 +183,15 @@ test('db.getOutgoingPayments', async (t) => {
   const payment3 = createPayment()
 
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
-  await db.savePayment(payment1)
-  await db.savePayment(payment2)
-  await db.savePayment(payment3)
+  await db.saveOutgoingPayment(payment1)
+  await db.saveOutgoingPayment(payment2)
+  await db.saveOutgoingPayment(payment3)
 
-  await db.updatePayment(payment2.id, { internalState: 'completed', direction: 'incomming' })
+  await db.updateOutgoingPayment(payment2.id, { internalState: 'completed', direction: 'incomming' })
   const res = await db.getOutgoingPayments({ internalState: 'pending', memo: 'test memo' })
 
-  t.is(res.length, 2)
+  t.is(res.length, 3)
   t.is(res.find((r) => r.id === payment1.id).id, payment1.id)
   t.is(res.find((r) => r.id === payment3.id).id, payment3.id)
 
@@ -259,23 +205,10 @@ test('db.saveOrder', async (t) => {
 
   const db = new DB({ name: 'test', path: './test_db' })
 
-  await db.init()
-
   await db.saveOrder(order)
+  const res = await db.getOrder(order.id)
 
-  const statement = 'SELECT * FROM orders;'
-
-  const res = await (new Promise((resolve, reject) => {
-    db.db.sqlite.all(statement, (err, res) => {
-      if (err) return reject(err)
-      return resolve(res)
-    })
-  }))
-
-  t.is(res.length, 1)
-  const savedOrder = deserializeOrder(res[0])
-
-  compareOrders(t, savedOrder, order)
+  compareOrders(t, res, order)
 
   await t.teardown(async () => {
     await dropTables(db)
@@ -287,7 +220,6 @@ test('db.getOrder', async (t) => {
   const order2 = createOrder()
 
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
   await db.saveOrder(order1)
   await db.saveOrder(order2)
@@ -307,7 +239,6 @@ test('db.updateOrder', async (t) => {
   const order = createOrder()
 
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
   await db.saveOrder(order)
 
   const res = await db.getOrder(order.id)

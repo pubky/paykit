@@ -42,7 +42,6 @@ class PaymentIncoming {
    */
   static validateDB (db) {
     if (!db) throw new Error(ERRORS.NO_DB)
-    if (!db.ready) throw new Error(ERRORS.DB_NOT_READY)
   }
 
   /**
@@ -165,7 +164,7 @@ class PaymentIncoming {
       this.id = PaymentIncoming.generateId()
     }
 
-    const paymentObject = await this.db.getPayment(this.id, { removed: '*' })
+    const paymentObject = await this.db.getIncomingPayment(this.id, { removed: '*' })
     if (paymentObject) throw new Error(ERRORS.ALREADY_EXISTS(this.id))
 
     const serialized = this.serialize()
@@ -187,7 +186,7 @@ class PaymentIncoming {
       this.logger.info('Force deleting payment object')
       throw new Error(ERRORS.NOT_ALLOWED)
     }
-    await this.db.updatePayment(this.id, { removed: true })
+    await this.db.updateIncomingPayment(this.id, { removed: true })
     this.logger.debug('Payment object deleted')
   }
 
@@ -202,7 +201,7 @@ class PaymentIncoming {
 
     const serialized = this.serialize()
     PaymentIncoming.validatePaymentObject(serialized)
-    const res = await this.db.updatePayment(this.id, serialized, persist)
+    const res = await this.db.updateIncomingPayment(this.id, serialized, persist)
 
     this.logger.debug('Payment object updated')
     return res
@@ -222,7 +221,6 @@ const ERRORS = {
   PAYMENT_OBJECT_REQUIRED: 'payment object is required',
   ALREADY_EXISTS: (id) => `Payment id: ${id} already exists`,
   NO_DB: 'No database provided',
-  DB_NOT_READY: 'Database is not ready',
   NOT_ALLOWED: 'Not allowed',
   NO_PAYMENT_FILE: 'No payment file found',
   INVALID_PLUGIN_STATE: (state) => `Invalid plugin state ${state}`

@@ -16,9 +16,6 @@ const rl = readline.createInterface({
     notificationCallback: (p) => console.log('--- nofication: ', p)
   })
 
-  console.log('initializing...')
-  await paymentManager.init() // receiver
-  console.log('initialized')
   console.log('initializing receivers...')
   const myUrl = await paymentManager.receivePayments()
 

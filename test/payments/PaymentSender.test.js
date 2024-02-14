@@ -102,7 +102,7 @@ test('PaymentSender.stateUpdateCallback (success)', async t => {
   }
   await paymentSender.stateUpdateCallback(paymentUpdate)
 
-  const got = await paymentOrder.db.getPayment(payment.id)
+  const got = await paymentOrder.db.getOutgoingPayment(payment.id)
 
   t.is(got.id, payment.id)
   t.is(got.internalState, PAYMENT_STATE.COMPLETED)
@@ -132,7 +132,7 @@ test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
 
-  let got = await paymentOrder.db.getPayment(payment.id)
+  let got = await paymentOrder.db.getOutgoingPayment(payment.id)
 
   t.is(got.id, payment.id)
   t.is(got.internalState, PAYMENT_STATE.IN_PROGRESS)
@@ -143,7 +143,7 @@ test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
   }
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
-  got = await paymentOrder.db.getPayment(payment.id)
+  got = await paymentOrder.db.getOutgoingPayment(payment.id)
 
   t.is(got.id, payment.id)
   t.is(got.internalState, PAYMENT_STATE.COMPLETED)
@@ -176,7 +176,7 @@ test('PaymentSender.stateUpdateCallback (intermediate state)', async t => {
 
   t.is(entryPointForPlugin.callCount, 1)
 
-  const got = await paymentOrder.db.getPayment(payment.id)
+  const got = await paymentOrder.db.getOutgoingPayment(payment.id)
 
   t.is(got.id, payment.id)
   t.is(got.internalState, PAYMENT_STATE.IN_PROGRESS)
@@ -209,7 +209,7 @@ test('PaymentSender.stateUpdateCallback (failure, failure)', async t => {
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
 
-  let got = await paymentOrder.db.getPayment(payment.id)
+  let got = await paymentOrder.db.getOutgoingPayment(payment.id)
 
   t.is(got.id, payment.id)
   t.is(got.internalState, PAYMENT_STATE.IN_PROGRESS)
@@ -220,7 +220,7 @@ test('PaymentSender.stateUpdateCallback (failure, failure)', async t => {
   }
 
   await paymentSender.stateUpdateCallback(paymentUpdate)
-  got = await paymentOrder.db.getPayment(payment.id)
+  got = await paymentOrder.db.getOutgoingPayment(payment.id)
 
   t.is(got.id, payment.id)
   t.is(got.internalState, PAYMENT_STATE.FAILED)
@@ -287,7 +287,6 @@ test('PaymentSender.getCurrentPlugin', async t => {
 
 test('PaymentSender - recurring payment all success', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
 
@@ -357,7 +356,6 @@ test('PaymentSender - recurring payment all success', async t => {
 
 test('PaymentSender - recurring payment intermediate failure', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
   const relay = new Relay(tmpdir())
   await relay.listen(3000)
@@ -444,7 +442,6 @@ test('PaymentSender - recurring payment intermediate failure', async t => {
 
 test('PaymentSender - recurring payment completely failed intermediate payment', async t => {
   const db = new DB({ name: 'test', path: './test_db' })
-  await db.init()
 
   const relay = new Relay(tmpdir())
   await relay.listen(3000)

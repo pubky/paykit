@@ -283,25 +283,14 @@ class PaymentOrder {
     this.logger.debug('Cancelling payment order')
     if (this.state === ORDER_STATE.COMPLETED) throw new Error(ERRORS.ORDER_COMPLETED)
 
-    try {
-      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
+    for (const payment of this.payments) {
+      if (payment.isFinal()) continue
 
-      this.state = ORDER_STATE.CANCELLED
-      const { statement, params } = await this.update(false)
-      await this.db.executeStatement(statement, params, 'run')
-
-      await this.payments
-        .filter((payment) => !payment.isFinal())
-        .forEach(async (payment) => {
-          const { statement, params } = await payment.cancel(false)
-          await this.db.executeStatement(statement, params, 'run')
-        })
-
-      await this.db.executeStatement('COMMIT', [], 'exec')
-    } catch (e) {
-      await this.db.executeStatement('ROLLBACK', [], 'exec')
-      throw e
+      await payment.cancel()
     }
+
+    this.state = ORDER_STATE.CANCELLED
+    await this.db.updateOrder (this.id, { state: this.state })
   }
 
   /**
@@ -340,23 +329,10 @@ class PaymentOrder {
   async save () {
     this.logger.debug('Saving payment order')
     const orderObject = this.serialize()
-
-    try {
-      await this.db.executeStatement('BEGIN TRANSACTION', [], 'exec')
-
-      const { statement, params } = await this.db.saveOrder(orderObject, false)
-      await this.db.executeStatement(statement, params, 'run')
-
-      for (const payment of this.payments) {
-        const { statement, params } = await payment.save(false)
-        await this.db.executeStatement(statement, params, 'run')
-      }
-
-      await this.db.executeStatement('COMMIT', [], 'exec')
-    } catch (e) {
-      await this.db.executeStatement('ROLLBACK', [], 'exec')
-      throw e
+    for (const payment of this.payments) {
+      await payment.save()
     }
+    await this.db.saveOrder(orderObject)
   }
 
   /**
@@ -401,7 +377,6 @@ class PaymentOrder {
  * @property {string} ORDER_CONFIG_REQUIRED
  * @property {string} ORDER_CONFIG_SENDING_PARTY_REQUIRED
  * @property {string} DB_REQUIRED
- * @property {string} DB_NOT_READY
  * @property {string} OUTSTANDING_PAYMENTS
  * @property {string} ORDER_CANCELLED
  * @property {string} ORDER_COMPLETED
@@ -419,7 +394,6 @@ const ERRORS = {
   ORDER_CONFIG_REQUIRED: 'Order config is required',
   ORDER_CONFIG_SENDING_PARTY_REQUIRED: 'Order config sending party is required',
   DB_REQUIRED: 'DB is required',
-  DB_NOT_READY: 'DB is not ready',
   OUTSTANDING_PAYMENTS: 'There are outstanding payments',
   ORDER_CANCELLED: 'Order is cancelled',
   ORDER_COMPLETED: 'Order is completed',
