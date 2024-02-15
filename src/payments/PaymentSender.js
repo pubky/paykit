@@ -42,8 +42,13 @@ class PaymentSender {
     const { paymentEndpoints } = await payment.transportConnector.readRemote(payment.counterpartyURL)
     const paymentUrl = paymentEndpoints[name]
     const target = await payment.transportConnector.readRemote(paymentUrl)
-    // TODO: skip to next target instead
-    if (!target) throw new Error(ERRORS.PAYMENT_TARGET_NOT_FOUND)
+    if (!target) {
+      payment.pluginUpdate = {
+        pluginState: PLUGIN_STATES.FAILED,
+        message: ERRORS.PAYMENT_TARGET_NOT_FOUND
+      }
+      return await this.handleFailure(payment)
+    }
 
     await plugin.pay({
       target,

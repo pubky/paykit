@@ -44,15 +44,15 @@ async function getOneTimePaymentOrderEntities (t, initializeReceiver = false, cr
   }
 
   if (initializeReceiver) {
-    const p2sh = await receiver.create('/public/p2sh.json', { p2sh: 'test.p2sh' }, { awaitRelaySync: true })
-    const p2tr = await receiver.create('/public/p2tr.json', { p2tr: 'test.p2tr' }, { awaitRelaySync: true })
+    const plugins = ['p2sh', 'p2tr']
+    const paymentEndpoints = {}
+    for (const plugin of plugins) {
+      if (plugin === opts.skipPlugin) continue
 
-    await receiver.create(SLASHPAY_PATH, {
-      paymentEndpoints: {
-        p2sh,
-        p2tr
-      }
-    }, { awaitRelaySync: true })
+      paymentEndpoints[plugin] = await receiver.create(`/public/${plugin}.json`, { [plugin]: `test.${plugin}` }, { awaitRelaySync: true })
+    }
+
+    await receiver.create(SLASHPAY_PATH, { paymentEndpoints }, { awaitRelaySync: true })
   }
 
   let paymentOrder
