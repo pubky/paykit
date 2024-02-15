@@ -156,6 +156,40 @@ test('PaymentSender.stateUpdateCallback (failure, success)', async t => {
   })
 })
 
+test('PaymentSender.stateUpdateCallback (failure (target), success)', async t => {
+  const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true, true, { skipPlugin: 'p2sh' })
+  await paymentOrder.init()
+
+  const pluginManager = new PluginManager(pluginConfig)
+
+  const paymentSender = new PaymentSender(paymentOrder, pluginManager, () => {})
+  await paymentSender.submit()
+
+  const payment = paymentOrder.payments[0]
+  let got = await paymentOrder.db.getOutgoingPayment(payment.id)
+
+  t.is(got.id, payment.id)
+  t.is(got.internalState, PAYMENT_STATE.IN_PROGRESS)
+
+  paymentUpdate = {
+    id: payment.id,
+    pluginState: PLUGIN_STATES.SUCCESS
+  }
+
+  await paymentSender.stateUpdateCallback(paymentUpdate)
+  got = await paymentOrder.db.getOutgoingPayment(payment.id)
+
+  t.is(got.id, payment.id)
+  t.is(got.internalState, PAYMENT_STATE.COMPLETED)
+
+  t.teardown(async () => {
+    await relay.close()
+    await dropTables(db)
+
+    sinon.restore()
+  })
+})
+
 test('PaymentSender.stateUpdateCallback (intermediate state)', async t => {
   const { paymentOrder, db, relay } = await getOneTimePaymentOrderEntities(t, true)
   await paymentOrder.init()

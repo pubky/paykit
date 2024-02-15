@@ -38,9 +38,10 @@
   },
   "dependencies": {
     "@synonymdev/slashtags-url": "^1.0.0-alpha.3",
-    "@synonymdev/web-relay": "github:slashtags/web-relay",
-    "nodejs-mmkv": "^0.2.0",
+    "@synonymdev/web-relay": "^1.0.9",
     "b4a": "^1.6.4",
+    "nodejs-mmkv": "^0.2.0",
+    "react-native-mmkv": "^2.11.0",
     "slashtags-logger": "github:slashtags/slashtags-logger",
     "sqlite3": "^5.1.6",
     "uuid": "^9.0.0"
