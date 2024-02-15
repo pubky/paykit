@@ -14,13 +14,11 @@ class DB {
   }
 
 
-  async saveOutgoingPayment(payment, execute = true) {
+  async saveOutgoingPayment(payment) {
     const key = `outgoing_payment_${payment.id}`;
     const value = JSON.stringify(payment);
-    if (execute) {
-      await this.db.setString(key, value);
-    }
-    return { key, value };
+
+    await this.db.setString(key, value);
   }
 
   async getOutgoingPayment (id, opts = { removed: false }) {
@@ -70,22 +68,18 @@ class DB {
     return payments;
   }
 
-  async updateOutgoingPayment (id, update, execute = true) {
+  async updateOutgoingPayment (id, update) {
     const payment = await this.getOutgoingPayment(id);
     const updatedPayment = { ...payment, ...update };
-    if (execute) {
-      await this.saveOutgoingPayment(updatedPayment);
-    }
-    return updatedPayment;
+
+    await this.saveOutgoingPayment(updatedPayment);
   }
 
-  async saveIncomingPayment (payment, execute = true) {
+  async saveIncomingPayment (payment) {
     const key = `incoming_payment_${payment.id}`;
     const value = JSON.stringify(payment);
-    if (execute) {
-      await this.db.setString(key, value);
-    }
-    return { key, value };
+
+    await this.db.setString(key, value);
   }
 
   async getIncomingPayment (id, opts = { removed: false }) {
@@ -108,13 +102,11 @@ class DB {
     return JSON.parse(value);
   }
 
-  async updateIncomingPayment (id, update, execute = true) {
+  async updateIncomingPayment (id, update) {
     const payment = await this.getIncomingPayment(id);
     const updatedPayment = { ...payment, ...update };
-    if (execute) {
-      await this.saveIncomingPayment(updatedPayment);
-    }
-    return updatedPayment;
+
+    await this.saveIncomingPayment(updatedPayment);
   }
 
   async getIncomingPayments (opts = {}) {
@@ -137,13 +129,11 @@ class DB {
     return payments;
   }
 
-  async saveOrder (order, execute = true) {
+  async saveOrder (order) {
     const key = `order_${order.id}`;
     const value = JSON.stringify(order);
-    if (execute) {
-      await this.db.setString(key, value);
-    }
-    return { key, value };
+
+    await this.db.setString(key, value);
   }
 
   async getOrder (id, opts = { removed: false }) {
@@ -152,13 +142,11 @@ class DB {
     return JSON.parse(value);
   }
 
-  async updateOrder (id, update, execute = true) {
+  async updateOrder (id, update) {
     const order = await this.getOrder(id);
     const updatedOrder = { ...order, ...update };
-    if (execute) {
-      await this.saveOrder(updatedOrder);
-    }
-    return updatedOrder;
+
+    await this.saveOrder(updatedOrder);
   }
 }
 
