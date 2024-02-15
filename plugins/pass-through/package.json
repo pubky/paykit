@@ -1,0 +1,11 @@
+{
+  "name": "pass-through",
+  "version": "1.0.0",
+  "description": "Adapter to integrate existing payment systems into paykit",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT"
+}
